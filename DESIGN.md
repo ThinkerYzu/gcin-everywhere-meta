@@ -128,6 +128,30 @@
 
 **Rationale:** Simpler, integrates naturally with GNOME's IBus UI. Can revisit with a custom window in a later phase if the look and feel matters.
 
+### 6. Cangjie punctuation: intercept before feedkey_gtab, not inside gcin
+
+**Decision:** Chinese punctuation for Cangjie is handled in `gcin_core_feedkey_cangjie()` by a lookup table that fires the commit callback directly, before the key reaches `feedkey_gtab()`.
+
+**Background:** In gcin's original Cangjie flow, `feedkey_gtab` has no punctuation interception. Chinese punctuation is delivered via `full_char_proc()` (in excluded `eve.cpp`) which activates only when the user manually toggles a full-width character mode (`b_half_full_char`). For Zhuyin, `feedkey_pho` calls `pre_punctuation()` (in `tsin.cpp`, compiled) — but `pre_punctuation` routes through `add_to_tsin_buf()` for non-PHO methods rather than calling `send_text()` directly, because our `current_method_type()` stub returns 0.
+
+**Decision detail:** When `ggg.ci == 0` (no Cangjie composition in progress) and the keyval matches a shifted punctuation key, `gcin_core_feedkey_cangjie()` fires the commit callback with the Chinese punctuation character and returns 1 (consumed). The mapping reuses gcin's existing `pre_punctuation()` table:
+
+| Key (shifted) | Keyval | Chinese |
+|--------------|--------|---------|
+| Shift+, | `<` | ， |
+| Shift+. | `>` | 。 |
+| Shift+/ | `?` | ？ |
+| Shift+; | `:` | ： |
+| Shift+' | `"` | ； |
+| Shift+[ | `{` | 「 |
+| Shift+] | `}` | 」 |
+| Shift+1 | `!` | ！ |
+| Shift+- | `_` | —— |
+
+**Why not reuse `pre_punctuation()` directly?** `pre_punctuation_sub()` branches on `current_method_type() == method_type_PHO`. Since our `current_method_type()` stub returns 0, the else-branch routes to `add_to_tsin_buf()` + `flush_tsin_buffer()` — the phrase buffer path. Intercepting in `gcin_core_feedkey_cangjie()` with a direct `send_text()` call is simpler and avoids that complexity.
+
+**When NOT to intercept:** If `ggg.ci > 0` (a Cangjie key sequence is in progress), the punctuation key is passed to `feedkey_gtab()` unchanged — it may be a valid component key or trigger candidate display.
+
 ---
 
 ## Data Model
@@ -214,4 +238,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-05-04 (revised after source audit)
+**Last Updated:** 2026-05-05 (added decision 6: Cangjie punctuation interception)

@@ -76,7 +76,8 @@
 
 ## Next Actions
 
-1. **Phase 2 — Additional input methods** — Quick (速成), Array (行列), Dayi (大易). Same adapter pattern as Cangjie; each gets its own `<engine>` in gcin.xml and a mode constant.
+1. **Phase 6 — Cangjie punctuation (NEXT)** — Add `feedkey_cangjie_punctuation()` helper in `gcin_stubs.cpp`; call it at top of `gcin_core_feedkey_cangjie()` when `ggg.ci == 0`. Add 2 unit tests. See [IMPLEMENTATION-GUIDE.md Phase 6](IMPLEMENTATION-GUIDE.md#phase-6-cangjie-punctuation-support) for the full plan.
+2. **Phase 2 — Additional input methods** — Quick (速成), Array (行列), Dayi (大易). Same adapter pattern as Cangjie; each gets its own `<engine>` in gcin.xml and a mode constant.
 
 **Deferred:**
 - Windows (TSF) and macOS (IMKit) ports — future phases after Phase 1 is working.
@@ -115,4 +116,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 11 — GitHub repos published; top-level Makefile added)
+**Last Updated:** 2026-05-05 (Plan added: Phase 6 Cangjie punctuation; design decision 6 in DESIGN.md)

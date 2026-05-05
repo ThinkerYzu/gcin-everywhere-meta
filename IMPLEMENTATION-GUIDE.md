@@ -967,4 +967,81 @@ ibus restart
 
 ---
 
-**Last Updated:** 2026-05-05 (Session 4 — corrected Phase 1 Makefile; added Phase 2 Makefile + build notes)
+## Phase 6: Cangjie Punctuation Support
+
+**Goal:** Shifted punctuation keys (e.g., Shift+, → ，) commit Chinese punctuation
+when no Cangjie composition is in progress.
+
+See [Design Decision 6](DESIGN.md#6-cangjie-punctuation-intercept-before-feedkey_gtab-not-inside-gcin)
+for rationale and the full key mapping.
+
+### Implementation
+
+**1. Add a static lookup table and helper in `gcin-core/gcin_stubs.cpp`:**
+
+```c
+/* Maps ASCII keyval → Chinese punctuation UTF-8 string.
+   Applied only when ggg.ci == 0 (no composition in progress). */
+static const struct { unsigned long key; const char *punc; } cangjie_punc[] = {
+    { '<',  "，" }, { '>',  "。" }, { '?',  "？" },
+    { ':',  "：" }, { '"',  "；" }, { '{',  "「" },
+    { '}',  "」" }, { '!',  "！" }, { '_',  "——" },
+};
+
+static int feedkey_cangjie_punctuation(unsigned long keyval) {
+    if (ggg.ci != 0) return 0;   /* composition in progress — don't intercept */
+    for (int i = 0; i < (int)(sizeof cangjie_punc / sizeof *cangjie_punc); i++) {
+        if (cangjie_punc[i].key == keyval) {
+            send_text((char *)cangjie_punc[i].punc);
+            return 1;
+        }
+    }
+    return 0;
+}
+```
+
+**2. Call the helper at the top of `gcin_core_feedkey_cangjie()`:**
+
+```c
+int gcin_core_feedkey_cangjie(unsigned long keyval, int modifiers) {
+    if (g_cangjie_inmd >= 0 && current_CS->in_method != g_cangjie_inmd) {
+        current_CS->in_method = g_cangjie_inmd;
+        init_gtab(g_cangjie_inmd);
+    }
+    if (feedkey_cangjie_punctuation(keyval)) return 1;
+    return feedkey_gtab((KeySym)keyval, modifiers);
+}
+```
+
+No changes needed in `gcin_engine.c` or `gcin-core.h` — this is entirely internal
+to the Cangjie feedkey path.
+
+### Test
+
+Add to `gcin-core/test_feedkey.c`:
+
+```c
+static void test_cangjie_punctuation(void) {
+    /* Shift+, sends '<' keyval (0x3c) → should commit ， */
+    reset();
+    gcin_core_feedkey_cangjie('<', ShiftMask);
+    EXPECT_COMMITTED("，", "cangjie: shift+, commits ，");
+
+    /* Mid-composition: punctuation key should NOT be intercepted */
+    reset();
+    gcin_core_feedkey_cangjie('k', 0);  /* start composition */
+    gcin_core_feedkey_cangjie('<', ShiftMask);
+    EXPECT_NOTHING_COMMITTED("cangjie: shift+, during composition not intercepted");
+}
+```
+
+### Scope note
+
+This only addresses Cangjie. Zhuyin punctuation goes through `pre_punctuation()` in
+`tsin.cpp` (already compiled), but `pre_punctuation_sub()` takes a non-PHO code path
+because our `current_method_type()` stub returns 0. Fixing Zhuyin punctuation would
+require either updating the stub or using the same interception approach — deferred.
+
+---
+
+**Last Updated:** 2026-05-05 (added Phase 6: Cangjie punctuation support)
