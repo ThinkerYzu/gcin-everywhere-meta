@@ -154,12 +154,23 @@ determine what stays vs. what can be dropped via declaration guards.
 | `gboolean` | yes | 174 uses in core logic |
 | `gint64` | yes | `key_press_time` used in `feedkey_gtab` |
 | `KeySym` | yes | `feedkey_gtab`/`feedkey_pho` signatures |
-| `GtkWidget` | yes | `gwin_*` externs in .cpp files; `GTK_WIDGET_VISIBLE(gwin_pho)` called inside `feedkey_gtab` (line 985) |
+| `GtkWidget` | yes | see below |
 | `unich_t` | yes | `gtab-buf.cpp` data arrays used by `output_gbuf` |
-| `Window` | **dropped** | `client_win` field never accessed in compiled code; guard it in IC.h (see below) |
-| all others | **dropped** | either zero-use or guarded via declaration guards |
+| `Window` | **dropped** | `client_win` never accessed in compiled code; guard in IC.h |
+| all others | **dropped** | zero-use or eliminated via declaration guards |
 
-`GTK_WIDGET_VISIBLE` must be defined — it IS called in `feedkey_gtab` and `feedkey_pho` on the `gwin_*` pointers. Since all `gwin_*` are NULL in core build, `(0)` is the correct expansion.
+**Why GtkWidget is kept (not eliminated):**
+`gwin_*` pointers appear in 4 compiled `.cpp` files as local `extern GtkWidget *` declarations,
+and `GTK_WIDGET_VISIBLE(gwin_pho)` is called inside `feedkey_gtab` (line 985) and
+`feedkey_pho` (line 844) — the compiler must parse it even though short-circuit `&&`
+prevents it running at runtime.
+
+Eliminating `GtkWidget` would require guarding those `extern` declarations in
+`gtab.cpp`, `gtab-buf.cpp`, `pho.cpp`, and `tsin.cpp` (4 more modified files), plus
+providing a minimal `WSP_S` typedef substitute in `tsin.cpp` to replace
+`win-save-phrase.h`'s struct that contains a `GtkWidget *opt` member.
+That raises the modified-file count from 4 to 8 to save a single `typedef void GtkWidget`.
+The type has no headers, no link-time footprint, and no runtime cost — not worth it.
 
 **Part 2 — declaration section of gcin.h:** Wrap declarations that use dropped types:
 
