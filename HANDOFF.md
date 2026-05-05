@@ -15,9 +15,9 @@
 
 ## Current Status
 
-**Phase:** Ready to code — all planning docs complete and audited
-**Progress:** SPEC approved; DESIGN complete; IMPLEMENTATION-GUIDE fully revised after source audit
-**Next Milestone:** Phase 1 — build libgcin-core.a (gcin-core/ directory, compat headers, gcin_stubs.cpp, one gcin source modification)
+**Phase:** Ready to code — planning fully locked down
+**Progress:** Implementation guide deeply audited; all GCIN_CORE_BUILD decisions final; 4 gcin files to modify; stub list corrected
+**Next Milestone:** Write code — modify 4 gcin files, create gcin-core/, build libgcin-core.a
 **Blockers:** None
 
 > **Phase checklist:**
@@ -31,11 +31,17 @@
 
 ### What We Have
 
-*(Empty — no code yet. Project is in spec phase.)*
+- Fully audited implementation plan for `libgcin-core.a`
+- GCIN_CORE_BUILD type list locked: 5 types (`gboolean`, `gint64`, `KeySym`, `GtkWidget`, `unich_t`)
+- 4 gcin files to modify: `gcin.h`, `IC.h`, `util.cpp`, `gcin-conf.cpp`
+- Corrected stub list (13 duplicate symbols removed)
 
 ### Key Design Decisions
 
-*(Empty — to be filled after DESIGN.md.)*
+- **No compat/ directory** — `gcin.h` modified with `GCIN_CORE_BUILD` block instead
+- **`gcin-common.cpp` excluded** — actual GTK/X11 calls; `case_inverse`/`current_time` re-implemented in stubs
+- **`typedef void GtkWidget` kept** — eliminating it costs 4 more file modifications for zero practical benefit
+- **`GTK_WIDGET_VISIBLE(w)` defined as `(0)`** — called in `feedkey_gtab:985` / `feedkey_pho:844`; always-NULL pointers in core build
 
 ---
 
@@ -55,7 +61,8 @@
 
 ## Session Logs
 
-1. **Session 1: Project kickoff + full planning + source audit** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md; audited gcin source tree (confirmed entry points `feedkey_gtab`/`feedkey_pho`, IBus/X11 keyval compatibility, compat-header strategy, one required source modification); fully revised IMPLEMENTATION-GUIDE.md with concrete Phase 1 plan for `libgcin-core.a`; initialized both git repos.
+1. **[Session 2: Implementation Guide Deep Audit](logs/2026-05-05-session-02-impl-guide-deep-audit.md)** (2026-05-05) — Per-file GTK/X11 audit: only 2 files call GTK (util.cpp, gcin-conf.cpp); eliminated compat/ directory; reduced GCIN_CORE_BUILD to 5 types; found 13 duplicate symbol conflicts in stub list; decided to keep `typedef void GtkWidget`; deleted INIT-GUIDE.md.
+2. **Session 1: Project kickoff + full planning** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md; audited gcin source tree (entry points, IBus/X11 keyval compatibility); drafted IMPLEMENTATION-GUIDE.md with Phase 1 plan for `libgcin-core.a`; initialized both git repos.
 
 ---
 
@@ -76,4 +83,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05
