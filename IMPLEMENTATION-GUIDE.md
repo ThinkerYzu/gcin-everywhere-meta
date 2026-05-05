@@ -113,16 +113,17 @@ determine what stays vs. what can be dropped via declaration guards.
   #include <stdlib.h>
   #include <string.h>
   /* Types used in code bodies of compiled files */
-  typedef int          gboolean;   /* 174 uses */
-  typedef long long    gint64;     /* 7 uses: key_press_time */
-  typedef unsigned long KeySym;    /* 37 uses: feedkey_* signatures */
-  typedef unsigned long Window;    /* 8 uses: ClientState.client_win */
-  typedef void         GtkWidget;  /* 18 uses: local externs in .cpp files */
-  typedef char         unich_t;    /* 11 uses: fullchar.cpp string literals */
+  typedef int           gboolean;  /* 174 uses — return types, variables throughout */
+  typedef long long     gint64;    /* 7 uses  — key_press_time globals */
+  typedef unsigned long KeySym;    /* 37 uses — feedkey_* entry point signatures */
+  typedef void          GtkWidget; /* 18 uses — local externs + GTK_WIDGET_VISIBLE calls */
+  typedef char          unich_t;   /* 11 uses — gtab-buf.cpp data arrays (= char on Linux) */
   #define TRUE  1
   #define FALSE 0
   #define _L(x) x
   #define UNIX  1
+  /* GTK_WIDGET_VISIBLE: called in feedkey_gtab/pho with always-NULL gwin_* pointers */
+  #define GTK_WIDGET_VISIBLE(w) (0)
   /* GLib memory macros — used in gcin allocation paths */
   #define g_malloc(n)    malloc(n)
   #define g_malloc0(n)   calloc(1, n)
@@ -146,10 +147,19 @@ determine what stays vs. what can be dropped via declaration guards.
 #endif
 ```
 
-**Why these 6 types and not more:**
-`Display`, `GdkWindow`, `gint`, `CARD32`, `XRectangle`, `Pixmap`, `Cursor`, `Colormap`
-and 7 other zero-use types are dropped. They are only needed for declarations that
-can be guarded away (see Part 2).
+**Why these 5 types and not more:**
+
+| Type | Kept | Reason |
+|------|------|--------|
+| `gboolean` | yes | 174 uses in core logic |
+| `gint64` | yes | `key_press_time` used in `feedkey_gtab` |
+| `KeySym` | yes | `feedkey_gtab`/`feedkey_pho` signatures |
+| `GtkWidget` | yes | `gwin_*` externs in .cpp files; `GTK_WIDGET_VISIBLE(gwin_pho)` called inside `feedkey_gtab` (line 985) |
+| `unich_t` | yes | `gtab-buf.cpp` data arrays used by `output_gbuf` |
+| `Window` | **dropped** | `client_win` field never accessed in compiled code; guard it in IC.h (see below) |
+| all others | **dropped** | either zero-use or guarded via declaration guards |
+
+`GTK_WIDGET_VISIBLE` must be defined — it IS called in `feedkey_gtab` and `feedkey_pho` on the `gwin_*` pointers. Since all `gwin_*` are NULL in core build, `(0)` is the correct expansion.
 
 **Part 2 — declaration section of gcin.h:** Wrap declarations that use dropped types:
 
@@ -168,7 +178,7 @@ gint  inmd_switch_popup_handler(GtkWidget *widget, GdkEvent *event);
 
 `extern ClientState *current_CS` stays **unguarded** — it IS used by core code.
 
-**`gcin/IC.h`** — guard XIM-only structs (never used by compiled code):
+**`gcin/IC.h`** — guard XIM-only content never used by compiled code:
 
 ```c
 #ifndef GCIN_CORE_BUILD
@@ -177,8 +187,23 @@ typedef struct { XRectangle area; ... Colormap cmap; ... } StatusAttributes;
 #endif
 ```
 
-`ClientState` struct stays unguarded. Its `Window client_win` member is why
-`Window` remains in the type list.
+Also guard `Window client_win` inside `ClientState` — no compiled file ever
+accesses this field (it's the X11 client window for XIM delivery):
+
+```c
+typedef struct {
+#ifndef GCIN_CORE_BUILD
+    Window client_win;
+#endif
+    INT32  input_style;
+    GCIN_STATE_E im_state;
+    gboolean b_half_full_char;
+    /* ... rest of ClientState ... */
+} ClientState;
+```
+
+With `Window client_win` guarded, `Window` is no longer needed anywhere —
+dropped from the GCIN_CORE_BUILD type list.
 
 **`gcin/gcin-conf.cpp`** — guard the X11 function call:
 
