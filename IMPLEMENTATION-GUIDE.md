@@ -875,16 +875,29 @@ Select with number key → commits character.
 
 ### Compile data tables
 
+**Tool names:** `gcin2tab` (not `cintotab`), `phoa2d` (not `phoconv`). Output goes beside the input file; run from the table output directory.
+
 ```bash
-# From gcin build directory (after ./configure && make):
-# cj.gtab — Cangjie table
-./cintotab data/cj.cin data/cj.gtab
+# Build tools without GTK2 (using libgcin-core.a):
+cd sources/gcin-everywhere/gcin-core && make
+cd ../gcin
+printf 'void gtk_init(int*a,char***b){}\ntypedef void Display;\nvoid send_gcin_message(Display*d,char*s){}\ntypedef unsigned short phokey_t;\nphokey_t pinyin2phokey(char*s){return 0;}\n' > /tmp/gtk_stub.c
+CFLAGS="-x c -std=gnu99 -O2 -Wno-implicit-function-declaration -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 -DGCIN_CORE_BUILD -DHAVE_CONFIG_H -DUSE_TSIN=1 -DGCIN_TABLE_DIR=\"/usr/share/gcin\" -DGCIN_BIN_DIR=\"/usr/lib/gcin\" -I. -I./IMdkit/include -I../gcin-core"
+cc $CFLAGS gcin2tab.cpp /tmp/gtk_stub.c -o gcin2tab -L../gcin-core -lgcin-core -lm
+cc $CFLAGS phoa2d.cpp   /tmp/gtk_stub.c -o phoa2d  -L../gcin-core -lgcin-core -lm
+cc $CFLAGS tsa2d32.cpp  /tmp/gtk_stub.c -o tsa2d32 -L../gcin-core -lgcin-core -lm
+cc $CFLAGS kbmcv.cpp    /tmp/gtk_stub.c -o kbmcv   -L../gcin-core -lgcin-core -lm
 
-# pho.tab — Zhuyin table (Standard layout)
-./phoconv data/pho.tab2.src data/pho.tab
+# Compile tables (outputs go beside input files in data/):
+mkdir -p /tmp/gcin-tables
+NO_GTK_INIT=1 ./gcin2tab data/cj.cin       && cp data/cj.gtab  /tmp/gcin-tables/
+NO_GTK_INIT=1 ./phoa2d   data/pho.tab2.src  && cp data/pho.tab2 /tmp/gcin-tables/
+NO_GTK_INIT=1 ./tsa2d32  data/tsin.src /tmp/gcin-tables/tsin32
+NO_GTK_INIT=1 ./kbmcv    data/zo.kbmsrc     && cp data/zo.kbm   /tmp/gcin-tables/
+cp data/gtab.list /tmp/gcin-tables/
 
-# tsin — word frequency database
-./tsa2d32 data/tsin.src data/tsin
+# Verify unit tests pass:
+cd ../gcin-core && GCIN_TABLE_DIR=/tmp/gcin-tables make test
 ```
 
 ### Activate and test end-to-end
@@ -946,9 +959,11 @@ ibus restart
 
 | File | Source | Input method |
 |------|--------|-------------|
-| `cj.gtab` | `data/cj.cin` → `cintotab` | Cangjie (倉頡) |
-| `pho.tab` | `data/pho.tab2.src` → `phoconv` | Zhuyin Standard (大千) |
-| `tsin` | `data/tsin.src` → `tsa2d32` | Word frequency database |
+| `cj.gtab` | `data/cj.cin` → `gcin2tab` | Cangjie (倉頡) |
+| `pho.tab2` | `data/pho.tab2.src` → `phoa2d` | Zhuyin Standard (大千) |
+| `zo.kbm` | `data/zo.kbmsrc` → `kbmcv` | Zhuyin Standard keyboard map |
+| `tsin32` | `data/tsin.src` → `tsa2d32` | Word frequency database |
+| `gtab.list` | `data/gtab.list` (copy as-is) | Input method registry |
 
 ---
 

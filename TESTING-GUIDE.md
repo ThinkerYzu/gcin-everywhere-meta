@@ -56,12 +56,17 @@ Zhuyin:
 
 | # | Test | What It Validates | Pass Criteria |
 |---|------|-------------------|---------------|
-| 1 | cangjie k+space | Cangjie single-component input (大 = k) | Commits `大` |
-| 2 | cangjie ko+space | Cangjie two-component input (大人 = ko) | Commits something non-empty |
+| 1 | cangjie k+spc+1 | 大 radical (k); space shows candidates; 1 selects | Commits `大` |
+| 2 | cangjie ab+spc+1 | 日(a)+月(b) radicals; verified → 明 | Commits `明` |
 | 3 | cangjie escape | Escape clears state without committing | Nothing committed |
-| 4 | cangjie backspace+commit | Backspace erases last component; commit still works | Something committed |
-| 5 | zhuyin ju4+1 | Zhuyin ㄓㄨˋ triggers candidates; 1 selects first | Something committed |
+| 4 | cangjie backspace+spc+1 | Backspace erases last component; select still works | Something committed |
+| 5 | zhuyin ju4+1 | Zhuyin ㄓ(j)ㄨ(u)ˋ(4) candidates; 1 selects first | Something committed |
 | 6 | zhuyin escape | Escape clears state without committing | Nothing committed |
+
+**Cangjie input model (cj.gtab, GTAB_space_auto_first_nofull):**
+- Space alone does NOT select. Space sets spc_pressed=1 and pages through candidates.
+- Correct sequence: type radicals → space (shows candidates) → number key (1-9) selects.
+- Example: `k` + space + `1` → commits 大; `ab` + space + `1` → commits 明.
 
 ### Manual Tests
 
@@ -174,10 +179,10 @@ gcin-core feedkey tests
 Table dir: /tmp/gcin-tables
 
 Cangjie:
-  PASS  cangjie: k+space commits 大
-  PASS  cangjie: ko+space commits something
+  PASS  cangjie: k+space+1 commits 大
+  PASS  cangjie: ab+space+1 commits 明
   PASS  cangjie: escape after partial input does not commit
-  PASS  cangjie: backspace then commit still outputs
+  PASS  cangjie: backspace then select still outputs
 
 Zhuyin:
   PASS  zhuyin: ju4 + 1 commits a character

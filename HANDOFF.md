@@ -15,9 +15,9 @@
 
 ## Current Status
 
-**Phase:** Phase 2 complete — `ibus-engine-gcin` builds and links
-**Progress:** IBus skeleton binary (520KB) builds; `gcin_engine.c`, `component/gcin.xml`, `ibus-engine/Makefile` all created
-**Next Milestone:** Compile data tables + install + verify `ibus list-engine | grep gcin`
+**Phase:** Phase 2 complete + unit tests passing with compiled tables
+**Progress:** All 6 unit tests pass (`GCIN_TABLE_DIR=/tmp/gcin-tables make test`); gcin_core_init fully wired; tables built from source
+**Next Milestone:** Install tables system-wide + verify `ibus list-engine | grep gcin`
 **Blockers:** None
 
 > **Phase checklist:**
@@ -27,6 +27,7 @@
 > - ✅ Implementation guide ready
 > - ✅ Phase 1 complete — libgcin-core.a (26 source files, links cleanly)
 > - ✅ Phase 2 complete — ibus-engine-gcin skeleton builds
+> - ✅ Unit tests pass (6/6) — `GCIN_TABLE_DIR=/tmp/gcin-tables make test`
 > - ⬜ IBus registration verified (ibus list-engine | grep gcin)
 > - ⬜ Phase 3 — Cangjie key routing
 > - ⬜ End-to-end demo
@@ -37,8 +38,9 @@
 - `ibus-engine/ibus-engine-gcin` (520KB ELF) — links against libgcin-core.a + libibus-1.0
 - `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie + gcin-zhuyin)
 - `process_key_event` passes all keys through (returns FALSE); engine scaffold is wired up
-- **Tests:** `gcin-core/test_feedkey.c` — 6 unit tests (Cangjie + Zhuyin feedkey); `make test` skips cleanly until data tables compiled
+- **Tests:** `gcin-core/test_feedkey.c` — 6 unit tests pass with compiled tables; `make test` skips cleanly without them
 - **Tests:** `ibus-engine/test-registration.sh` — Phase 2 registration check; 5/7 checks pass now, 2 need tables/sudo
+- **Table tools built** (not committed): `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` — built with GCIN_CORE_BUILD + libgcin-core.a
 
 ### Key Design Decisions
 
@@ -52,12 +54,17 @@
 - **`gcin-settings.cpp` added to library** — defines nearly all `gtab_*`/`tsin_*`/`pho_*` globals; no GTK/X11 calls
 - **`locale.cpp` added to library** — all utf8 utilities (`utf8_sz`, `u8cpy`, etc.); no GTK/X11 calls
 - **libibus-1.0-dev workaround** — extracted with `apt-get download` + `dpkg-deb -x`; pass runtime `.so.5` directly to linker since extracted `.so` symlink is broken
+- **`gcin_core_init()` must call `load_setttings()` + `load_gtab_list()` + `init_gtab()`** — without these, `pho_kbm_name` is NULL (segfault) and `cur_inmd` is NULL (no key processing)
+- **`current_CS->tsin_pho_mode = 1` required** — without it, `feedkey_gtab` hits the ASCII passthrough branch for all printable keys
+- **`gtab_auto_select_by_phrase = GTAB_OPTION_NO`** — phrase buffering must be disabled; otherwise `putstr_inp` routes single characters to the phrase buffer instead of `send_utf8_ch`
+- **Cangjie cj.gtab uses `GTAB_space_auto_first_nofull`** — space alone does NOT auto-select; correct input is key(s) + space (spc_pressed=1) + selection key (1-9)
+- **Table tools built without GTK2** — `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` compile with `GCIN_CORE_BUILD + libgcin-core.a + gtk_init() stub`. GTK2 not required.
 
 ---
 
 ## Next Actions
 
-1. **Compile data tables + install (NEXT)** — From a gcin build dir, run `cintotab data/cj.cin cj.gtab` and `phoconv data/pho.tab2.src pho.tab`, install to `/usr/share/gcin/`. Then run `./test-registration.sh` (handles XML install + ibus restart + verification). Run `GCIN_TABLE_DIR=/usr/share/gcin make test` to confirm unit tests pass.
+1. **Install tables system-wide (NEXT)** — Tables already built at `/tmp/gcin-tables/`. Install: `sudo mkdir -p /usr/share/gcin && sudo cp /tmp/gcin-tables/* /usr/share/gcin/`. Then run `./test-registration.sh` and `make test` (without GCIN_TABLE_DIR override). Also: `sudo cp component/gcin.xml /usr/share/ibus/component/ && ibus restart` for system-wide IBus registration.
 2. **Phase 3 — Cangjie** — Wire `gcin_core_feedkey_cangjie()` → `feedkey_gtab()`. Expose preedit via `get_DispInArea_str()` and candidates via `disp_gtab_sel()` stub. Test: type `di` → commit 大人.
 3. **Phase 4 — Zhuyin** — Wire `gcin_core_feedkey_zhuyin()` → `feedkey_pho()`. Expose preedit from `poo.typ_pho[]` via `phokey_to_str()`. Test: type `vu4` → commit 住.
 4. **Phase 5 — Install** — Compile data tables, `make install`, enable in GNOME Settings, end-to-end test in gedit and a Qt6 app.
@@ -70,8 +77,9 @@
 
 ## Session Logs
 
-1. **[Session 4: Phase 2 — IBus Engine Skeleton Builds](logs/2026-05-05-session-04-ibus-skeleton.md)** (2026-05-05) — Created gcin_engine.c, gcin.xml, ibus-engine/Makefile; fixed 8 more duplicate stubs; added 5 files to libgcin-core.a; added g_strdup_printf/_()/GError/F-keys to GCIN_CORE_BUILD; added -DUSE_TSIN=1. Binary (520KB) links cleanly.
-2. **[Session 3: Phase 1 Complete — libgcin-core.a Builds](logs/2026-05-05-session-03-libgcin-core-build.md)** (2026-05-05) — Modified 4 gcin files; created gcin-core/ (API, stubs, Makefile); libgcin-core.a (930KB) builds clean. Discoveries: compile as C not C++; pho-sym.cpp and unix-exec.cpp needed; box_warn() needs guarding too.
+1. **[Session 5: Data Tables Compiled; All Unit Tests Pass](logs/2026-05-05-session-05-tables-and-tests.md)** (2026-05-05) — Built gcin2tab/phoa2d/tsa2d32/kbmcv without GTK2; compiled tables to /tmp/gcin-tables/; fixed 6 gcin_core_init() bugs (load_setttings, load_gtab_list, init_gtab, tsin_pho_mode, phrase buffer, reset); all 6 unit tests pass.
+2. **[Session 4: Phase 2 — IBus Engine Skeleton Builds](logs/2026-05-05-session-04-ibus-skeleton.md)** (2026-05-05) — Created gcin_engine.c, gcin.xml, ibus-engine/Makefile; fixed 8 more duplicate stubs; added 5 files to libgcin-core.a; added g_strdup_printf/_()/GError/F-keys to GCIN_CORE_BUILD; added -DUSE_TSIN=1. Binary (520KB) links cleanly.
+3. **[Session 3: Phase 1 Complete — libgcin-core.a Builds](logs/2026-05-05-session-03-libgcin-core-build.md)** (2026-05-05) — Modified 4 gcin files; created gcin-core/ (API, stubs, Makefile); libgcin-core.a (930KB) builds clean. Discoveries: compile as C not C++; pho-sym.cpp and unix-exec.cpp needed; box_warn() needs guarding too.
 3. **[Session 2: Implementation Guide Deep Audit](logs/2026-05-05-session-02-impl-guide-deep-audit.md)** (2026-05-05) — Per-file GTK/X11 audit: only 2 files call GTK (util.cpp, gcin-conf.cpp); eliminated compat/ directory; reduced GCIN_CORE_BUILD to 5 types; found 13 duplicate symbol conflicts in stub list; decided to keep `typedef void GtkWidget`; deleted INIT-GUIDE.md.
 4. **Session 1: Project kickoff + full planning** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md; audited gcin source tree (entry points, IBus/X11 keyval compatibility); drafted IMPLEMENTATION-GUIDE.md with Phase 1 plan for `libgcin-core.a`; initialized both git repos.
 
@@ -94,4 +102,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 4 addendum — test infrastructure)
+**Last Updated:** 2026-05-05 (Session 5 — tables compiled, all unit tests pass)
