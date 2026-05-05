@@ -83,17 +83,26 @@ make test
 GCIN_TABLE_DIR=/tmp/gcin-tables make test
 ```
 
-### Manual: IBus registration (Phase 2)
+### Phase 2: IBus registration (automated script)
 
 ```bash
-# Install component XML (requires sudo)
-sudo cp sources/gcin-everywhere/ibus-engine/component/gcin.xml /usr/share/ibus/component/
-
-# Run engine in foreground
 cd sources/gcin-everywhere/ibus-engine
-./ibus-engine-gcin &
+./test-registration.sh
+```
 
-# Check registration
+The script: checks the binary (builds if missing), installs `gcin.xml` to
+`~/.local/share/ibus/component/` (no sudo), validates the XML, restarts
+ibus-daemon, and checks `ibus list-engine`. If user-local component dirs
+are not supported on this IBus version, it prints sudo instructions and
+SKIPs (does not fail).
+
+If data tables are not compiled, the live engine start step is skipped but
+the XML validation steps still run.
+
+To register system-wide (if SKIP on ibus list-engine step):
+```bash
+sudo cp sources/gcin-everywhere/ibus-engine/component/gcin.xml /usr/share/ibus/component/
+ibus restart
 ibus list-engine | grep gcin
 ```
 
