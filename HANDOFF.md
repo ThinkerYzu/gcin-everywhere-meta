@@ -15,9 +15,9 @@
 
 ## Current Status
 
-**Phase:** Ready to code — all planning docs complete
-**Progress:** SPEC approved; DESIGN complete; IMPLEMENTATION-GUIDE drafted; source repo initialized
-**Next Milestone:** Phase 1 stub layer — compile gcin core files into ibus-engine-gcin, zero linker errors
+**Phase:** Ready to code — all planning docs complete and audited
+**Progress:** SPEC approved; DESIGN complete; IMPLEMENTATION-GUIDE fully revised after source audit
+**Next Milestone:** Phase 1 — build libgcin-core.a (gcin-core/ directory, compat headers, gcin_stubs.cpp, one gcin source modification)
 **Blockers:** None
 
 > **Phase checklist:**
@@ -41,11 +41,11 @@
 
 ## Next Actions
 
-1. **Phase 1 — Stub layer (NEXT)** — Create `ibus-engine/gcin_stubs.cpp` with X11 global stubs and `send_text()` intercept. Write `ibus-engine/Makefile`. Compile gcin core files (see IMPLEMENTATION-GUIDE.md §gcin Source File Reference). Iterate until zero linker errors.
-2. **Phase 2 — IBus skeleton** — Write `gcin_engine.c` (IBus GObject subclass) and `component/gcin.xml`. Verify `ibus list-engine | grep gcin` shows both engines.
-3. **Phase 3 — Cangjie** — Wire up `gcin_adapter_init()` + gtab key routing in `process_key_event`. Test: type `di` → commit 大人.
-4. **Phase 4 — Zhuyin** — Wire up `pho_load()` + phonetic key routing. Test: type `ㄓㄨˋ` → commit 住.
-5. **Phase 5 — Install** — `make install`, enable in GNOME Settings, end-to-end test in gedit and a Qt6 app.
+1. **Phase 1 — libgcin-core.a (NEXT)** — Create `gcin-core/` directory. Write compat headers (`compat/gtk/gtk.h`, `compat/X11/Xlib.h`, `compat/X11/keysym.h`, and empty stubs for `gdk/gdkx.h`, `IMdkit.h`, `Xi18n.h`). Write `gcin_stubs.cpp` (all extern globals + UI stubs + `send_text` callback). Modify `gcin/util.cpp` (one `#ifdef GCIN_CORE_BUILD` guard in `p_err()`). Write `Makefile`. Build until `libgcin-core.a` links with zero errors.
+2. **Phase 2 — IBus skeleton** — Create `ibus-engine/gcin_engine.c` (IBus GObject, passes all keys through), `component/gcin.xml`, and `ibus-engine/Makefile` (links libgcin-core.a). Verify `ibus list-engine | grep gcin` shows both engines.
+3. **Phase 3 — Cangjie** — Wire `gcin_core_feedkey_cangjie()` → `feedkey_gtab()`. Expose preedit via `get_DispInArea_str()` and candidates via `disp_gtab_sel()` stub. Test: type `di` → commit 大人.
+4. **Phase 4 — Zhuyin** — Wire `gcin_core_feedkey_zhuyin()` → `feedkey_pho()`. Expose preedit from `poo.typ_pho[]` via `phokey_to_str()`. Test: type `vu4` → commit 住.
+5. **Phase 5 — Install** — Compile data tables, `make install`, enable in GNOME Settings, end-to-end test in gedit and a Qt6 app.
 
 **Deferred:**
 - Windows (TSF) and macOS (IMKit) ports — future phases after Phase 1 is working.
@@ -55,7 +55,7 @@
 
 ## Session Logs
 
-1. **Session 1: Project kickoff + full planning** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md (adapter pattern, IBus GObject, Cangjie/Zhuyin data flows); drafted IMPLEMENTATION-GUIDE.md (5-phase plan, stub strategy, file reference); initialized both git repos (`proj_docs/gcin-everywhere/` and `sources/gcin-everywhere/` with gcin submodule).
+1. **Session 1: Project kickoff + full planning + source audit** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md; audited gcin source tree (confirmed entry points `feedkey_gtab`/`feedkey_pho`, IBus/X11 keyval compatibility, compat-header strategy, one required source modification); fully revised IMPLEMENTATION-GUIDE.md with concrete Phase 1 plan for `libgcin-core.a`; initialized both git repos.
 
 ---
 
