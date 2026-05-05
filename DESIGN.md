@@ -21,10 +21,11 @@
 
 ## Design Philosophy
 
-1. **Minimize gcin changes.** The gcin core is mature and correct. Extract what is needed without modifying its input logic.
-2. **Clean platform boundary.** All X11/display-specific code is replaced by a thin adapter at the boundary, not patched throughout the source.
-3. **IBus built-in UI.** Candidate display is delegated entirely to IBus — no custom windowing code needed.
-4. **Small scope.** Phase 1 ships one working thing: Cangjie and Zhuyin on GNOME/Wayland. No feature creep.
+1. **Minimize gcin changes.** The gcin core is mature and correct. Only two source files are modified: `gcin.h` (add `GCIN_CORE_BUILD` type block) and `util.cpp` (guard one GTK dialog call).
+2. **Clean platform boundary.** Platform dependencies are isolated in `gcin_stubs.cpp`. The gcin core files compile as-is against the type definitions in `gcin.h`.
+3. **Static library for portability.** Core engine and tables are packaged as `libgcin-core.a` — platform integrations (IBus, future Windows TSF, macOS IMKit) link against it.
+4. **IBus built-in UI.** Candidate display is delegated entirely to IBus — no custom windowing code needed.
+5. **Small scope.** Phase 1 ships one working thing: Cangjie and Zhuyin on GNOME/Wayland. No feature creep.
 
 ---
 
@@ -42,34 +43,31 @@
 └──────────────────────┬──────────────────────────────┘
                        │ D-Bus (IBus engine protocol)
 ┌──────────────────────▼──────────────────────────────┐
-│             ibus-engine-gcin  (NEW)                  │
-│  ┌────────────────────────────────────────────────┐  │
-│  │  IBus Engine GObject (gcin_engine.c)           │  │
-│  │  - process_key_event()                         │  │
-│  │  - enable() / disable()                        │  │
-│  │  - property_activate() (input method switch)   │  │
-│  └────────────────┬───────────────────────────────┘  │
-│                   │ direct C function calls           │
-│  ┌────────────────▼───────────────────────────────┐  │
-│  │  gcin Core Adapter (gcin_adapter.c)  (NEW)     │  │
-│  │  - Initializes gcin state                      │  │
-│  │  - Routes keys to correct input module         │  │
-│  │  - Returns: preedit string, candidates, commit │  │
-│  │  - Provides stubs for X11/display globals      │  │
-│  └───────────┬──────────────────┬─────────────────┘  │
-│              │                  │                     │
-│  ┌───────────▼──────┐  ┌───────▼─────────────────┐  │
-│  │  gtab.cpp (gcin) │  │  pho.cpp / pho*.cpp      │  │
-│  │  Cangjie engine  │  │  Zhuyin/Bopomofo engine  │  │
-│  │  (ported as-is)  │  │  (ported as-is)          │  │
-│  └───────────┬──────┘  └───────┬─────────────────-┘  │
-│              │                  │                     │
-│  ┌───────────▼──────────────────▼─────────────────┐  │
-│  │  gcin Data Tables                              │  │
-│  │  cj.cin → cj.gtab   (Cangjie table)            │  │
-│  │  pho.tab2.src       (Zhuyin phonetic table)    │  │
-│  │  tsin.src → tsin    (word frequency database)  │  │
-│  └────────────────────────────────────────────────┘  │
+│   ibus-engine-gcin  (ibus-engine/)                   │
+│   gcin_engine.c — IBus GObject                       │
+│   - process_key_event()                              │
+│   - enable() / disable() / reset()                   │
+└──────────────────────┬──────────────────────────────┘
+                       │ links against
+┌──────────────────────▼──────────────────────────────┐
+│   libgcin-core.a  (gcin-core/)                       │
+│                                                      │
+│   gcin_stubs.cpp — public API + stubs                │
+│   - gcin_core_init() / feedkey_cangjie/zhuyin()      │
+│   - send_text() → GcinCommitCb callback              │
+│   - extern globals (dpy=NULL, gwin0=NULL, ...)       │
+│   - UI function stubs (show_win_gtab etc.)           │
+│                       │                              │
+│   gcin/ source (compiled in, modified minimally)     │
+│   ┌─────────────────┐  ┌──────────────────────────┐ │
+│   │ gtab.cpp + buf  │  │ pho.cpp + pho-util etc.  │ │
+│   │ feedkey_gtab()  │  │ feedkey_pho()            │ │
+│   └────────┬────────┘  └──────────┬───────────────┘ │
+│            └──────────┬───────────┘                  │
+│   ┌──────────────────▼──────────────────────────┐   │
+│   │  gcin Data Tables (loaded at runtime)        │   │
+│   │  cj.gtab  pho.tab  tsin                      │   │
+│   └──────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -77,35 +75,38 @@
 
 | Component | Source | Role |
 |-----------|--------|------|
-| `ibus-engine-gcin` binary | New | Process launched by ibus-daemon |
-| `gcin_engine.c` | New | IBus GObject: handles IBus protocol, calls adapter |
-| `gcin_adapter.c` | New | Thin shim: initializes gcin, provides X11 stubs, routes keys |
-| `gtab.cpp` | gcin (ported) | Table-based input: Cangjie key → candidate lookup |
-| `pho.cpp` and related | gcin (ported) | Phonetic input: Zhuyin key accumulation and lookup |
+| `ibus-engine-gcin` binary | New (`ibus-engine/`) | Process launched by ibus-daemon |
+| `gcin_engine.c` | New | IBus GObject: handles IBus protocol, calls gcin-core API |
+| `libgcin-core.a` | New (`gcin-core/`) | Platform-independent static library |
+| `gcin_stubs.cpp` | New | Public API, extern globals, UI stubs, send_text callback |
+| `gcin/gcin.h` | Modified (2 files total) | `GCIN_CORE_BUILD` block: inline type defs, no GTK/X11 headers |
+| `gcin/util.cpp` | Modified | `#ifndef GCIN_CORE_BUILD` guard around GTK dialog in `p_err()` |
+| `gtab.cpp` + `gtab-buf.cpp` + related | gcin (as-is) | Cangjie: `feedkey_gtab()`, key buffer, table lookup |
+| `pho.cpp` + related | gcin (as-is) | Zhuyin: `feedkey_pho()`, phonetic lookup |
 | `data/cj.gtab` | gcin (built) | Compiled Cangjie character table |
 | `data/pho.tab` | gcin (built) | Compiled Zhuyin phonetic table |
-| `data/tsin` | gcin (built) | Word frequency database for phrase selection |
+| `data/tsin` | gcin (built) | Word frequency database |
 | `gcin.xml` | New | IBus component registration file |
 
 ---
 
 ## Key Design Decisions
 
-### 1. Port gcin source files, don't link against a gcin library
+### 1. Build a platform-independent static library (libgcin-core.a)
 
-**Decision:** Compile selected gcin `.cpp` files directly into the `ibus-engine-gcin` binary. Do not try to build gcin as a shared library.
+**Decision:** Compile selected gcin source files into `libgcin-core.a`. Platform integrations (IBus, future Windows TSF, macOS IMKit) link against it. The library has zero GTK/X11 runtime dependency.
 
-**Rationale:** gcin was never designed as a library. It has many globals, no stable API, and X11 entangled throughout. Compiling only the needed files and providing stubs for the missing parts is far less invasive than restructuring gcin as a library.
+**Rationale:** A static library creates a clean boundary between the platform-independent input logic and each platform's integration layer. It also enables future ports without touching the gcin core again.
 
-**Files to include:** `gtab.cpp`, `gtab-pho.cpp`, phonetic engine files (`pho.cpp`, etc.), character conversion utilities. Exclude: `gcin.cpp` (main), `gtk-im/`, all X11/GTK UI code.
+**Files compiled in:** `gtab.cpp`, `gtab-buf.cpp`, `pho.cpp`, and ~15 other gcin files. Excluded: `gcin.cpp` (main), all UI/window files, XIM server, `gcin-common.cpp` (GTK calls; its two useful functions re-implemented in `gcin_stubs.cpp`).
 
-### 2. Stub out X11/display dependencies with a gcin_adapter layer
+### 2. Eliminate GTK/X11 type dependencies via GCIN_CORE_BUILD in gcin.h
 
-**Decision:** Create `gcin_adapter.c` that provides stub implementations of gcin's X11 globals (`dpy`, `gwin0`, `xwin0`, etc.) and UI functions (`send_text()`, `send_utf8_ch()`, etc.).
+**Decision:** Add a `#ifdef GCIN_CORE_BUILD` block to `gcin/gcin.h` that defines all needed types (`gboolean`, `GtkWidget`, `Display`, `KeySym`, etc.) as plain C types inline — no system headers. Guard the GTK dialog calls in `gcin/util.cpp` with `#ifndef GCIN_CORE_BUILD`.
 
-**Rationale:** gcin's input logic is intermixed with X11 calls, but many of them are never reached during a pure key-processing code path (they're in the UI update paths). Stubs let us compile the input files cleanly without modifying them.
+**Rationale:** Source audit confirmed that only `gcin-common.cpp` and `util.cpp` make actual GTK/X11 function calls. All other files use these types only as pointer declarations or function parameter types — trivially satisfied by simple typedefs. gcin's own WIN32 path in `os-dep.h` already does exactly this. No fake/shadow headers needed.
 
-**Boundary:** The adapter intercepts `send_text()` and `send_utf8_ch()` — these are gcin's output calls. Instead of sending to X11 clients, the adapter stores the result for the IBus engine to pick up and commit via `ibus_engine_commit_text()`.
+**Result:** Two gcin source files modified total. `libgcin-core.a` requires only a C++ compiler and the standard library.
 
 ### 3. One binary, two engines registered via IBus component XML
 
@@ -211,4 +212,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-04 (revised after source audit)

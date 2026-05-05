@@ -44,7 +44,7 @@ See [HANDOFF.md](HANDOFF.md) for the full changelog, session history, and next a
 
 ### Adapter pattern: gcin core stays untouched
 
-gcin's input logic (`gtab.cpp`, `pho.cpp`) is compiled directly into the IBus engine binary. A thin adapter layer (`gcin_stubs.cpp`, `gcin_adapter.cpp`) provides stub implementations of the X11/GTK globals gcin expects, and intercepts `send_text()` to route committed characters to IBus instead of X11 clients.
+gcin's input logic (`gtab.cpp`, `pho.cpp`, and ~15 related files) is compiled into `libgcin-core.a` — a static library with no GTK or X11 runtime dependency. Two gcin source files are minimally modified: `gcin.h` gains a `GCIN_CORE_BUILD` block that defines all needed types as plain C types (no system headers), and `util.cpp` guards one GTK dialog call. `gcin_stubs.cpp` provides extern globals, UI function stubs, and intercepts `send_text()` to fire a callback instead of sending to X11 clients.
 
 ### Table-based vs. phonetic engines
 
