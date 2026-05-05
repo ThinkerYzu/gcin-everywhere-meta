@@ -9,7 +9,7 @@
 ## Goals
 
 - Wire `process_key_event` → `gcin_core_feedkey_cangjie()` with preedit and candidates
-- Verify `di` → preedit shows 大, candidates appear, select commits 大人
+- Verify `ko` → preedit shows 大, candidates appear, select commits 大人
 
 ## What Was Done
 

@@ -835,8 +835,8 @@ Parse `s` into individual characters (each UTF-8 character is one candidate).
 ### Test
 
 Type in GNOME Text Editor with gcin-cangjie selected:
-- `d` → preedit shows "大"
-- `i` → preedit shows "大人" candidates
+- `k` → preedit shows "大"
+- `o` → preedit shows "大人" candidates
 - `1` or space → commits 大人
 
 ---
@@ -907,7 +907,7 @@ sudo make install
 ibus restart
 # GNOME Settings → Keyboard → Input Sources → + → Chinese (Traditional)
 # → gcin Cangjie  (or gcin Zhuyin)
-# Open gedit, switch to gcin Cangjie, type: d i → select 大人
+# Open gedit, switch to gcin Cangjie, type: k o → select 大人
 ```
 
 ---

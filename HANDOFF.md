@@ -16,7 +16,7 @@
 ## Current Status
 
 **Phase:** Phase 3 complete — Cangjie working end-to-end
-**Progress:** Typing `di` shows candidates; selecting commits 大人; preedit and lookup table wired to IBus APIs
+**Progress:** Typing `ko` shows candidates; selecting commits 大人; preedit and lookup table wired to IBus APIs
 **Next Milestone:** Phase 4 — Zhuyin key routing (`vu4` → commits 住)
 **Blockers:** None
 
@@ -38,7 +38,7 @@
 - `ibus-engine/ibus-engine-gcin` (520KB ELF) — links against libgcin-core.a + libibus-1.0
 - `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie + gcin-zhuyin)
 - `process_key_event` routes to `gcin_core_feedkey_cangjie/zhuyin()`; preedit and candidates wired to IBus APIs
-- **Cangjie working end-to-end** — `di` → preedit shows 大, candidates appear, select commits 大人
+- **Cangjie working end-to-end** — `ko` → preedit shows 大, candidates appear, select commits 大人
 - **Tests:** `gcin-core/test_feedkey.c` — 6 unit tests pass; `make test` skips cleanly without tables
 - **Tests:** `ibus-engine/test-registration.sh` — registration check; auto-detects `/tmp/gcin-tables`
 - **Table tools built** (not committed): `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` — built with GCIN_CORE_BUILD + libgcin-core.a
@@ -80,7 +80,7 @@
 
 ## Session Logs
 
-1. **[Session 7: Phase 3 — Cangjie Working End-to-End](logs/2026-05-05-session-07-cangjie-phase3.md)** (2026-05-05) — Added gcin_core_get_preedit/get_candidates_cangjie API; wired process_key_event with preedit + lookup table; commit callback; di → 大人 confirmed working.
+1. **[Session 7: Phase 3 — Cangjie Working End-to-End](logs/2026-05-05-session-07-cangjie-phase3.md)** (2026-05-05) — Added gcin_core_get_preedit/get_candidates_cangjie API; wired process_key_event with preedit + lookup table; commit callback; ko → 大人 confirmed working.
 2. **[Session 6: GCIN_TABLE_DIR Support + System-Wide IBus Registration](logs/2026-05-05-session-06-table-dir-and-registration.md)** (2026-05-05) — Engine reads GCIN_TABLE_DIR env var; test script auto-detects /tmp/gcin-tables; silenced mv error (no-op update_table_file stub); ibus list-engine confirms gcin-cangjie + gcin-zhuyin registered.
 3. **[Session 5: Data Tables Compiled; All Unit Tests Pass](logs/2026-05-05-session-05-tables-and-tests.md)** (2026-05-05) — Built gcin2tab/phoa2d/tsa2d32/kbmcv without GTK2; compiled tables to /tmp/gcin-tables/; fixed 6 gcin_core_init() bugs (load_setttings, load_gtab_list, init_gtab, tsin_pho_mode, phrase buffer, reset); all 6 unit tests pass.
 4. **[Session 4: Phase 2 — IBus Engine Skeleton Builds](logs/2026-05-05-session-04-ibus-skeleton.md)** (2026-05-05) — Created gcin_engine.c, gcin.xml, ibus-engine/Makefile; fixed 8 more duplicate stubs; added 5 files to libgcin-core.a; added g_strdup_printf/_()/GError/F-keys to GCIN_CORE_BUILD; added -DUSE_TSIN=1. Binary (520KB) links cleanly.

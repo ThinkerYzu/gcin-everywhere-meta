@@ -74,7 +74,7 @@ $ ibus list-engine | grep gcin
 
 ## Next Steps
 
-- Phase 3 — Cangjie key routing: wire `process_key_event` → `feedkey_gtab()`, expose preedit and candidates, test `di` → commits 大人
+- Phase 3 — Cangjie key routing: wire `process_key_event` → `feedkey_gtab()`, expose preedit and candidates, test `ko` → commits 大人
 
 ---
 
