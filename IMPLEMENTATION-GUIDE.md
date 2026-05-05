@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-05 (Session 3 — corrected Phase 1 based on actual build)
+**Last Updated:** 2026-05-05 (Session 4 — corrected Phase 1 Makefile; added Phase 2 Makefile + build notes)
 
 ---
 
@@ -563,7 +563,7 @@ GCIN     := ../gcin
 # Compile as C: gcin source uses goto-over-init (valid C, error in C++)
 # -Wno-implicit-function-declaration: gcin has forward-reference patterns
 CFLAGS := -x c -std=gnu99 -g -O2 -Wno-implicit-function-declaration \
-           -DGCIN_CORE_BUILD -DHAVE_CONFIG_H \
+           -DGCIN_CORE_BUILD -DHAVE_CONFIG_H -DUSE_TSIN=1 \
            -DGCIN_TABLE_DIR=\"/usr/share/gcin\" \
            -DGCIN_BIN_DIR=\"/usr/lib/gcin\" \
            -I$(GCIN) -I$(GCIN)/IMdkit/include
@@ -587,10 +587,15 @@ GCIN_SRCS := \
     $(GCIN)/tsin-parse.cpp    \
     $(GCIN)/util.cpp          \
     $(GCIN)/gcin-conf.cpp     \
+    $(GCIN)/gcin-settings.cpp \
     $(GCIN)/fullchar.cpp      \
     $(GCIN)/cache.cpp         \
     $(GCIN)/lang.cpp          \
-    $(GCIN)/unix-exec.cpp
+    $(GCIN)/unix-exec.cpp     \
+    $(GCIN)/locale.cpp        \
+    $(GCIN)/phrase.cpp        \
+    $(GCIN)/gtab-use-count.cpp \
+    $(GCIN)/table-update.cpp
 
 CORE_SRCS := gcin_stubs.cpp
 
@@ -616,6 +621,13 @@ clean:
 **Files added vs. original plan:**
 - `pho-sym.cpp` — defines `pho_chars[]` used by tsin.cpp; no X11/GTK deps
 - `unix-exec.cpp` — defines `unix_exec()` used by gtab-tsin-fname.cpp; declared in excluded os-dep.h
+- `gcin-settings.cpp` — defines nearly all `gtab_*`/`tsin_*`/`pho_*`/`gcin_*` configuration globals; zero GTK/X11 calls; required at link time
+- `locale.cpp` — all utf8 string utilities (`utf8_sz`, `utf8cpy`, `u8cpy`, etc.); zero GTK/X11 calls; required at link time
+- `phrase.cpp` — `feed_phrase`, `watch_fopen`; zero GTK/X11 calls
+- `gtab-use-count.cpp` — `inc_gtab_use_count`, `get_gtab_use_count`; zero GTK/X11 calls
+- `table-update.cpp` — `update_table_file`; zero GTK/X11 calls
+
+**`-DUSE_TSIN=1` required:** `add_to_tsin_buf` (called from tsin.cpp) is inside `#if USE_TSIN`. Normally set by autoconf `config.h`; must be passed explicitly.
 
 **Files excluded from compiled list (still correct):**
 - `gcin-common.cpp` — has real GTK/X11 calls; `case_inverse`/`current_time` reimplemented in stubs
@@ -696,6 +708,8 @@ struct _GcinEngine {
 struct _GcinEngineClass { IBusEngineClass parent; };
 
 G_DEFINE_TYPE(GcinEngine, gcin_engine, IBUS_TYPE_ENGINE)
+/* G_DEFINE_TYPE does NOT generate GCIN_TYPE_ENGINE — must define manually */
+#define GCIN_TYPE_ENGINE (gcin_engine_get_type())
 
 static gboolean gcin_engine_process_key_event(IBusEngine *e,
         guint keyval, guint keycode, guint modifiers) {
@@ -733,6 +747,42 @@ int main(int argc, char **argv) {
     return 0;
 }
 ```
+
+### Makefile: ibus-engine/Makefile
+
+```makefile
+GCIN_CORE := ../gcin-core
+
+# Override if libibus-1.0-dev not system-installed:
+#   make IBUS_CFLAGS="-I/path/to/ibus-1.0 ..." IBUS_LIBS="/path/to/libibus-1.0.so.5 ..."
+IBUS_CFLAGS ?= $(shell pkg-config --cflags ibus-1.0)
+IBUS_LIBS   ?= $(shell pkg-config --libs   ibus-1.0)
+
+CFLAGS  := -g -O2 $(IBUS_CFLAGS) -I$(GCIN_CORE)
+# -lm required: tsin-parse.cpp uses pow()
+LDFLAGS := $(IBUS_LIBS) -L$(GCIN_CORE) -lgcin-core -lm
+
+all: ibus-engine-gcin
+
+ibus-engine-gcin: gcin_engine.c $(GCIN_CORE)/libgcin-core.a
+	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
+
+$(GCIN_CORE)/libgcin-core.a:
+	$(MAKE) -C $(GCIN_CORE)
+
+clean:
+	rm -f ibus-engine-gcin
+```
+
+**libibus-1.0-dev not installed:** If `sudo` is unavailable, extract the dev package headers without installing:
+```bash
+apt-get download libibus-1.0-dev
+dpkg-deb -x libibus-1.0-dev_*.deb /tmp/ibus-dev-extract/
+# Then build with:
+make IBUS_CFLAGS="-I/tmp/ibus-dev-extract/usr/include/ibus-1.0 $(pkg-config --cflags glib-2.0 gobject-2.0 gio-2.0)" \
+     IBUS_LIBS="/usr/lib/x86_64-linux-gnu/libibus-1.0.so.5 $(pkg-config --libs glib-2.0 gobject-2.0 gio-2.0)"
+```
+The extracted `.so` symlink in the dev package points to a non-existent target; pass the installed `.so.5` directly.
 
 ### Verify skeleton registers
 
@@ -902,4 +952,4 @@ ibus restart
 
 ---
 
-**Last Updated:** 2026-05-05 (Session 3 — corrected Phase 1 based on actual build)
+**Last Updated:** 2026-05-05 (Session 4 — corrected Phase 1 Makefile; added Phase 2 Makefile + build notes)
