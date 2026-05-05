@@ -84,74 +84,58 @@ can be called with IBus values directly — no translation layer needed.
 
 ### X11/GTK dependency analysis (per-file audit results)
 
-Every gcin source file pulls in `gcin.h` (which includes `<gtk/gtk.h>`) and/or
-`<X11/Xlib.h>`, but **actual GTK/X11 function calls** are confined to two places:
+Actual GTK/X11 **function calls** in compiled files are confined to:
 
-1. **`gcin-common.cpp`** — `bell()` calls `XBell`+`gdk_beep`; `disp_pho_sub()` calls
-   `gtk_label_set_text`; several others use Pango and GdkWindow APIs.
-   → **EXCLUDE entirely.** Its two useful functions (`case_inverse`, `current_time`)
-   are re-implemented as trivial stubs in `gcin_stubs.cpp`.
+1. **`gcin-common.cpp`** — `XBell`, `gdk_beep`, `gtk_label_set_text`, Pango calls.
+   → **EXCLUDE.** Re-implement `case_inverse` and `current_time` in `gcin_stubs.cpp`.
 
-2. **`util.cpp`** — `p_err()` calls `gtk_message_dialog_new`, `gtk_dialog_run`,
-   `gtk_widget_destroy`.
-   → **MODIFY with one `#ifdef GCIN_CORE_BUILD` guard.**
+2. **`util.cpp`** — `gtk_message_dialog_new/run/destroy` in `p_err()`.
+   → **MODIFY**: one `#ifndef GCIN_CORE_BUILD` guard.
 
-All other files (`gtab.cpp`, `gtab-buf.cpp`, `pho.cpp`, `tsin.cpp`, etc.) contain only
-`extern GtkWidget *varname` declarations and use `KeySym`/`gboolean` as value types —
-no actual GTK/X11 function calls anywhere.
+3. **`gcin-conf.cpp`** — `get_gcin_atom(Display *dpy)` calls `XInternAtom`.
+   → **MODIFY**: guard that function body with `#ifndef GCIN_CORE_BUILD`.
 
-### Eliminating X11/GTK type dependencies: modify gcin.h and IC.h
+All other compiled files use `GtkWidget`/`Display`/`KeySym` only in `extern`
+declarations and as parameter/return types — never calling GTK/X11 functions.
 
-**Why types like `GtkWidget`, `Display`, `KeySym` are needed:** `gcin.h` unconditionally
-includes `<gtk/gtk.h>` and `os-dep.h`, which on UNIX pulls in `<X11/Xlib.h>` and
-`<X11/keysym.h>`. Every compiled file includes `gcin.h`, so all types propagate.
+### Eliminating X11/GTK type dependencies
 
-**gcin already shows the pattern:** `os-dep.h`'s WIN32 path defines `Display` as `void`,
-`KeySym` as `unsigned int`, `Window` as `unsigned int` — no system headers at all. We
-add an identical `GCIN_CORE_BUILD` path.
+**Strategy: GCIN_CORE_BUILD guards on declarations, not type stubs for every type.**
 
-**No compat/ directory needed.** Instead, modify two gcin source files:
+Modify `gcin/gcin.h` in two places:
 
-**`gcin/gcin.h`** — guard platform includes and add inline typedefs:
+**Part 1 — top of file:** Replace platform includes with a GCIN_CORE_BUILD block
+containing only the types actually needed. Use usage counts from source audit to
+determine what stays vs. what can be dropped via declaration guards.
 
 ```c
 #ifdef GCIN_CORE_BUILD
-  /* Minimal types for core build — no GTK or X11 headers */
-  typedef int          gboolean;
-  typedef int          gint;
-  typedef long long    gint64;
-  typedef unsigned long long guint64;
-  typedef unsigned int guint;
-  typedef char         gchar;
-  typedef unsigned char guchar;
-  typedef unsigned int CARD32;
-  typedef unsigned long gulong;
-  typedef void*        gpointer;
-  typedef void         GtkWidget;
-  typedef void         GdkWindow;
-  typedef void         Display;
-  typedef unsigned long Window;
-  typedef unsigned long KeySym;
-  typedef unsigned int  KeyCode;
-  typedef struct { int x, y, width, height; } XRectangle;
-  typedef unsigned long Colormap;
-  typedef unsigned long Pixmap;
-  typedef unsigned long Cursor;
-  typedef char         unich_t;
+  #include <stdlib.h>
+  #include <string.h>
+  /* Types used in code bodies of compiled files */
+  typedef int          gboolean;   /* 174 uses */
+  typedef long long    gint64;     /* 7 uses: key_press_time */
+  typedef unsigned long KeySym;    /* 37 uses: feedkey_* signatures */
+  typedef unsigned long Window;    /* 8 uses: ClientState.client_win */
+  typedef void         GtkWidget;  /* 18 uses: local externs in .cpp files */
+  typedef char         unich_t;    /* 11 uses: fullchar.cpp string literals */
   #define TRUE  1
   #define FALSE 0
   #define _L(x) x
-  #define UNIX 1
-  /* GLib memory — used in core allocation paths */
-  #include <stdlib.h>
-  #include <string.h>
+  #define UNIX  1
+  /* GLib memory macros — used in gcin allocation paths */
   #define g_malloc(n)    malloc(n)
-  #define g_malloc0(n)   calloc(1,n)
+  #define g_malloc0(n)   calloc(1, n)
   #define g_free(p)      free(p)
   #define g_strdup(s)    strdup(s)
   #define g_new(t,n)     ((t*)malloc(sizeof(t)*(n)))
-  #define g_new0(t,n)    ((t*)calloc((n),sizeof(t)))
-  #define g_realloc(p,n) realloc(p,n)
+  #define g_new0(t,n)    ((t*)calloc((n), sizeof(t)))
+  #define g_realloc(p,n) realloc(p, n)
+  /* XK_* key symbols and modifier masks */
+  #define XK_space      0x0020
+  /* ... (full list as before) ... */
+  #define ShiftMask     (1<<0)
+  /* ... */
 #else
   #include "os-dep.h"
   #include <gtk/gtk.h>
@@ -162,13 +146,59 @@ add an identical `GCIN_CORE_BUILD` path.
 #endif
 ```
 
-**`gcin/IC.h`** — the `#if UNIX` block defines `PreeditAttributes` and `StatusAttributes`
-using X11 types (`XRectangle`, `Colormap`, `Pixmap`, `Cursor`). With `GCIN_CORE_BUILD`,
-those types are defined as plain integers/structs above, so the block compiles cleanly.
-No change to IC.h needed — the inline type definitions in gcin.h cover it.
+**Why these 6 types and not more:**
+`Display`, `GdkWindow`, `gint`, `CARD32`, `XRectangle`, `Pixmap`, `Cursor`, `Colormap`
+and 7 other zero-use types are dropped. They are only needed for declarations that
+can be guarded away (see Part 2).
 
-**Result:** `libgcin-core.a` has zero dependency on GTK3, X11, or GLib at compile time
-or link time. Build requires only a C++ compiler and standard library.
+**Part 2 — declaration section of gcin.h:** Wrap declarations that use dropped types:
+
+```c
+#ifndef GCIN_CORE_BUILD
+extern Display      *dpy;
+extern GdkWindow    *gdkwin0;
+extern Window        xwin0, root;
+extern GtkWidget    *gwin0;        /* gwin0 only; .cpp files declare gwin_* locally */
+IC   *FindIC(CARD16 icid);
+void  loadIC();
+void  send_gcin_message(Display *dpy, char *s);
+gint  inmd_switch_popup_handler(GtkWidget *widget, GdkEvent *event);
+#endif
+```
+
+`extern ClientState *current_CS` stays **unguarded** — it IS used by core code.
+
+**`gcin/IC.h`** — guard XIM-only structs (never used by compiled code):
+
+```c
+#ifndef GCIN_CORE_BUILD
+typedef struct { XRectangle area; ... Colormap cmap; ... } PreeditAttributes;
+typedef struct { XRectangle area; ... Colormap cmap; ... } StatusAttributes;
+#endif
+```
+
+`ClientState` struct stays unguarded. Its `Window client_win` member is why
+`Window` remains in the type list.
+
+**`gcin/gcin-conf.cpp`** — guard the X11 function call:
+
+```c
+#ifndef GCIN_CORE_BUILD
+Atom get_gcin_atom(Display *dpy) { ... XInternAtom(dpy, ...) ... }
+#endif
+```
+
+**Summary of gcin source modifications (4 files total):**
+
+| File | Change |
+|------|--------|
+| `gcin/gcin.h` | GCIN_CORE_BUILD type block (6 types only) + guards on unused declarations |
+| `gcin/IC.h` | Guard `PreeditAttributes` / `StatusAttributes` structs |
+| `gcin/util.cpp` | Guard GTK dialog calls in `p_err()` |
+| `gcin/gcin-conf.cpp` | Guard `get_gcin_atom()` body |
+
+**Result:** `libgcin-core.a` has zero dependency on GTK3, X11, or GLib. Build requires
+only a C++ compiler and standard library.
 
 ### UI functions to stub in gcin_stubs.cpp
 
@@ -330,12 +360,14 @@ mode, skip the dialog.
 
 Apply the same guard to the second `p_err` variant at line ~371.
 
-**Summary of all gcin source modifications:**
+**Summary of all gcin source modifications (4 files):**
 
 | File | Change |
 |------|--------|
-| `gcin/gcin.h` | Add `GCIN_CORE_BUILD` block with inline typedefs before existing includes |
-| `gcin/util.cpp` | Guard GTK dialog calls in `p_err()` with `#ifndef GCIN_CORE_BUILD` |
+| `gcin/gcin.h` | GCIN_CORE_BUILD type block (6 types) + `#ifndef` guards on unused declarations |
+| `gcin/IC.h` | Guard `PreeditAttributes`/`StatusAttributes` structs |
+| `gcin/util.cpp` | Guard GTK dialog calls in `p_err()` |
+| `gcin/gcin-conf.cpp` | Guard `get_gcin_atom()` body (calls `XInternAtom`) |
 
 ### 1c. gcin_stubs.cpp
 

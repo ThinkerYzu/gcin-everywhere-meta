@@ -79,8 +79,10 @@
 | `gcin_engine.c` | New | IBus GObject: handles IBus protocol, calls gcin-core API |
 | `libgcin-core.a` | New (`gcin-core/`) | Platform-independent static library |
 | `gcin_stubs.cpp` | New | Public API, extern globals, UI stubs, send_text callback |
-| `gcin/gcin.h` | Modified (2 files total) | `GCIN_CORE_BUILD` block: inline type defs, no GTK/X11 headers |
-| `gcin/util.cpp` | Modified | `#ifndef GCIN_CORE_BUILD` guard around GTK dialog in `p_err()` |
+| `gcin/gcin.h` | Modified (4 files total) | GCIN_CORE_BUILD type block (6 types only) + guards on unused declarations |
+| `gcin/IC.h` | Modified | Guard `PreeditAttributes`/`StatusAttributes` (XIM-only, unused by core) |
+| `gcin/util.cpp` | Modified | Guard GTK dialog calls in `p_err()` |
+| `gcin/gcin-conf.cpp` | Modified | Guard `get_gcin_atom()` which calls `XInternAtom` |
 | `gtab.cpp` + `gtab-buf.cpp` + related | gcin (as-is) | Cangjie: `feedkey_gtab()`, key buffer, table lookup |
 | `pho.cpp` + related | gcin (as-is) | Zhuyin: `feedkey_pho()`, phonetic lookup |
 | `data/cj.gtab` | gcin (built) | Compiled Cangjie character table |
@@ -106,7 +108,7 @@
 
 **Rationale:** Source audit confirmed that only `gcin-common.cpp` and `util.cpp` make actual GTK/X11 function calls. All other files use these types only as pointer declarations or function parameter types — trivially satisfied by simple typedefs. gcin's own WIN32 path in `os-dep.h` already does exactly this. No fake/shadow headers needed.
 
-**Result:** Two gcin source files modified total. `libgcin-core.a` requires only a C++ compiler and the standard library.
+**Result:** Four gcin source files modified total. `libgcin-core.a` requires only a C++ compiler and the standard library.
 
 ### 3. One binary, two engines registered via IBus component XML
 
