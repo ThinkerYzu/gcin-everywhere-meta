@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05 (Session 3 — corrected Phase 1 based on actual build)
 
 ---
 
@@ -312,34 +312,28 @@ come from `<X11/keysym.h>` via `os-dep.h`):
 ```c
 /* Add at the top of gcin/gcin.h, before the existing includes */
 #ifdef GCIN_CORE_BUILD
-  /* Minimal types — no GTK, X11, or GLib headers required */
+  #include <stdarg.h>
+  #include <stdio.h>
   #include <stdlib.h>
+  #include <ctype.h>
   #include <string.h>
+  #include <sys/types.h>   /* u_char, u_int, u_int64_t used by gtab.h/tsin.h */
+  #include <unistd.h>      /* access(), W_OK used by gtab-tsin-fname.cpp */
+  #include <time.h>        /* localtime() used by util.cpp */
+  /* 5 core types actively used in code bodies */
   typedef int           gboolean;
-  typedef int           gint;
   typedef long long     gint64;
-  typedef unsigned long long guint64;
-  typedef unsigned int  guint;
-  typedef char          gchar;
-  typedef unsigned char guchar;
-  typedef unsigned int  CARD32;
-  typedef unsigned long gulong;
-  typedef void*         gpointer;
-  typedef void          GtkWidget;
-  typedef void          GdkWindow;
-  typedef void          Display;
-  typedef unsigned long Window;
   typedef unsigned long KeySym;
-  typedef unsigned int  KeyCode;
-  typedef struct { int x, y, width, height; } XRectangle;
-  typedef unsigned long Colormap;
-  typedef unsigned long Pixmap;
-  typedef unsigned long Cursor;
+  typedef void          GtkWidget;   /* 18 uses as pointer type; kept as void* */
   typedef char          unich_t;
   #define TRUE  1
   #define FALSE 0
   #define _L(x) x
   #define UNIX  1
+  /* gcin-gtk-compatible.h uses GTK_CHECK_VERSION as a function-like macro;
+     define as 0 so all #if GTK_CHECK_VERSION(...) blocks evaluate false */
+  #define GTK_CHECK_VERSION(a,b,c) 0
+  #define GTK_WIDGET_VISIBLE(w) (0)
   /* GLib memory aliases */
   #define g_malloc(n)    malloc(n)
   #define g_malloc0(n)   calloc(1, n)
@@ -348,37 +342,65 @@ come from `<X11/keysym.h>` via `os-dep.h`):
   #define g_new(t,n)     ((t*)malloc(sizeof(t)*(n)))
   #define g_new0(t,n)    ((t*)calloc((n), sizeof(t)))
   #define g_realloc(p,n) realloc(p, n)
-  /* XK_* key symbols and modifier masks */
-  #define XK_space      0x0020
-  #define XK_BackSpace  0xff08
-  #define XK_Tab        0xff09
-  #define XK_Return     0xff0d
-  #define XK_Escape     0xff1b
-  #define XK_Delete     0xffff
-  #define XK_Home       0xff50
-  #define XK_Left       0xff51
-  #define XK_Up         0xff52
-  #define XK_Right      0xff53
-  #define XK_Down       0xff54
-  #define XK_Page_Up    0xff55
-  #define XK_Page_Down  0xff56
-  #define XK_End        0xff57
-  #define XK_Caps_Lock  0xffe5
-  #define XK_Shift_L    0xffe1
-  #define XK_Shift_R    0xffe2
-  #define XK_Control_L  0xffe3
-  #define XK_Control_R  0xffe4
-  #define ShiftMask     (1<<0)
-  #define LockMask      (1<<1)
-  #define ControlMask   (1<<2)
-  #define Mod1Mask      (1<<3)
-  #define Mod2Mask      (1<<4)
-  #define Mod3Mask      (1<<5)
-  #define Mod4Mask      (1<<6)
-  #define Mod5Mask      (1<<7)
+  /* g_markup_escape_text: used in gtab.cpp:htmlspecialchars() for selection display */
+  static inline char *g_markup_escape_text(const char *s, int len) { (void)len; return strdup(s); }
+  /* unix_exec: declared in os-dep.h (excluded); defined in unix-exec.cpp (compiled) */
+  void unix_exec(char *fmt, ...);
+  /* XK_* key symbols — full set used by feedkey_gtab and feedkey_pho */
+  #define XK_space       0x0020
+  #define XK_BackSpace   0xff08
+  #define XK_Tab         0xff09
+  #define XK_Return      0xff0d
+  #define XK_Escape      0xff1b
+  #define XK_Home        0xff50
+  #define XK_Left        0xff51
+  #define XK_Up          0xff52
+  #define XK_Right       0xff53
+  #define XK_Down        0xff54
+  #define XK_Prior       0xff55
+  #define XK_Next        0xff56
+  #define XK_End         0xff57
+  #define XK_Delete      0xffff
+  #define XK_Shift_L     0xffe1
+  #define XK_Shift_R     0xffe2
+  #define XK_Control_L   0xffe3
+  #define XK_Control_R   0xffe4
+  #define XK_Caps_Lock   0xffe5
+  #define XK_Alt_L       0xffe9
+  #define XK_Alt_R       0xffea
+  #define XK_KP_Enter    0xff8d
+  #define XK_KP_Home     0xff95
+  #define XK_KP_Left     0xff96
+  #define XK_KP_Up       0xff97
+  #define XK_KP_Right    0xff98
+  #define XK_KP_Down     0xff99
+  #define XK_KP_Prior    0xff9a
+  #define XK_KP_Next     0xff9b
+  #define XK_KP_End      0xff9c
+  #define XK_KP_Delete   0xff9f
+  #define XK_KP_Multiply 0xffaa
+  #define XK_KP_Add      0xffab
+  #define XK_KP_Subtract 0xffad
+  #define XK_KP_Decimal  0xffae
+  #define XK_KP_Divide   0xffaf
+  #define XK_KP_0        0xffb0
+  #define XK_KP_9        0xffb9
+  #define ShiftMask      (1<<0)
+  #define LockMask       (1<<1)
+  #define ControlMask    (1<<2)
+  #define Mod1Mask       (1<<3)
+  #define Mod2Mask       (1<<4)
+  #define Mod3Mask       (1<<5)
+  #define Mod4Mask       (1<<6)
+  #define Mod5Mask       (1<<7)
 #else
+  #include <stdarg.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <ctype.h>
   #include "os-dep.h"
   #include <gtk/gtk.h>
+  #include <string.h>
   #if UNIX
   #include "IMdkit.h"
   #include "Xi18n.h"
@@ -388,155 +410,111 @@ come from `<X11/keysym.h>` via `os-dep.h`):
 ```
 
 IC.h's `#if UNIX` block (PreeditAttributes, StatusAttributes) uses `XRectangle`,
-`Colormap`, `Pixmap`, `Cursor` — all defined above, so IC.h requires no changes.
+`Colormap`, `Pixmap`, `Cursor` — types NOT defined in the 5-type GCIN_CORE_BUILD block.
+IC.h **does** require changes (see next section).
 
-### 1b. Modification to gcin/util.cpp
+### 1b. Modifications to gcin/IC.h
+
+IC.h requires guards in three places:
+
+**PreeditAttributes/StatusAttributes**: Change `#if UNIX` to `#if UNIX && !defined(GCIN_CORE_BUILD)` — these structs need `XRectangle`, `Colormap`, `Pixmap`, `Cursor` which are not in the GCIN_CORE_BUILD block. But since `UNIX=1` is defined, the block would compile in GCIN_CORE_BUILD without this extra guard.
+
+**ClientState**: Guard `Window client_win`, `INT32 input_style`, and `XPoint spot_location` with `#ifndef GCIN_CORE_BUILD` — none of these fields are accessed by compiled code (`current_CS->b_half_full_char`, `->in_method`, `->tsin_pho_mode` are the only accessed fields).
+
+**IC struct and DUAL_XIM_ENTRY**: Guard the entire definitions with `#ifndef GCIN_CORE_BUILD` — these XIM structures are never referenced in compiled core code.
+
+**gwin0 extern**: Keep `extern GtkWidget *gwin0;` **unguarded** — `tsin.cpp:tsin_reset()` directly references it inside `#if UNIX`.
+
+### 1c. Modification to gcin/util.cpp
 
 Add `#ifndef GCIN_CORE_BUILD` guard around the GTK dialog block in `p_err()`.
-The function already calls `p_err_no_alert()` for stderr output; in core build
-mode, skip the dialog.
 
 ```diff
- void p_err(const char *fmt, ...) {
-     ...
-     p_err_no_alert(...);   // stderr output — keep
+ #if CLIENT_LIB
+   fprintf(stderr, "%s\n", out);
+ #else
+   if (getenv("NO_GTK_INIT"))
+     fprintf(stderr, "%s\n", out);
+   else {
 +#ifndef GCIN_CORE_BUILD
-     GtkWidget *dialog = gtk_message_dialog_new(...);
+     GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, ...);
      gtk_dialog_run(GTK_DIALOG(dialog));
      gtk_widget_destroy(dialog);
++#else
++    fprintf(stderr, "%s\n", out);
 +#endif
-     exit(1);
- }
+   }
+ #endif
 ```
 
-Apply the same guard to the second `p_err` variant at line ~371.
+Also guard `box_warn()` — it uses `GTK_DIALOG_MODAL` etc. and is compiled when `!GCIN_IME && !CLIENT_LIB` (both 0 by default). Change the condition to `#if !GCIN_IME && !CLIENT_LIB && !GCIN_CORE_BUILD`.
 
 **Summary of all gcin source modifications (4 files):**
 
 | File | Change |
 |------|--------|
-| `gcin/gcin.h` | GCIN_CORE_BUILD type block (6 types) + `#ifndef` guards on unused declarations |
-| `gcin/IC.h` | Guard `PreeditAttributes`/`StatusAttributes` structs |
-| `gcin/util.cpp` | Guard GTK dialog calls in `p_err()` |
-| `gcin/gcin-conf.cpp` | Guard `get_gcin_atom()` body (calls `XInternAtom`) |
+| `gcin/gcin.h` | GCIN_CORE_BUILD block (5 types + headers + macros + XK_* constants) + `#ifndef` guards on Display/Window/GdkWindow externs and XIM declarations |
+| `gcin/IC.h` | Guard `PreeditAttributes`/`StatusAttributes`; guard `client_win`/`input_style`/`spot_location` in ClientState; guard IC struct and DUAL_XIM_ENTRY |
+| `gcin/util.cpp` | Guard GTK dialog in `p_err()`; change condition on `box_warn()` |
+| `gcin/gcin-conf.cpp` | Guard `#include "os-dep.h"`, `#include <X11/Xatom.h>`, and `get_gcin_atom()` body |
 
-### 1c. gcin_stubs.cpp
+### 1d. gcin_stubs.cpp
 
 `gcin-core/gcin_stubs.cpp` provides:
-1. Definitions for all `extern` globals gcin source files reference
-2. Stub bodies for all UI functions listed in [Key Findings](#ui-functions-to-stub-in-gcin_stubscpp)
-3. The `send_text()` / `send_utf8_ch()` / `send_ascii()` intercepts with callback
+1. Definitions for extern globals from excluded files
+2. UI function stubs (void and boolean)
+3. `send_text()` / `send_utf8_ch()` / `send_ascii()` — fire the commit callback
+4. `case_inverse()` and `current_time()` — reimplemented from excluded `gcin-common.cpp`
+5. `gcin_core_init()` / `gcin_core_feedkey_*()` / `gcin_core_reset()` — public API
 
-```cpp
-#include "gcin-core.h"
-#include "../gcin/gcin.h"
-#include "../gcin/pho.h"
-#include "../gcin/tsin.h"
-#include "../gcin/gst.h"
+**Globals needed** (defined in excluded files; confirmed by `nm` audit):
 
-/* ── Globals expected by gcin source ─────────────────────── */
-Display    *dpy       = NULL;
-Window      xwin0     = 0;
-Window      root      = 0;
-GtkWidget  *gwin0     = NULL;
-GdkWindow  *gdkwin0   = NULL;
-int         dpy_xl    = 1920;
-int         dpy_yl    = 1080;
-int         win_xl    = 0, win_yl = 0;
-int         win_x     = 0, win_y  = 0;
-char        TableDir[512] = {0};
+| Global | Source file | Value |
+|--------|-------------|-------|
+| `gboolean test_mode` | `eve.cpp` | 0 |
+| `int current_in_win_x/y` | `eve.cpp` | -1 |
+| `int win_xl, win_yl, win_x, win_y` | `gcin.cpp` | 0 |
+| `int dpy_xl, dpy_yl` | `gcin.cpp` | 1920, 1080 |
+| `int gcin_font_size` | `gcin-settings.cpp` | 16 |
+| `GtkWidget *gwin_gtab` | `win-gtab.cpp` | NULL |
+| `int win_gtab_max_key_press` | `win-gtab.cpp` | 10 |
+| `gboolean last_cursor_off` | `win-gtab.cpp` | 0 |
+| `GtkWidget *gwin_pho` | `win-pho.cpp` | NULL |
+| `GtkWidget *gwin0` | `win0.cpp` | NULL |
+| `GtkWidget *gwin1` | `win1.cpp` | NULL |
+| `PIN_JUYIN *pin_juyin` | `gcin-common.cpp` | NULL |
+| `int text_pho_N` | `gcin-common.cpp` | 3 |
 
-/* current_CS: gcin tracks the active X11 client via this pointer.
-   The IBus engine is a single-client model; use a static instance. */
-static CLIENT_STATE _cs = {0};
-CLIENT_STATE *current_CS = &_cs;
+Note: `TableDir`, `seltab`, `cur_inmd`, `_gtab_space_auto_first`, `ph_key_sz`, `hash_pho`, `phkbm`, `b_hsu_kbm`, `tsin_is_gtab`, `tsin_hand` are all defined in compiled files — do NOT define in stubs.
 
-/* ── Output callback ──────────────────────────────────────── */
-static GcinCommitCb g_commit_cb   = NULL;
-static void        *g_commit_data = NULL;
+**Do NOT stub** (defined in compiled files — would cause duplicate symbol errors):
 
-void gcin_core_set_commit_cb(GcinCommitCb cb, void *userdata) {
-    g_commit_cb   = cb;
-    g_commit_data = userdata;
+| Function | Defined in |
+|----------|-----------|
+| `ClrIn`, `ClrSelArea`, `clear_after_put` | `gtab.cpp` |
+| `disp_selection0`, `close_gtab_pho_win` | `gtab.cpp` |
+| `is_gtab_query_mode`, `use_tsin_sel_win` | `gtab.cpp` |
+| `same_query_show_pho_win`, `set_gtab_target_displayed` | `gtab.cpp` |
+| `clr_in_area_pho`, `clrin_pho` | `pho.cpp` |
+| `drawcursor` | `tsin.cpp` |
+
+**`case_inverse` reimplementation** (flip alpha KeySym case by ±0x20):
+
+```c
+void case_inverse(KeySym *xkey, int shift_m) {
+    if (*xkey >= 'a' && *xkey <= 'z')      *xkey -= 0x20;
+    else if (*xkey >= 'A' && *xkey <= 'Z') *xkey += 0x20;
 }
+```
 
-void send_text(char *text) {
-    if (g_commit_cb) g_commit_cb(text, g_commit_data);
+**`current_time` reimplementation** (monotonic microseconds, no GLib):
+
+```c
+gint64 current_time() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (gint64)ts.tv_sec * 1000000LL + ts.tv_nsec / 1000LL;
 }
-
-void send_utf8_ch(char *ch) {
-    /* ch is a CH_SZ (4-byte) UTF-8 buffer; may not be NUL-terminated */
-    char buf[CH_SZ + 1];
-    memcpy(buf, ch, CH_SZ);
-    buf[CH_SZ] = '\0';
-    if (g_commit_cb) g_commit_cb(buf, g_commit_data);
-}
-
-void send_ascii(char key) {
-    char buf[2] = { key, '\0' };
-    if (g_commit_cb) g_commit_cb(buf, g_commit_data);
-}
-
-/* ── UI stubs — void ──────────────────────────────────────── */
-void show_win_gtab(void)            {}
-void hide_win_gtab(void)            {}
-void show_win_pho(void)             {}
-void hide_win_pho(void)             {}
-void hide_win_kbm(void)             {}
-void hide_win0(void)                {}
-void hide_row2_if_necessary(void)   {}
-void minimize_win_gtab(void)        {}
-void minimize_win_pho(void)         {}
-void disp_gtab(char *s)             { (void)s; }
-void disp_gbuf(void)                {}
-void disp_gtab_sel(char *s)         { (void)s; }
-void disp_gtab_pre_sel(char *s)     { (void)s; }
-void disp_selection0(gboolean a, gboolean b) { (void)a; (void)b; }
-void disp_pho(int i, char *s)       { (void)i; (void)s; }
-void disp_pho_sel(char *s)          { (void)s; }
-void disp_pho_sub(GtkWidget *l, int i, char *s) { (void)l; (void)i; (void)s; }
-void disp_label_edit(char *s)       { (void)s; }
-void disp_char(int i, char *s)      { (void)i; (void)s; }
-void ClrIn(void)                    {}
-void ClrSelArea(void)               {}
-void ClrPhoSelArea(void)            {}
-void clear_after_put(void)          {}
-void clear_gtab_input_error_color(void) {}
-void set_gtab_input_error_color(void)   {}
-void set_key_codes_label(char *s, int b) { (void)s; (void)b; }
-void set_page_label(char *s)        { (void)s; }
-void set_label_font_size(GtkWidget *l, int sz) { (void)l; (void)sz; }
-void set_label_space(GtkWidget *l)  { (void)l; }
-void set_no_focus(GtkWidget *w)     { (void)w; }
-void clr_in_area_pho(void)          {}
-void clr_tsin_cursor(int i)         { (void)i; }
-void bell(void)                     {}
-void disp_tray_icon(void)           {}
-void save_CS_current_to_temp(void)  {}
-void show_tsin_stat(void)           {}
-void recreate_win1_if_nessary(void) {}
-void start_gtab_pho_query(char *s)  { (void)s; }
-void close_gtab_pho_win(void)       {}
-void set_gtab_target_displayed(void){}
-void pho_play(phokey_t k)           { (void)k; }
-void gtab_scan_pre_select(gboolean b) { (void)b; }
-void hide_gtab_pre_sel(void)        {}
-void change_win_fg_bg(GtkWidget *w, GtkWidget *l) { (void)w; (void)l; }
-void change_win_bg(GtkWidget *w)    { (void)w; }
-void send_gcin_message(Display *d, char *s) { (void)d; (void)s; }
-void exec_gcin_setup(void)          {}
-void get_win_size(GtkWidget *w, int *wd, int *ht) { (void)w; if(wd)*wd=0; if(ht)*ht=0; }
-void win32_init_win(GtkWidget *w)   { (void)w; }
-
-/* ── UI stubs — boolean ───────────────────────────────────── */
-gboolean full_char_proc(KeySym k)          { (void)k; return FALSE; }
-gboolean shift_char_proc(KeySym k, int s)  { (void)k; (void)s; return FALSE; }
-gboolean pre_punctuation(KeySym k)         { (void)k; return FALSE; }
-gboolean pre_punctuation_hsu(KeySym k)     { (void)k; return FALSE; }
-gboolean is_gtab_query_mode(void)          { return FALSE; }
-gboolean use_tsin_sel_win(void)            { return FALSE; }
-gboolean same_query_show_pho_win(void)     { return FALSE; }
-gboolean gcin_edit_display_ap_only(void)   { return FALSE; }
 ```
 
 ### 1d. gcin-core.h — public API
@@ -577,36 +555,42 @@ void gcin_core_reset(void);
 
 ### 1e. Makefile for libgcin-core.a
 
+**Important:** Compile as C (`-x c`), not C++. The gcin source uses `goto` that jumps over variable initializations — valid C but an error in C++.
+
 ```makefile
 GCIN     := ../gcin
 
-# No compat/ needed — GCIN_CORE_BUILD guard in gcin.h handles all type definitions
-CXXFLAGS := -std=c++11 -g -O2 \
-            -DGCIN_CORE_BUILD -DHAVE_CONFIG_H \
-            -I$(GCIN) -I$(GCIN)/IMdkit
+# Compile as C: gcin source uses goto-over-init (valid C, error in C++)
+# -Wno-implicit-function-declaration: gcin has forward-reference patterns
+CFLAGS := -x c -std=gnu99 -g -O2 -Wno-implicit-function-declaration \
+           -DGCIN_CORE_BUILD -DHAVE_CONFIG_H \
+           -DGCIN_TABLE_DIR=\"/usr/share/gcin\" \
+           -DGCIN_BIN_DIR=\"/usr/lib/gcin\" \
+           -I$(GCIN) -I$(GCIN)/IMdkit/include
 
 GCIN_SRCS := \
-    $(GCIN)/gtab.cpp         \
-    $(GCIN)/gtab-init.cpp    \
-    $(GCIN)/gtab-list.cpp    \
-    $(GCIN)/gtab-buf.cpp     \
-    $(GCIN)/gtab-util.cpp    \
+    $(GCIN)/gtab.cpp          \
+    $(GCIN)/gtab-init.cpp     \
+    $(GCIN)/gtab-list.cpp     \
+    $(GCIN)/gtab-buf.cpp      \
+    $(GCIN)/gtab-util.cpp     \
     $(GCIN)/gtab-tsin-fname.cpp \
-    $(GCIN)/pho.cpp          \
-    $(GCIN)/pho-lookup.cpp   \
-    $(GCIN)/pho-util.cpp     \
-    $(GCIN)/pho-kbm-name.cpp \
-    $(GCIN)/tsin.cpp         \
-    $(GCIN)/tsin-util.cpp    \
-    $(GCIN)/tsin-char.cpp    \
-    $(GCIN)/tsin-scan.cpp    \
-    $(GCIN)/tsin-parse.cpp   \
-    $(GCIN)/util.cpp         \
-    $(GCIN)/gcin-conf.cpp    \
-    $(GCIN)/gcin-common.cpp  \
-    $(GCIN)/fullchar.cpp     \
-    $(GCIN)/cache.cpp        \
-    $(GCIN)/lang.cpp
+    $(GCIN)/pho.cpp           \
+    $(GCIN)/pho-lookup.cpp    \
+    $(GCIN)/pho-util.cpp      \
+    $(GCIN)/pho-kbm-name.cpp  \
+    $(GCIN)/pho-sym.cpp       \
+    $(GCIN)/tsin.cpp          \
+    $(GCIN)/tsin-util.cpp     \
+    $(GCIN)/tsin-char.cpp     \
+    $(GCIN)/tsin-scan.cpp     \
+    $(GCIN)/tsin-parse.cpp    \
+    $(GCIN)/util.cpp          \
+    $(GCIN)/gcin-conf.cpp     \
+    $(GCIN)/fullchar.cpp      \
+    $(GCIN)/cache.cpp         \
+    $(GCIN)/lang.cpp          \
+    $(GCIN)/unix-exec.cpp
 
 CORE_SRCS := gcin_stubs.cpp
 
@@ -620,15 +604,21 @@ all: libgcin-core.a
 libgcin-core.a: $(OBJS)
 	$(AR) rcs $@ $^
 
-# Rule for gcin source files (vpath handles the directory)
 vpath %.cpp $(GCIN) .
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f *.o libgcin-core.a
 ```
+
+**Files added vs. original plan:**
+- `pho-sym.cpp` — defines `pho_chars[]` used by tsin.cpp; no X11/GTK deps
+- `unix-exec.cpp` — defines `unix_exec()` used by gtab-tsin-fname.cpp; declared in excluded os-dep.h
+
+**Files excluded from compiled list (still correct):**
+- `gcin-common.cpp` — has real GTK/X11 calls; `case_inverse`/`current_time` reimplemented in stubs
 
 ### 1f. Build and iterate
 
@@ -912,4 +902,4 @@ ibus restart
 
 ---
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05 (Session 3 — corrected Phase 1 based on actual build)
