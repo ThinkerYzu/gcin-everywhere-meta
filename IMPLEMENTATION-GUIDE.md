@@ -89,62 +89,71 @@ bits exactly: `ShiftMask=1`, `LockMask=2`, `ControlMask=4`, `Mod1Mask=8`, etc.
 **Consequence:** `feedkey_gtab(keyval, modifiers)` and `feedkey_pho(keyval, modifiers)`
 can be called with IBus values directly — no translation layer needed.
 
-### X11/GTK dependency strategy: compat headers
+### X11/GTK dependency analysis (per-file audit results)
 
-gcin source files include `<gtk/gtk.h>` and `<X11/Xlib.h>` for type definitions
-(`gboolean`, `KeySym`, `GtkWidget`, etc.) and constants (`ShiftMask`, `XK_Escape`, etc.).
+Every gcin source file pulls in `gcin.h` (which includes `<gtk/gtk.h>`) and/or
+`<X11/Xlib.h>`, but **actual GTK/X11 function calls** are confined to two places:
 
-The key-processing code paths (`feedkey_gtab`, `feedkey_pho`, table loading, lookup)
-never call actual GTK widget or X11 display functions at runtime — those calls only
-appear in UI display functions that we stub out.
+1. **`gcin-common.cpp`** — `bell()` calls `XBell`+`gdk_beep`; `disp_pho_sub()` calls
+   `gtk_label_set_text`; several others use Pango and GdkWindow APIs.
+   → **EXCLUDE entirely.** Its two useful functions (`case_inverse`, `current_time`)
+   are re-implemented as trivial stubs in `gcin_stubs.cpp`.
 
-**Strategy:** Place `gcin-core/compat/` first on the include path. These fake headers
-define all the needed types and constants, and turn GTK/X11 function calls into
-no-ops via macros. No GTK3 or X11 dev packages needed at all.
+2. **`util.cpp`** — `p_err()` calls `gtk_message_dialog_new`, `gtk_dialog_run`,
+   `gtk_widget_destroy`.
+   → **MODIFY with one `#ifdef GCIN_CORE_BUILD` guard.**
 
-### gcin source modifications required
+All other files that were previously marked MODIFY (`gtab.cpp`, `gtab-init.cpp`,
+`gtab-list.cpp`, `gtab-buf.cpp`, `pho.cpp`, `tsin.cpp`) contain only
+`extern GtkWidget *varname` declarations — no actual GTK/X11 function calls.
+These declarations are resolved by type stubs in the compat headers.
+→ **All become INCLUDE as-is.**
 
-Only **one file** needs a code change (the rest are handled by compat headers + stubs):
+### compat/ headers: type stubs only
 
-- **`gcin/util.cpp`** — `p_err()` calls `gtk_message_dialog_new()` and stores the
-  result in a local `GtkWidget*`. While compat macros can make the GTK calls no-ops,
-  `GtkWidget*` as a local variable type could cause issues depending on how `GtkWidget`
-  is defined. Guard the dialog block with `#ifndef GCIN_CORE_BUILD` and use
-  `p_err_no_alert()` (stderr only) instead.
+Because only two files have actual GTK/X11 function calls (one excluded, one guarded),
+the compat headers need **only type and constant definitions** — no function-call macros.
 
-All other problematic calls (`XBell`, `gdk_beep`, `gtk_label_set_text`, Pango calls,
-`gdk_window_set_override_redirect`) are in functions that are either:
-- Stubbed in `gcin_stubs.cpp` (entire function replaced), or
-- Made into no-ops by macros in compat headers
+Required compat content:
+- `gtk/gtk.h` — GLib/GTK typedefs only: `gboolean`, `gint`, `gint64`, `guint`,
+  `guint64`, `gchar`, `guchar`, `glong`, `gulong`, `gpointer`, `GtkWidget` (as void),
+  `GdkWindow` (as void), `TRUE`, `FALSE`
+- `X11/Xlib.h` — type stubs only: `Display` (as void), `Window` (as unsigned long),
+  `KeySym` (as unsigned long), `KeyCode` (as unsigned int)
+- `X11/keysym.h` — `XK_*` key symbol constants and modifier masks
+- `gdk/gdkx.h`, `IMdkit.h`, `Xi18n.h` — empty files (just included, nothing used)
 
 ### UI functions to stub in gcin_stubs.cpp
 
 These are called from gcin core files but defined only in excluded UI files.
 Provide empty/no-op bodies in `gcin_stubs.cpp`:
 
-**Void stubs (no return value):**
-`show_win_gtab`, `hide_win_gtab`, `show_win_pho`, `hide_win_pho`, `hide_win_kbm`,
-`hide_win0`, `hide_row2_if_necessary`, `minimize_win_gtab`, `minimize_win_pho`,
-`disp_gtab`, `disp_gbuf`, `disp_gtab_sel`, `disp_gtab_pre_sel`, `disp_selection0`,
-`disp_pho`, `disp_pho_sel`, `disp_pho_sub`, `disp_label_edit`, `disp_char`,
+**From gcin-common.cpp (excluded — re-implement the two useful ones):**
+- `case_inverse(KeySym *xkey, int shift_m)` — re-implement (flips alpha KeySym case)
+- `current_time()` — re-implement (returns `g_get_monotonic_time()` or `clock()`)
+- `bell`, `disp_pho_sub`, `set_label_font_size`, `set_label_space`, `set_no_focus`,
+  `change_win_fg_bg`, `change_win_bg`, `exec_gcin_setup`, `get_win_size`,
+  `win32_init_win` — void stubs (never called on the key-processing path)
+
+**From excluded UI files (win-*.cpp, win0/1.cpp, etc.):**
+
+Void stubs: `show_win_gtab`, `hide_win_gtab`, `show_win_pho`, `hide_win_pho`,
+`hide_win_kbm`, `hide_win0`, `hide_row2_if_necessary`, `minimize_win_gtab`,
+`minimize_win_pho`, `disp_gtab`, `disp_gbuf`, `disp_gtab_sel`, `disp_gtab_pre_sel`,
+`disp_selection0`, `disp_pho`, `disp_pho_sel`, `disp_label_edit`, `disp_char`,
 `ClrIn`, `ClrSelArea`, `ClrPhoSelArea`, `clear_after_put`,
 `clear_gtab_input_error_color`, `set_gtab_input_error_color`,
-`set_key_codes_label`, `set_page_label`, `set_label_font_size`, `set_label_space`,
-`set_no_focus`, `clr_in_area_pho`, `clr_tsin_cursor`,
-`bell`, `disp_tray_icon`, `save_CS_current_to_temp`,
-`show_tsin_stat`, `recreate_win1_if_nessary`,
-`start_gtab_pho_query`, `close_gtab_pho_win`, `set_gtab_target_displayed`,
-`pho_play`, `gtab_scan_pre_select`, `hide_gtab_pre_sel`,
-`change_win_fg_bg`, `change_win_bg`
+`set_key_codes_label`, `set_page_label`, `clr_in_area_pho`, `clr_tsin_cursor`,
+`disp_tray_icon`, `save_CS_current_to_temp`, `show_tsin_stat`,
+`recreate_win1_if_nessary`, `start_gtab_pho_query`, `close_gtab_pho_win`,
+`set_gtab_target_displayed`, `pho_play`, `gtab_scan_pre_select`, `hide_gtab_pre_sel`,
+`create_win_save_phrase`
 
-**Boolean stubs (return FALSE):**
-`full_char_proc`, `shift_char_proc`, `pre_punctuation`, `pre_punctuation_hsu`,
-`is_gtab_query_mode`, `use_tsin_sel_win`, `same_query_show_pho_win`,
-`gcin_edit_display_ap_only`
+Boolean stubs (return FALSE): `full_char_proc`, `shift_char_proc`,
+`pre_punctuation`, `pre_punctuation_hsu`, `is_gtab_query_mode`, `use_tsin_sel_win`,
+`same_query_show_pho_win`, `gcin_edit_display_ap_only`
 
-**Other stubs:**
-`send_gcin_message` (void), `exec_gcin_setup` (void),
-`get_win_size` (void), `win32_init_win` (void)
+Other: `send_gcin_message` (void)
 
 ### Output interception: send_text and send_utf8_ch
 
@@ -165,25 +174,34 @@ link against this library.
 
 ### 1a. compat/ headers
 
-`gcin-core/compat/gtk/gtk.h` — provides GLib/GTK types and turns function calls into
-no-ops:
+These headers contain **type and constant definitions only** — no function-call macros
+needed. Every file we compile uses GtkWidget and friends as pointer types in `extern`
+declarations or function parameters, but never calls GTK/X11 functions directly
+(those are either excluded or guarded).
+
+`gcin-core/compat/gtk/gtk.h`:
 
 ```c
 #pragma once
-/* GLib types */
-typedef int           gboolean;
-typedef int           gint;
-typedef unsigned int  guint;
-typedef char          gchar;
-typedef unsigned char guchar;
-typedef long          glong;
-typedef unsigned long gulong;
-typedef void*         gpointer;
+#include <stdlib.h>
+#include <string.h>
+
+/* GLib scalar types */
+typedef int            gboolean;
+typedef int            gint;
+typedef long long      gint64;
+typedef unsigned long long guint64;
+typedef unsigned int   guint;
+typedef char           gchar;
+typedef unsigned char  guchar;
+typedef long           glong;
+typedef unsigned long  gulong;
+typedef void*          gpointer;
 #define TRUE  1
 #define FALSE 0
 #define G_GNUC_UNUSED __attribute__((unused))
 
-/* GObject/GLib stubs — used as types only, calls are no-ops */
+/* GLib/GTK opaque pointer types (used only as pointer types in extern decls) */
 typedef void GObject;
 typedef void GHashTable;
 typedef void GList;
@@ -194,50 +212,14 @@ typedef void GdkWindow;
 typedef void PangoContext;
 typedef void PangoFontDescription;
 
-/* Macro stubs for GTK/GLib function calls */
-#define g_object_ref(o)              ((void)(o))
-#define g_object_unref(o)            ((void)(o))
-#define g_object_ref_sink(o)         ((void)(o))
-#define g_hash_table_new(a,b)        NULL
-#define g_hash_table_insert(h,k,v)   ((void)(h))
-#define g_hash_table_lookup(h,k)     NULL
-#define g_hash_table_destroy(h)      ((void)(h))
-#define g_list_append(l,d)           NULL
-#define g_list_free(l)               ((void)(l))
-#define g_malloc(n)                  malloc(n)
-#define g_free(p)                    free(p)
-#define g_strdup(s)                  strdup(s)
-#define g_new(t,n)                   ((t*)malloc(sizeof(t)*(n)))
-#define g_new0(t,n)                  ((t*)calloc((n),sizeof(t)))
-#define g_realloc(p,n)               realloc(p,n)
-#define gdk_beep()                   ((void)0)
-#define gtk_label_set_text(l,s)      ((void)(l),(void)(s))
-#define GTK_LABEL(l)                 ((GtkLabel*)(l))
-#define GTK_WINDOW(w)                ((GtkWindow*)(w))
-#define GTK_WIDGET(w)                ((GtkWidget*)(w))
-#define GTK_DIALOG(d)                ((void*)(d))
-#define GTK_DIALOG_MODAL             0
-#define GTK_MESSAGE_ERROR            0
-#define GTK_BUTTONS_CLOSE            0
-#define gtk_message_dialog_new(...)  NULL
-#define gtk_dialog_run(d)            ((void)(d))
-#define gtk_widget_destroy(w)        ((void)(w))
-#define gtk_widget_show(w)           ((void)(w))
-#define gtk_widget_get_pango_context(w) NULL
-#define gtk_widget_get_window(w)     NULL
-#define gtk_widget_override_font(w,f) ((void)(w))
-#define gtk_window_set_decorated(w,b) ((void)(w))
-#define gtk_window_set_keep_above(w,b) ((void)(w))
-#define gtk_window_set_accept_focus(w,b) ((void)(w))
-#define gtk_window_set_type_hint(w,h) ((void)(w))
-#define gtk_window_set_skip_taskbar_hint(w,b) ((void)(w))
-#define GDK_WINDOW_TYPE_HINT_TOOLTIP 0
-#define pango_font_description_from_string(s) NULL
-#define pango_font_description_set_size(f,s) ((void)(f))
-#define PANGO_SCALE 1024
-#define pango_context_set_font_description(c,f) ((void)(c))
-#define pango_font_description_free(f) ((void)(f))
-#define gdk_window_set_override_redirect(w,b) ((void)(w))
+/* GLib memory — gcin uses these in core allocation paths */
+#define g_malloc(n)      malloc(n)
+#define g_malloc0(n)     calloc(1, n)
+#define g_free(p)        free(p)
+#define g_strdup(s)      strdup(s)
+#define g_new(t,n)       ((t*)malloc(sizeof(t)*(n)))
+#define g_new0(t,n)      ((t*)calloc((n),sizeof(t)))
+#define g_realloc(p,n)   realloc(p,n)
 ```
 
 `gcin-core/compat/X11/Xlib.h`:
@@ -248,21 +230,10 @@ typedef void          Display;
 typedef unsigned long Window;
 typedef unsigned long KeySym;
 typedef unsigned int  KeyCode;
-#define XBell(dpy,vol) ((void)0)
-#define XFlush(dpy)    ((void)0)
-#define None           0L
+#define None 0L
 ```
 
-`gcin-core/compat/X11/keysym.h` — X11 key symbol constants (copy verbatim from
-`/usr/include/X11/keysym.h` or write the subset gcin uses):
-
-Key XK_* values needed by gcin (at minimum):
-`XK_Escape`, `XK_BackSpace`, `XK_Return`, `XK_space`, `XK_Tab`,
-`XK_Delete`, `XK_Home`, `XK_End`, `XK_Left`, `XK_Right`, `XK_Up`, `XK_Down`,
-`XK_Page_Up`, `XK_Page_Down`, `XK_Shift_L`, `XK_Shift_R`,
-`XK_Control_L`, `XK_Control_R`, `XK_Caps_Lock`,
-modifier masks: `ShiftMask=1`, `LockMask=2`, `ControlMask=4`,
-`Mod1Mask=8`, `Mod4Mask=64`, `Mod5Mask=128`.
+`gcin-core/compat/X11/keysym.h` — `XK_*` constants and modifier masks:
 
 ```c
 #pragma once
@@ -295,10 +266,9 @@ modifier masks: `ShiftMask=1`, `LockMask=2`, `ControlMask=4`,
 #define Mod5Mask        (1<<7)
 ```
 
-`gcin-core/compat/gdk/gdkx.h` — empty file (included by os-dep.h).
-
-`gcin-core/compat/IMdkit.h` and `gcin-core/compat/Xi18n.h` — empty files
-(included by gtab.cpp).
+`gcin-core/compat/gdk/gdkx.h`, `gcin-core/compat/IMdkit.h`,
+`gcin-core/compat/Xi18n.h` — empty files (included by gcin headers but nothing
+used from them).
 
 ### 1b. Modification to gcin/util.cpp
 
@@ -767,24 +737,23 @@ ibus restart
 
 | File | Verdict | Notes |
 |------|---------|-------|
-| `gtab.cpp` | MODIFY | contains `feedkey_gtab()`; UI calls handled by compat macros + stubs |
-| `gtab-init.cpp` | MODIFY | compat macros handle GTK type references |
-| `gtab-list.cpp` | MODIFY | `p_err()` redirect; compat handles rest |
-| `gtab-buf.cpp` | MODIFY | contains `feedkey_gtab_release()` and `output_gbuf()`→`send_text()`; UI calls stubbed |
+| `gtab.cpp` | INCLUDE | only `extern GtkWidget*` decls — no GTK calls |
+| `gtab-init.cpp` | INCLUDE | no GTK/X11 calls at all |
+| `gtab-list.cpp` | INCLUDE | no GTK/X11 calls |
+| `gtab-buf.cpp` | INCLUDE | only `extern GtkWidget*` decls; contains `feedkey_gtab_release()` and `output_gbuf()`→`send_text()` |
 | `gtab-util.cpp` | INCLUDE | pure: `CONVT2()`, `gtab_key2name()` |
 | `gtab-tsin-fname.cpp` | INCLUDE | file path utilities |
-| `pho.cpp` | MODIFY | contains `feedkey_pho()`; `hide_win_pho`, `full_char_proc` stubbed |
+| `pho.cpp` | INCLUDE | only `extern GtkWidget*` decl — no GTK calls |
 | `pho-lookup.cpp` | INCLUDE | pure: phonetic lookup |
 | `pho-util.cpp` | INCLUDE | file I/O: loads pho.tab |
 | `pho-kbm-name.cpp` | INCLUDE | keyboard layout name table |
-| `tsin.cpp` | MODIFY | UI calls (`hide_win0`, `show_tsin_stat`, etc.) stubbed |
+| `tsin.cpp` | INCLUDE | only `extern GtkWidget*` decl; `im-client/gcin-im-client-attr.h` is pure typedefs |
 | `tsin-util.cpp` | INCLUDE | file I/O: loads tsin database |
 | `tsin-char.cpp` | INCLUDE | character index |
 | `tsin-scan.cpp` | INCLUDE | pure: phrase matching |
 | `tsin-parse.cpp` | INCLUDE | pure: recursive parse |
-| `util.cpp` | MODIFY | `p_err()` needs `#ifdef GCIN_CORE_BUILD` guard (1 change) |
-| `gcin-conf.cpp` | INCLUDE | file path + config loading; X11 include unused |
-| `gcin-common.cpp` | MODIFY | `bell()`, `disp_pho_sub()`, etc. handled by compat macros |
+| `util.cpp` | MODIFY | one `#ifdef GCIN_CORE_BUILD` guard in `p_err()` — only GTK function calls in the library |
+| `gcin-conf.cpp` | INCLUDE | file path + config loading |
 | `fullchar.cpp` | INCLUDE | full-width character table |
 | `cache.cpp` | INCLUDE | pure: parse result cache |
 | `lang.cpp` | INCLUDE | pure: language detection |
@@ -793,8 +762,9 @@ ibus restart
 
 | File | Reason |
 |------|--------|
+| `gcin-common.cpp` | actual GTK/X11 calls (`XBell`, `gdk_beep`, `gtk_label_set_text`, Pango); `case_inverse` and `current_time` re-implemented in `gcin_stubs.cpp` |
 | `gcin.cpp` | main() — application entry point |
-| `gcin-send.cpp` | XIM text dispatch — replaced by `gcin_stubs.cpp` |
+| `gcin-send.cpp` | XIM text dispatch — replaced by `gcin_stubs.cpp` send_text callback |
 | `IC.cpp` | X11 input context — not used |
 | `win-*.cpp`, `win0.cpp`, `win1.cpp` | X11/GTK windows |
 | `gcin-icon.cpp`, `tray.cpp`, `eggtrayicon.cpp` | system tray |
