@@ -86,7 +86,8 @@
 
 ## Session Logs
 
-1. **[Session 10: Mode Detection Fix — Phase 1 Complete](logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.md)** (2026-05-05) — Moved mode detection from `init()` to `enable()`; Cangjie and Zhuyin both confirmed working end-to-end.
+1. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
+2. **[Session 10: Mode Detection Fix — Phase 1 Complete](logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.md)** (2026-05-05) — Moved mode detection from `init()` to `enable()`; Cangjie and Zhuyin both confirmed working end-to-end.
 2. **[Session 9: Phase 5 — Local Install and Systemd Autostart](logs/2026-05-05-session-09-install-and-autostart.md)** (2026-05-05) — `make install` deploys to `~/.local/`; fixed 3 bugs (setenv, init ordering, GNOME spawn); systemd user service auto-starts engine; GNOME switching works.
 2. **[Session 8: Phase 4 — Zhuyin Preedit and Candidates](logs/2026-05-05-session-08-zhuyin-phase4.md)** (2026-05-05) — Added gcin_core_get_preedit_zhuyin/get_candidates_zhuyin API; wired update_ui() to branch on Cangjie vs Zhuyin mode; mode detected from IBus engine name; 3 new Zhuyin unit tests (9/9 pass).
 2. **[Session 7: Phase 3 — Cangjie Working End-to-End](logs/2026-05-05-session-07-cangjie-phase3.md)** (2026-05-05) — Added gcin_core_get_preedit/get_candidates_cangjie API; wired process_key_event with preedit + lookup table; commit callback; ko → 大人 confirmed working.
@@ -114,4 +115,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 10 — Phase 1 complete; Cangjie and Zhuyin working end-to-end)
+**Last Updated:** 2026-05-05 (Session 11 — GitHub repos published; top-level Makefile added)
