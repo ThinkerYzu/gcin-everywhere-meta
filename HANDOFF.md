@@ -116,4 +116,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Phase 6 plan revised: full-width mode via gcin's fullchar[]+full_char_proc() mechanism)
+**Last Updated:** 2026-05-05 (Phase 6 plan finalized: copy convention and comment format specified in IMPLEMENTATION-GUIDE.md)

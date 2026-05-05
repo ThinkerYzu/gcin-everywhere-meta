@@ -976,13 +976,32 @@ via gcin's own `fullchar[]` table and `full_char_proc()` — exactly as gcin doe
 See [Design Decision 6](DESIGN.md#6-full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly)
 for the full rationale.
 
-### Step 1 — Un-stub `half_char_to_full_char()` in `gcin_stubs.cpp`
+### Convention: copying functions from excluded files
 
-Replace the current NULL stub with the real implementation (identical to `gcin.cpp`).
-`fullchar[]` is already compiled from `fullchar.cpp` — just reference it:
+`half_char_to_full_char()` lives in `gcin.cpp` and `full_char_proc()` lives in
+`eve.cpp`. Both files are excluded from `libgcin-core.a` because they contain many
+other functions with X11/GTK dependencies (`main()`, XIM setup, XTest calls, GDK
+event handling, etc.) that cannot be economically guarded with `#ifdef GCIN_CORE_BUILD`.
+The functions themselves have no X11/GTK calls.
+
+We add them to `gcin_stubs.cpp` with a comment explaining why:
 
 ```c
-/* Remove old stub: char *half_char_to_full_char(KeySym xkey) { return NULL; } */
+/* Copied from <source-file> (excluded — <reason the file can't be compiled>).
+   The function itself has no X11/GTK calls; dependencies are <list>. */
+```
+
+This is the same pattern already used for `case_inverse()` and `current_time()`
+from excluded `gcin-common.cpp`.
+
+### Step 1 — Copy `half_char_to_full_char()` into `gcin_stubs.cpp`
+
+Replace the NULL stub. `fullchar[]` is already compiled from `fullchar.cpp`:
+
+```c
+/* Copied from gcin.cpp (excluded — defines globals dpy/root/win_xl that conflict
+   with our stubs, plus main() and X11/XIM setup). No X11/GTK calls; only uses
+   fullchar[] from fullchar.cpp (compiled). */
 char *half_char_to_full_char(KeySym xkey) {
     extern unich_t *fullchar[];
     if (xkey < ' ' || xkey > 127) return NULL;
@@ -990,13 +1009,17 @@ char *half_char_to_full_char(KeySym xkey) {
 }
 ```
 
-### Step 2 — Un-stub `full_char_proc()` in `gcin_stubs.cpp`
+### Step 2 — Copy `full_char_proc()` into `gcin_stubs.cpp`
 
-Replace the current FALSE stub. For our use case (phrase buffer disabled, not TSIN
-mode), the flow always reaches `send_text()`:
+Replace the FALSE stub. The original has branches for TSIN mode and phrase buffer
+mode, both inactive in our build (phrase buffer disabled, `current_method_type()`
+returns 0), so they are omitted:
 
 ```c
-/* Remove old stub: gboolean full_char_proc(KeySym k) { return FALSE; } */
+/* Copied from eve.cpp (excluded — contains XTest, GDK, and hundreds of
+   X11-dependent functions that can't be economically guarded). No X11/GTK
+   calls; uses half_char_to_full_char(), utf8cpy() (locale.cpp), send_text().
+   TSIN-mode and phrase-buffer branches omitted — both inactive in our build. */
 gboolean full_char_proc(KeySym keysym) {
     char *s = half_char_to_full_char(keysym);
     if (!s) return 0;
@@ -1007,41 +1030,21 @@ gboolean full_char_proc(KeySym keysym) {
 }
 ```
 
-Note: the original `full_char_proc` has branches for TSIN mode and phrase buffer mode.
-Both are inactive in our build (phrase buffer disabled, `current_method_type()` returns
-0), so the simplified version is equivalent.
+### Step 3 — Add toggle API to `gcin-core.h` and `gcin_stubs.cpp`
 
-### Step 3 — Handle Shift+Space in `gcin_engine.c`
-
-Add a toggle at the top of `gcin_engine_process_key_event()`, before routing to
-`gcin_core_feedkey_cangjie/zhuyin()`:
+`gcin_engine.c` needs to toggle `current_CS->b_half_full_char` without accessing
+internal gcin state directly. Expose via the public API:
 
 ```c
-/* Shift+Space: toggle full-width character mode */
-if (keyval == XK_space && (modifiers & ShiftMask)) {
-    current_CS->b_half_full_char = !current_CS->b_half_full_char;
-    gcin_core_reset();
-    ibus_engine_hide_preedit_text(iengine);
-    ibus_engine_hide_lookup_table(iengine);
-    return TRUE;
-}
-```
-
-`current_CS` is a global in `gcin_stubs.cpp` — `gcin_engine.c` needs to access it.
-Add `gcin_core_get_half_full_mode()` / `gcin_core_set_half_full_mode()` to the public
-API, or expose `current_CS->b_half_full_char` via a simpler accessor.
-
-Simplest approach — add to `gcin-core.h`:
-
-```c
-/* Toggle full-width character mode (Shift+Space). Returns new state. */
+/* gcin-core.h */
+/* Toggle full-width character mode (Shift+Space in gcin). Returns new state. */
 int gcin_core_toggle_full_width(void);
 int gcin_core_get_full_width(void);
 ```
 
-Implement in `gcin_stubs.cpp`:
-
 ```c
+/* gcin_stubs.cpp — mirrors toggle_half_full_char() in eve.cpp (excluded).
+   Omits display-update side effects (disp_im_half_full etc.) not needed here. */
 int gcin_core_toggle_full_width(void) {
     current_CS->b_half_full_char = !current_CS->b_half_full_char;
     return current_CS->b_half_full_char;
@@ -1051,23 +1054,38 @@ int gcin_core_get_full_width(void) {
 }
 ```
 
-### Step 4 — Tests
+### Step 4 — Handle Shift+Space in `gcin_engine.c`
+
+Add at the top of `gcin_engine_process_key_event()`, before the feedkey routing:
 
 ```c
-static void test_full_width_toggle(void) {
+/* Shift+Space: toggle full-width character mode, same as gcin's Shift+Space
+   binding (toggle_half_full_char in eve.cpp). Clear any pending composition. */
+if (keyval == XK_space && (modifiers & IBUS_SHIFT_MASK)) {
+    gcin_core_toggle_full_width();
+    gcin_core_reset();
+    ibus_engine_hide_preedit_text(iengine);
+    ibus_engine_hide_lookup_table(iengine);
+    return TRUE;
+}
+```
+
+### Step 5 — Tests
+
+```c
+static void test_cangjie_full_width(void) {
+    /* default: half-width mode — comma passes through as-is */
     reset();
-    /* default: half-width mode — comma passes through */
     gcin_core_feedkey_cangjie(',', 0);
     EXPECT_COMMITTED(",", "cangjie: comma in half-width mode passes through");
 
-    /* toggle to full-width */
+    /* toggle to full-width — comma becomes ， */
     reset();
     gcin_core_toggle_full_width();
     gcin_core_feedkey_cangjie(',', 0);
     EXPECT_COMMITTED("，", "cangjie: comma in full-width mode commits ，");
 
-    /* toggle back */
-    gcin_core_toggle_full_width();
+    gcin_core_toggle_full_width();  /* restore half-width for subsequent tests */
 }
 ```
 
@@ -1075,11 +1093,11 @@ static void test_full_width_toggle(void) {
 
 | File | Change |
 |------|--------|
-| `gcin-core/gcin_stubs.cpp` | Un-stub `half_char_to_full_char()` and `full_char_proc()`; add `gcin_core_toggle_full_width()` / `gcin_core_get_full_width()` |
+| `gcin-core/gcin_stubs.cpp` | Replace NULL/FALSE stubs with copied implementations; add `gcin_core_toggle_full_width()` / `gcin_core_get_full_width()` |
 | `gcin-core/gcin-core.h` | Add `gcin_core_toggle_full_width()` and `gcin_core_get_full_width()` |
-| `gcin-core/test_feedkey.c` | Add full-width mode tests |
+| `gcin-core/test_feedkey.c` | Add `test_cangjie_full_width()` |
 | `ibus-engine/gcin_engine.c` | Handle Shift+Space → `gcin_core_toggle_full_width()` |
 
 ---
 
-**Last Updated:** 2026-05-05 (Phase 6 revised: full-width mode matching gcin's mechanism)
+**Last Updated:** 2026-05-05 (Phase 6 finalized: copy convention documented; comments specified)
