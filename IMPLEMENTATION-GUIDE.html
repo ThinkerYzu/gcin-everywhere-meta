@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>IMPLEMENTATION-GUIDE – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#implementation-guide-gcin-everywhere"
+id="toc-implementation-guide-gcin-everywhere">Implementation Guide:
+gcin-everywhere</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#prerequisites"
+id="toc-prerequisites">Prerequisites</a></li>
+<li><a href="#repository-layout" id="toc-repository-layout">Repository
+Layout</a></li>
+<li><a href="#key-findings-from-source-audit"
+id="toc-key-findings-from-source-audit">Key Findings from Source
+Audit</a>
+<ul>
+<li><a href="#entry-points-confirmed-by-reading-source"
+id="toc-entry-points-confirmed-by-reading-source">Entry points
+(confirmed by reading source)</a></li>
+<li><a href="#ibus-x11-key-compatibility"
+id="toc-ibus-x11-key-compatibility">IBus ↔︎ X11 key
+compatibility</a></li>
+<li><a href="#x11gtk-dependency-analysis-per-file-audit-results"
+id="toc-x11gtk-dependency-analysis-per-file-audit-results">X11/GTK
+dependency analysis (per-file audit results)</a></li>
+<li><a href="#eliminating-x11gtk-type-dependencies"
+id="toc-eliminating-x11gtk-type-dependencies">Eliminating X11/GTK type
+dependencies</a></li>
+<li><a href="#ui-functions-to-stub-in-gcin_stubs.cpp"
+id="toc-ui-functions-to-stub-in-gcin_stubs.cpp">UI functions to stub in
+gcin_stubs.cpp</a></li>
+<li><a href="#output-interception-send_text-and-send_utf8_ch"
+id="toc-output-interception-send_text-and-send_utf8_ch">Output
+interception: send_text and send_utf8_ch</a></li>
+</ul></li>
+<li><a href="#phase-1-libgcin-core.a"
+id="toc-phase-1-libgcin-core.a">Phase 1: libgcin-core.a</a>
+<ul>
+<li><a href="#a.-modify-gcingcin.h" id="toc-a.-modify-gcingcin.h">1a.
+Modify gcin/gcin.h</a></li>
+<li><a href="#b.-modifications-to-gcinic.h"
+id="toc-b.-modifications-to-gcinic.h">1b. Modifications to
+gcin/IC.h</a></li>
+<li><a href="#c.-modification-to-gcinutil.cpp"
+id="toc-c.-modification-to-gcinutil.cpp">1c. Modification to
+gcin/util.cpp</a></li>
+<li><a href="#d.-gcin_stubs.cpp" id="toc-d.-gcin_stubs.cpp">1d.
+gcin_stubs.cpp</a></li>
+<li><a href="#d.-gcin-core.h-public-api"
+id="toc-d.-gcin-core.h-public-api">1d. gcin-core.h — public API</a></li>
+<li><a href="#e.-makefile-for-libgcin-core.a"
+id="toc-e.-makefile-for-libgcin-core.a">1e. Makefile for
+libgcin-core.a</a></li>
+<li><a href="#f.-build-and-iterate" id="toc-f.-build-and-iterate">1f.
+Build and iterate</a></li>
+</ul></li>
+<li><a href="#phase-2-ibus-engine-skeleton"
+id="toc-phase-2-ibus-engine-skeleton">Phase 2: IBus Engine Skeleton</a>
+<ul>
+<li><a href="#component-xml-ibus-enginecomponentgcin.xml"
+id="toc-component-xml-ibus-enginecomponentgcin.xml">Component XML:
+ibus-engine/component/gcin.xml</a></li>
+<li><a href="#skeleton-gcin_engine.c"
+id="toc-skeleton-gcin_engine.c">Skeleton gcin_engine.c</a></li>
+<li><a href="#makefile-ibus-enginemakefile"
+id="toc-makefile-ibus-enginemakefile">Makefile:
+ibus-engine/Makefile</a></li>
+<li><a href="#verify-skeleton-registers"
+id="toc-verify-skeleton-registers">Verify skeleton registers</a></li>
+</ul></li>
+<li><a href="#phase-3-cangjie-integration"
+id="toc-phase-3-cangjie-integration">Phase 3: Cangjie Integration</a>
+<ul>
+<li><a href="#key-routing" id="toc-key-routing">Key routing</a></li>
+<li><a href="#test" id="toc-test">Test</a></li>
+</ul></li>
+<li><a href="#phase-4-zhuyin-integration"
+id="toc-phase-4-zhuyin-integration">Phase 4: Zhuyin Integration</a>
+<ul>
+<li><a href="#test-1" id="toc-test-1">Test</a></li>
+</ul></li>
+<li><a href="#phase-5-ibus-registration-install"
+id="toc-phase-5-ibus-registration-install">Phase 5: IBus Registration
+&amp; Install</a>
+<ul>
+<li><a href="#install-paths" id="toc-install-paths">Install
+paths</a></li>
+<li><a href="#compile-data-tables" id="toc-compile-data-tables">Compile
+data tables</a></li>
+<li><a href="#activate-and-test-end-to-end"
+id="toc-activate-and-test-end-to-end">Activate and test
+end-to-end</a></li>
+</ul></li>
+<li><a href="#gcin-source-file-reference"
+id="toc-gcin-source-file-reference">gcin Source File Reference</a>
+<ul>
+<li><a href="#files-compiled-into-libgcin-core.a"
+id="toc-files-compiled-into-libgcin-core.a">Files compiled into
+libgcin-core.a</a></li>
+<li><a href="#files-excluded-not-compiled"
+id="toc-files-excluded-not-compiled">Files excluded (not
+compiled)</a></li>
+<li><a
+href="#key-data-files-built-by-gcins-tools-installed-to-usrsharegcin"
+id="toc-key-data-files-built-by-gcins-tools-installed-to-usrsharegcin">Key
+data files (built by gcin’s tools, installed to
+/usr/share/gcin/)</a></li>
+</ul></li>
+<li><a
+href="#phase-6-full-width-character-mode-cangjie-zhuyin-punctuation"
+id="toc-phase-6-full-width-character-mode-cangjie-zhuyin-punctuation">Phase
+6: Full-Width Character Mode (Cangjie + Zhuyin Punctuation)</a>
+<ul>
+<li><a href="#convention-copying-functions-from-excluded-files"
+id="toc-convention-copying-functions-from-excluded-files">Convention:
+copying functions from excluded files</a></li>
+<li><a href="#step-1-copy-half_char_to_full_char-into-gcin_stubs.cpp"
+id="toc-step-1-copy-half_char_to_full_char-into-gcin_stubs.cpp">Step 1 —
+Copy <code>half_char_to_full_char()</code> into
+<code>gcin_stubs.cpp</code></a></li>
+<li><a href="#step-2-copy-full_char_proc-into-gcin_stubs.cpp"
+id="toc-step-2-copy-full_char_proc-into-gcin_stubs.cpp">Step 2 — Copy
+<code>full_char_proc()</code> into <code>gcin_stubs.cpp</code></a></li>
+<li><a href="#step-3-add-toggle-api-to-gcin-core.h-and-gcin_stubs.cpp"
+id="toc-step-3-add-toggle-api-to-gcin-core.h-and-gcin_stubs.cpp">Step 3
+— Add toggle API to <code>gcin-core.h</code> and
+<code>gcin_stubs.cpp</code></a></li>
+<li><a href="#step-4-handle-shiftspace-in-gcin_engine.c"
+id="toc-step-4-handle-shiftspace-in-gcin_engine.c">Step 4 — Handle
+Shift+Space in <code>gcin_engine.c</code></a></li>
+<li><a href="#step-5-tests" id="toc-step-5-tests">Step 5 —
+Tests</a></li>
+<li><a href="#files-changed" id="toc-files-changed">Files
+changed</a></li>
+</ul></li>
+<li><a href="#phase-7-altshift-phrase-table"
+id="toc-phase-7-altshift-phrase-table">Phase 7: Alt+Shift Phrase
+Table</a>
+<ul>
+<li><a href="#step-1-add-gcin_core_feed_phrase-to-gcin-core.h"
+id="toc-step-1-add-gcin_core_feed_phrase-to-gcin-core.h">Step 1 — Add
+<code>gcin_core_feed_phrase()</code> to
+<code>gcin-core.h</code></a></li>
+<li><a href="#step-2-implement-in-gcin_stubs.cpp"
+id="toc-step-2-implement-in-gcin_stubs.cpp">Step 2 — Implement in
+<code>gcin_stubs.cpp</code></a></li>
+<li><a href="#step-3-intercept-altshift-and-ctrl-in-gcin_engine.c"
+id="toc-step-3-intercept-altshift-and-ctrl-in-gcin_engine.c">Step 3 —
+Intercept Alt+Shift and Ctrl in <code>gcin_engine.c</code></a></li>
+<li><a href="#step-4-install-phrase-table-files"
+id="toc-step-4-install-phrase-table-files">Step 4 — Install phrase table
+files</a></li>
+<li><a href="#step-5-tests-1" id="toc-step-5-tests-1">Step 5 —
+Tests</a></li>
+<li><a href="#files-changed-1" id="toc-files-changed-1">Files
+changed</a></li>
+</ul></li>
+<li><a href="#phase-8-quick-and-array-input-methods"
+id="toc-phase-8-quick-and-array-input-methods">Phase 8: Quick and Array
+Input Methods</a>
+<ul>
+<li><a href="#adapter-pattern-feedkey_gtab_method"
+id="toc-adapter-pattern-feedkey_gtab_method">Adapter pattern:
+<code>feedkey_gtab_method()</code></a></li>
+<li><a href="#mode-enum" id="toc-mode-enum">Mode enum</a></li>
+<li><a href="#preedit-and-candidates-are-shared"
+id="toc-preedit-and-candidates-are-shared">Preedit and candidates are
+shared</a></li>
+<li><a href="#data-tables" id="toc-data-tables">Data tables</a></li>
+<li><a href="#component-xml-entries"
+id="toc-component-xml-entries">Component XML entries</a></li>
+<li><a href="#key-behavioral-notes" id="toc-key-behavioral-notes">Key
+behavioral notes</a></li>
+<li><a href="#files-changed-2" id="toc-files-changed-2">Files
+changed</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="implementation-guide-gcin-everywhere">Implementation Guide:
+gcin-everywhere</h1>
+<p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
+2026-05-04 <strong>Last Updated:</strong> 2026-05-05 (Session 13 — Phase
+7 complete; <code>watch_fopen</code> fix noted in Phase 7 steps)</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
+href="SPEC.html">SPEC</a> | <a href="DESIGN.html">DESIGN</a> | <a
+href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> <em>(you are
+here)</em> | <a href="HANDOFF.html">HANDOFF</a></p>
+<p><strong>This Document:</strong></p>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#repository-layout">Repository Layout</a></li>
+<li><a href="#key-findings-from-source-audit">Key Findings from Source
+Audit</a></li>
+<li><a href="#phase-1-libgcin-corea">Phase 1: libgcin-core.a</a></li>
+<li><a href="#phase-2-ibus-engine-skeleton">Phase 2: IBus Engine
+Skeleton</a></li>
+<li><a href="#phase-3-cangjie-integration">Phase 3: Cangjie
+Integration</a></li>
+<li><a href="#phase-4-zhuyin-integration">Phase 4: Zhuyin
+Integration</a></li>
+<li><a href="#phase-5-ibus-registration--install">Phase 5: IBus
+Registration &amp; Install</a></li>
+<li><a
+href="#phase-6-full-width-character-mode-cangjie--zhuyin-punctuation">Phase
+6: Full-Width Character Mode</a></li>
+<li><a href="#phase-7-altshift-phrase-table">Phase 7: Alt+Shift Phrase
+Table</a></li>
+<li><a href="#phase-8-quick-and-array-input-methods">Phase 8: Quick and
+Array Input Methods</a></li>
+<li><a href="#gcin-source-file-reference">gcin Source File
+Reference</a></li>
+</ul>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Build dependencies (Debian/Ubuntu package names):</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># IBus and GLib (runtime + dev)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt install libibus-1.0-dev libglib2.0-dev</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># gcin&#39;s own build tools — needed to compile data tables (.cin → .gtab, etc.)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Build gcin once to produce cintotab, phoconv, and the compiled tables:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> sources/gcin-everywhere/gcin</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">./configure</span> <span class="kw">&amp;&amp;</span> <span class="fu">make</span></span></code></pre></div>
+<p><strong>No GTK3 or X11 dev headers required</strong> for
+libgcin-core.a — the compat headers in <code>gcin-core/compat/</code>
+replace them with type stubs (see Phase 1).</p>
+<hr />
+<h2 id="repository-layout">Repository Layout</h2>
+<pre><code>sources/gcin-everywhere/
+├── gcin/                    gcin upstream (submodule: github.com/pkg-ime/gcin)
+│   └── data/                source tables (.cin, .tab2.src, .kbmsrc)
+│
+├── gcin-core/               NEW — platform-independent static library
+│   ├── Makefile             builds libgcin-core.a
+│   ├── gcin-core.h          public API (used by all platform integrations)
+│   └── gcin_stubs.cpp       extern globals + UI stubs + send_text callback
+│
+└── ibus-engine/             IBus platform integration (links libgcin-core.a)
+    ├── Makefile
+    ├── gcin_engine.c        IBus GObject subclass
+    └── component/
+        └── gcin.xml         IBus component registration</code></pre>
+<hr />
+<h2 id="key-findings-from-source-audit">Key Findings from Source
+Audit</h2>
+<h3 id="entry-points-confirmed-by-reading-source">Entry points
+(confirmed by reading source)</h3>
+<table>
+<colgroup>
+<col style="width: 32%" />
+<col style="width: 19%" />
+<col style="width: 19%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>File</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>feedkey_gtab(KeySym key, int kbstate)</code></td>
+<td><code>gcin/gtab.cpp</code></td>
+<td>924</td>
+<td>Cangjie: process one keypress</td>
+</tr>
+<tr class="even">
+<td><code>feedkey_gtab_release(KeySym key, int kbstate)</code></td>
+<td><code>gcin/gtab-buf.cpp</code></td>
+<td>1153</td>
+<td>Cangjie: key release</td>
+</tr>
+<tr class="odd">
+<td><code>feedkey_pho(KeySym xkey, int kbstate)</code></td>
+<td><code>gcin/pho.cpp</code></td>
+<td>517</td>
+<td>Zhuyin: process one keypress</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ibus-x11-key-compatibility">IBus ↔︎ X11 key compatibility</h3>
+<p>IBus <code>keyval</code> values are numerically identical to X11
+<code>KeySym</code> values — both use the same key symbol table
+(XFree86/X.Org). IBus <code>modifiers</code> bits match X11
+<code>kbstate</code> bits exactly: <code>ShiftMask=1</code>,
+<code>LockMask=2</code>, <code>ControlMask=4</code>,
+<code>Mod1Mask=8</code>, etc.</p>
+<p><strong>Consequence:</strong>
+<code>feedkey_gtab(keyval, modifiers)</code> and
+<code>feedkey_pho(keyval, modifiers)</code> can be called with IBus
+values directly — no translation layer needed.</p>
+<h3 id="x11gtk-dependency-analysis-per-file-audit-results">X11/GTK
+dependency analysis (per-file audit results)</h3>
+<p>Actual GTK/X11 <strong>function calls</strong> in compiled files are
+confined to:</p>
+<ol type="1">
+<li><p><strong><code>gcin-common.cpp</code></strong> —
+<code>XBell</code>, <code>gdk_beep</code>,
+<code>gtk_label_set_text</code>, Pango calls. →
+<strong>EXCLUDE.</strong> Re-implement <code>case_inverse</code> and
+<code>current_time</code> in <code>gcin_stubs.cpp</code>.</p></li>
+<li><p><strong><code>util.cpp</code></strong> —
+<code>gtk_message_dialog_new/run/destroy</code> in <code>p_err()</code>.
+→ <strong>MODIFY</strong>: one <code>#ifndef GCIN_CORE_BUILD</code>
+guard.</p></li>
+<li><p><strong><code>gcin-conf.cpp</code></strong> —
+<code>get_gcin_atom(Display *dpy)</code> calls <code>XInternAtom</code>.
+→ <strong>MODIFY</strong>: guard that function body with
+<code>#ifndef GCIN_CORE_BUILD</code>.</p></li>
+</ol>
+<p>All other compiled files use
+<code>GtkWidget</code>/<code>Display</code>/<code>KeySym</code> only in
+<code>extern</code> declarations and as parameter/return types — never
+calling GTK/X11 functions.</p>
+<h3 id="eliminating-x11gtk-type-dependencies">Eliminating X11/GTK type
+dependencies</h3>
+<p><strong>Strategy: GCIN_CORE_BUILD guards on declarations, not type
+stubs for every type.</strong></p>
+<p>Modify <code>gcin/gcin.h</code> in two places:</p>
+<p><strong>Part 1 — top of file:</strong> Replace platform includes with
+a GCIN_CORE_BUILD block containing only the types actually needed. Use
+usage counts from source audit to determine what stays vs. what can be
+dropped via declaration guards.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef GCIN_CORE_BUILD</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;string.h&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* Types used in code bodies of compiled files */</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">int</span>           gboolean<span class="op">;</span>  <span class="co">/* 174 uses — return types, variables throughout */</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">long</span> <span class="dt">long</span>     gint64<span class="op">;</span>    <span class="co">/* 7 uses  — key_press_time globals */</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">unsigned</span> <span class="dt">long</span> KeySym<span class="op">;</span>    <span class="co">/* 37 uses — feedkey_* entry point signatures */</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">void</span>          GtkWidget<span class="op">;</span> <span class="co">/* 18 uses — local externs + GTK_WIDGET_VISIBLE calls */</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">char</span>          unich_t<span class="op">;</span>   <span class="co">/* 11 uses — gtab-buf.cpp data arrays (= char on Linux) */</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define TRUE  </span><span class="dv">1</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define FALSE </span><span class="dv">0</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define _L</span><span class="op">(</span><span class="pp">x</span><span class="op">)</span><span class="pp"> x</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define UNIX  </span><span class="dv">1</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* GTK_WIDGET_VISIBLE: called in feedkey_gtab/pho with always-NULL gwin_* pointers */</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define GTK_WIDGET_VISIBLE</span><span class="op">(</span><span class="pp">w</span><span class="op">)</span><span class="pp"> </span><span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* GLib memory macros — used in gcin allocation paths */</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_malloc</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span><span class="pp">    malloc</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_malloc0</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span><span class="pp">   calloc</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span><span class="pp"> n</span><span class="op">)</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_free</span><span class="op">(</span><span class="pp">p</span><span class="op">)</span><span class="pp">      free</span><span class="op">(</span><span class="pp">p</span><span class="op">)</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_strdup</span><span class="op">(</span><span class="pp">s</span><span class="op">)</span><span class="pp">    strdup</span><span class="op">(</span><span class="pp">s</span><span class="op">)</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_new</span><span class="op">(</span><span class="pp">t</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp">     </span><span class="op">((</span><span class="pp">t</span><span class="op">*)</span><span class="pp">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="pp">t</span><span class="op">)*(</span><span class="pp">n</span><span class="op">)))</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_new0</span><span class="op">(</span><span class="pp">t</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp">    </span><span class="op">((</span><span class="pp">t</span><span class="op">*)</span><span class="pp">calloc</span><span class="op">((</span><span class="pp">n</span><span class="op">),</span><span class="pp"> </span><span class="kw">sizeof</span><span class="op">(</span><span class="pp">t</span><span class="op">)))</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_realloc</span><span class="op">(</span><span class="pp">p</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp"> realloc</span><span class="op">(</span><span class="pp">p</span><span class="op">,</span><span class="pp"> n</span><span class="op">)</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* XK_* key symbols and modifier masks */</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_space      </span><span class="bn">0x0020</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* ... (full list as before) ... */</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define ShiftMask     </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* ... */</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;os-dep.h&quot;</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;gtk/gtk.h&gt;</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#if UNIX</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;IMdkit.h&quot;</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;Xi18n.h&quot;</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#endif</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p><strong>Why these 5 types and not more:</strong></p>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 30%" />
+<col style="width: 40%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Kept</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gboolean</code></td>
+<td>yes</td>
+<td>174 uses in core logic</td>
+</tr>
+<tr class="even">
+<td><code>gint64</code></td>
+<td>yes</td>
+<td><code>key_press_time</code> used in <code>feedkey_gtab</code></td>
+</tr>
+<tr class="odd">
+<td><code>KeySym</code></td>
+<td>yes</td>
+<td><code>feedkey_gtab</code>/<code>feedkey_pho</code> signatures</td>
+</tr>
+<tr class="even">
+<td><code>GtkWidget</code></td>
+<td>yes</td>
+<td>see below</td>
+</tr>
+<tr class="odd">
+<td><code>unich_t</code></td>
+<td>yes</td>
+<td><code>gtab-buf.cpp</code> data arrays used by
+<code>output_gbuf</code></td>
+</tr>
+<tr class="even">
+<td><code>Window</code></td>
+<td><strong>dropped</strong></td>
+<td><code>client_win</code> never accessed in compiled code; guard in
+IC.h</td>
+</tr>
+<tr class="odd">
+<td>all others</td>
+<td><strong>dropped</strong></td>
+<td>zero-use or eliminated via declaration guards</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why GtkWidget is kept (not eliminated):</strong>
+<code>gwin_*</code> pointers appear in 4 compiled <code>.cpp</code>
+files as local <code>extern GtkWidget *</code> declarations, and
+<code>GTK_WIDGET_VISIBLE(gwin_pho)</code> is called inside
+<code>feedkey_gtab</code> (line 985) and <code>feedkey_pho</code> (line
+844) — the compiler must parse it even though short-circuit
+<code>&amp;&amp;</code> prevents it running at runtime.</p>
+<p>Eliminating <code>GtkWidget</code> would require guarding those
+<code>extern</code> declarations in <code>gtab.cpp</code>,
+<code>gtab-buf.cpp</code>, <code>pho.cpp</code>, and
+<code>tsin.cpp</code> (4 more modified files), plus providing a minimal
+<code>WSP_S</code> typedef substitute in <code>tsin.cpp</code> to
+replace <code>win-save-phrase.h</code>’s struct that contains a
+<code>GtkWidget *opt</code> member. That raises the modified-file count
+from 4 to 8 to save a single <code>typedef void GtkWidget</code>. The
+type has no headers, no link-time footprint, and no runtime cost — not
+worth it.</p>
+<p><strong>Part 2 — declaration section of gcin.h:</strong> Wrap
+declarations that use dropped types:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef GCIN_CORE_BUILD</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> Display      <span class="op">*</span>dpy<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> GdkWindow    <span class="op">*</span>gdkwin0<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> Window        xwin0<span class="op">,</span> root<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> GtkWidget    <span class="op">*</span>gwin0<span class="op">;</span>        <span class="co">/* gwin0 only; .cpp files declare gwin_* locally */</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>IC   <span class="op">*</span>FindIC<span class="op">(</span>CARD16 icid<span class="op">);</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span>  loadIC<span class="op">();</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span>  send_gcin_message<span class="op">(</span>Display <span class="op">*</span>dpy<span class="op">,</span> <span class="dt">char</span> <span class="op">*</span>s<span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>gint  inmd_switch_popup_handler<span class="op">(</span>GtkWidget <span class="op">*</span>widget<span class="op">,</span> GdkEvent <span class="op">*</span>event<span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p><code>extern ClientState *current_CS</code> stays
+<strong>unguarded</strong> — it IS used by core code.</p>
+<p><strong><code>gcin/IC.h</code></strong> — guard XIM-only content
+never used by compiled code:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef GCIN_CORE_BUILD</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> <span class="op">{</span> XRectangle area<span class="op">;</span> <span class="op">...</span> Colormap cmap<span class="op">;</span> <span class="op">...</span> <span class="op">}</span> PreeditAttributes<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> <span class="op">{</span> XRectangle area<span class="op">;</span> <span class="op">...</span> Colormap cmap<span class="op">;</span> <span class="op">...</span> <span class="op">}</span> StatusAttributes<span class="op">;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p>Also guard <code>Window client_win</code> inside
+<code>ClientState</code> — no compiled file ever accesses this field
+(it’s the X11 client window for XIM delivery):</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef GCIN_CORE_BUILD</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    Window client_win<span class="op">;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    INT32  input_style<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    GCIN_STATE_E im_state<span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    gboolean b_half_full_char<span class="op">;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* ... rest of ClientState ... */</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> ClientState<span class="op">;</span></span></code></pre></div>
+<p>With <code>Window client_win</code> guarded, <code>Window</code> is
+no longer needed anywhere — dropped from the GCIN_CORE_BUILD type
+list.</p>
+<p><strong><code>gcin/gcin-conf.cpp</code></strong> — guard the X11
+function call:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifndef GCIN_CORE_BUILD</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>Atom get_gcin_atom<span class="op">(</span>Display <span class="op">*</span>dpy<span class="op">)</span> <span class="op">{</span> <span class="op">...</span> XInternAtom<span class="op">(</span>dpy<span class="op">,</span> <span class="op">...)</span> <span class="op">...</span> <span class="op">}</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<p><strong>Summary of gcin source modifications (4 files
+total):</strong></p>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin/gcin.h</code></td>
+<td>GCIN_CORE_BUILD type block (6 types only) + guards on unused
+declarations</td>
+</tr>
+<tr class="even">
+<td><code>gcin/IC.h</code></td>
+<td>Guard <code>PreeditAttributes</code> / <code>StatusAttributes</code>
+structs</td>
+</tr>
+<tr class="odd">
+<td><code>gcin/util.cpp</code></td>
+<td>Guard GTK dialog calls in <code>p_err()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin/gcin-conf.cpp</code></td>
+<td>Guard <code>get_gcin_atom()</code> body</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result:</strong> <code>libgcin-core.a</code> has zero
+dependency on GTK3, X11, or GLib. Build requires only a C++ compiler and
+standard library.</p>
+<h3 id="ui-functions-to-stub-in-gcin_stubs.cpp">UI functions to stub in
+gcin_stubs.cpp</h3>
+<p>These are called from gcin core files but defined only in excluded UI
+files. Provide empty/no-op bodies in <code>gcin_stubs.cpp</code>:</p>
+<p><strong>From gcin-common.cpp (excluded — re-implement the two useful
+ones):</strong></p>
+<ul>
+<li><code>case_inverse(KeySym *xkey, int shift_m)</code> — re-implement
+(flips alpha KeySym case)</li>
+<li><code>current_time()</code> — re-implement (returns
+<code>g_get_monotonic_time()</code> or <code>clock()</code>)</li>
+<li><code>bell</code>, <code>disp_pho_sub</code>,
+<code>set_label_font_size</code>, <code>set_label_space</code>,
+<code>set_no_focus</code>, <code>change_win_fg_bg</code>,
+<code>change_win_bg</code>, <code>exec_gcin_setup</code>,
+<code>get_win_size</code>, <code>win32_init_win</code> — void stubs
+(never called on the key-processing path)</li>
+</ul>
+<p>**From excluded UI files (win-*.cpp, win0/1.cpp, etc.):**</p>
+<p>Only stub functions that are <strong>declared but not
+defined</strong> in compiled files. Functions defined in gtab.cpp,
+pho.cpp, or tsin.cpp must NOT be stubbed — they’re already compiled in
+and their bodies call other stubs harmlessly.</p>
+<p>Void stubs (declared in compiled files, defined only in excluded UI
+files): <code>show_win_gtab</code>, <code>hide_win_gtab</code>,
+<code>show_win_pho</code>, <code>hide_win_pho</code>,
+<code>hide_win_kbm</code>, <code>hide_win0</code>,
+<code>hide_row2_if_necessary</code>, <code>minimize_win_gtab</code>,
+<code>minimize_win_pho</code>, <code>disp_gtab</code>,
+<code>disp_gbuf</code>, <code>disp_gtab_sel</code>,
+<code>disp_gtab_pre_sel</code>, <code>disp_pho</code>,
+<code>disp_pho_sel</code>, <code>disp_label_edit</code>,
+<code>disp_char</code>, <code>clear_gtab_input_error_color</code>,
+<code>set_gtab_input_error_color</code>,
+<code>set_key_codes_label</code>, <code>set_page_label</code>,
+<code>clr_tsin_cursor</code>, <code>disp_tray_icon</code>,
+<code>save_CS_current_to_temp</code>, <code>show_tsin_stat</code>,
+<code>recreate_win1_if_nessary</code>,
+<code>start_gtab_pho_query</code>, <code>pho_play</code>,
+<code>gtab_scan_pre_select</code>, <code>hide_gtab_pre_sel</code>,
+<code>create_win_save_phrase</code></p>
+<p>Boolean stubs (return FALSE): <code>full_char_proc</code>,
+<code>shift_char_proc</code>, <code>pre_punctuation</code>,
+<code>pre_punctuation_hsu</code>,
+<code>gcin_edit_display_ap_only</code></p>
+<p>Other: <code>send_gcin_message</code> (void)</p>
+<p><strong>Do NOT stub</strong> — defined in compiled files, would cause
+duplicate symbol errors:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Defined in</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ClrIn</code>, <code>ClrSelArea</code>,
+<code>clear_after_put</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>disp_selection0</code>, <code>close_gtab_pho_win</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="odd">
+<td><code>is_gtab_query_mode</code>, <code>use_tsin_sel_win</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>same_query_show_pho_win</code>,
+<code>set_gtab_target_displayed</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="odd">
+<td><code>clr_in_area_pho</code>, <code>ClrPhoSelArea</code>,
+<code>clrin_pho</code></td>
+<td><code>pho.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>drawcursor</code></td>
+<td><code>tsin.cpp</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="output-interception-send_text-and-send_utf8_ch">Output
+interception: send_text and send_utf8_ch</h3>
+<p><code>send_text()</code> and <code>send_utf8_ch()</code> are declared
+in <code>gcin.h</code> and implemented in <code>gcin-send.cpp</code>
+(XIM client dispatch — excluded). The library provides its own
+implementations in <code>gcin_stubs.cpp</code> that fire a registered
+callback instead.</p>
+<p><code>send_ascii()</code> passes single-byte ASCII keys (e.g. when
+not in Chinese mode) — same callback, single char.</p>
+<hr />
+<h2 id="phase-1-libgcin-core.a">Phase 1: libgcin-core.a</h2>
+<p><strong>Goal:</strong> A static library containing gcin’s Cangjie and
+Zhuyin engines with no X11/GTK runtime dependencies. Platform
+integrations (IBus, Windows TSF, macOS IMKit) link against this
+library.</p>
+<h3 id="a.-modify-gcingcin.h">1a. Modify gcin/gcin.h</h3>
+<p>Add a <code>GCIN_CORE_BUILD</code> guard at the top of
+<code>gcin/gcin.h</code>, before the existing
+<code>#include "os-dep.h"</code> and
+<code>#include &lt;gtk/gtk.h&gt;</code> lines. All type definitions go
+inline — no compat/ directory needed.</p>
+<p>The <code>XK_*</code> constants and modifier masks also move into
+this block (they currently come from <code>&lt;X11/keysym.h&gt;</code>
+via <code>os-dep.h</code>):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Add at the top of gcin/gcin.h, before the existing includes */</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef GCIN_CORE_BUILD</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdarg.h&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;ctype.h&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;string.h&gt;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;sys/types.h&gt;</span><span class="pp">   </span><span class="co">/* u_char, u_int, u_int64_t used by gtab.h/tsin.h */</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;unistd.h&gt;</span><span class="pp">      </span><span class="co">/* access(), W_OK used by gtab-tsin-fname.cpp */</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;time.h&gt;</span><span class="pp">        </span><span class="co">/* localtime() used by util.cpp */</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* 5 core types actively used in code bodies */</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">int</span>           gboolean<span class="op">;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">long</span> <span class="dt">long</span>     gint64<span class="op">;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">unsigned</span> <span class="dt">long</span> KeySym<span class="op">;</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">void</span>          GtkWidget<span class="op">;</span>   <span class="co">/* 18 uses as pointer type; kept as void* */</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">typedef</span> <span class="dt">char</span>          unich_t<span class="op">;</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define TRUE  </span><span class="dv">1</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define FALSE </span><span class="dv">0</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define _L</span><span class="op">(</span><span class="pp">x</span><span class="op">)</span><span class="pp"> x</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define UNIX  </span><span class="dv">1</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* gcin-gtk-compatible.h uses GTK_CHECK_VERSION as a function-like macro;</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="co">     define as 0 so all #if GTK_CHECK_VERSION(...) blocks evaluate false */</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define GTK_CHECK_VERSION</span><span class="op">(</span><span class="pp">a</span><span class="op">,</span><span class="pp">b</span><span class="op">,</span><span class="pp">c</span><span class="op">)</span><span class="pp"> </span><span class="dv">0</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define GTK_WIDGET_VISIBLE</span><span class="op">(</span><span class="pp">w</span><span class="op">)</span><span class="pp"> </span><span class="op">(</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* GLib memory aliases */</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_malloc</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span><span class="pp">    malloc</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_malloc0</span><span class="op">(</span><span class="pp">n</span><span class="op">)</span><span class="pp">   calloc</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span><span class="pp"> n</span><span class="op">)</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_free</span><span class="op">(</span><span class="pp">p</span><span class="op">)</span><span class="pp">      free</span><span class="op">(</span><span class="pp">p</span><span class="op">)</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_strdup</span><span class="op">(</span><span class="pp">s</span><span class="op">)</span><span class="pp">    strdup</span><span class="op">(</span><span class="pp">s</span><span class="op">)</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_new</span><span class="op">(</span><span class="pp">t</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp">     </span><span class="op">((</span><span class="pp">t</span><span class="op">*)</span><span class="pp">malloc</span><span class="op">(</span><span class="kw">sizeof</span><span class="op">(</span><span class="pp">t</span><span class="op">)*(</span><span class="pp">n</span><span class="op">)))</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_new0</span><span class="op">(</span><span class="pp">t</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp">    </span><span class="op">((</span><span class="pp">t</span><span class="op">*)</span><span class="pp">calloc</span><span class="op">((</span><span class="pp">n</span><span class="op">),</span><span class="pp"> </span><span class="kw">sizeof</span><span class="op">(</span><span class="pp">t</span><span class="op">)))</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define g_realloc</span><span class="op">(</span><span class="pp">p</span><span class="op">,</span><span class="pp">n</span><span class="op">)</span><span class="pp"> realloc</span><span class="op">(</span><span class="pp">p</span><span class="op">,</span><span class="pp"> n</span><span class="op">)</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* g_markup_escape_text: used in gtab.cpp:htmlspecialchars() for selection display */</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>  <span class="dt">static</span> <span class="kw">inline</span> <span class="dt">char</span> <span class="op">*</span>g_markup_escape_text<span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>s<span class="op">,</span> <span class="dt">int</span> len<span class="op">)</span> <span class="op">{</span> <span class="op">(</span><span class="dt">void</span><span class="op">)</span>len<span class="op">;</span> <span class="cf">return</span> strdup<span class="op">(</span>s<span class="op">);</span> <span class="op">}</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* unix_exec: declared in os-dep.h (excluded); defined in unix-exec.cpp (compiled) */</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  <span class="dt">void</span> unix_exec<span class="op">(</span><span class="dt">char</span> <span class="op">*</span>fmt<span class="op">,</span> <span class="op">...);</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>  <span class="co">/* XK_* key symbols — full set used by feedkey_gtab and feedkey_pho */</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_space       </span><span class="bn">0x0020</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_BackSpace   </span><span class="bn">0xff08</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Tab         </span><span class="bn">0xff09</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Return      </span><span class="bn">0xff0d</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Escape      </span><span class="bn">0xff1b</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Home        </span><span class="bn">0xff50</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Left        </span><span class="bn">0xff51</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Up          </span><span class="bn">0xff52</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Right       </span><span class="bn">0xff53</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Down        </span><span class="bn">0xff54</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Prior       </span><span class="bn">0xff55</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Next        </span><span class="bn">0xff56</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_End         </span><span class="bn">0xff57</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Delete      </span><span class="bn">0xffff</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Shift_L     </span><span class="bn">0xffe1</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Shift_R     </span><span class="bn">0xffe2</span></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Control_L   </span><span class="bn">0xffe3</span></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Control_R   </span><span class="bn">0xffe4</span></span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Caps_Lock   </span><span class="bn">0xffe5</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Alt_L       </span><span class="bn">0xffe9</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_Alt_R       </span><span class="bn">0xffea</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Enter    </span><span class="bn">0xff8d</span></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Home     </span><span class="bn">0xff95</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Left     </span><span class="bn">0xff96</span></span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Up       </span><span class="bn">0xff97</span></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Right    </span><span class="bn">0xff98</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Down     </span><span class="bn">0xff99</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Prior    </span><span class="bn">0xff9a</span></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Next     </span><span class="bn">0xff9b</span></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_End      </span><span class="bn">0xff9c</span></span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Delete   </span><span class="bn">0xff9f</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Multiply </span><span class="bn">0xffaa</span></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Add      </span><span class="bn">0xffab</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Subtract </span><span class="bn">0xffad</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Decimal  </span><span class="bn">0xffae</span></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_Divide   </span><span class="bn">0xffaf</span></span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_0        </span><span class="bn">0xffb0</span></span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define XK_KP_9        </span><span class="bn">0xffb9</span></span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define ShiftMask      </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">0</span><span class="op">)</span></span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define LockMask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">1</span><span class="op">)</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define ControlMask    </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">2</span><span class="op">)</span></span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define Mod1Mask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">3</span><span class="op">)</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define Mod2Mask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">4</span><span class="op">)</span></span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define Mod3Mask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">5</span><span class="op">)</span></span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define Mod4Mask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">6</span><span class="op">)</span></span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#define Mod5Mask       </span><span class="op">(</span><span class="dv">1</span><span class="op">&lt;&lt;</span><span class="dv">7</span><span class="op">)</span></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a><span class="pp">#else</span></span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdarg.h&gt;</span></span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdio.h&gt;</span></span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;stdlib.h&gt;</span></span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;ctype.h&gt;</span></span>
+<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;os-dep.h&quot;</span></span>
+<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;gtk/gtk.h&gt;</span></span>
+<span id="cb8-91"><a href="#cb8-91" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&lt;string.h&gt;</span></span>
+<span id="cb8-92"><a href="#cb8-92" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#if UNIX</span></span>
+<span id="cb8-93"><a href="#cb8-93" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;IMdkit.h&quot;</span></span>
+<span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#include </span><span class="im">&quot;Xi18n.h&quot;</span></span>
+<span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>  <span class="pp">#endif</span></span>
+<span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a><span class="co">/* existing gcin.h content continues unchanged below */</span></span></code></pre></div>
+<p>IC.h’s <code>#if UNIX</code> block (PreeditAttributes,
+StatusAttributes) uses <code>XRectangle</code>, <code>Colormap</code>,
+<code>Pixmap</code>, <code>Cursor</code> — types NOT defined in the
+5-type GCIN_CORE_BUILD block. IC.h <strong>does</strong> require changes
+(see next section).</p>
+<h3 id="b.-modifications-to-gcinic.h">1b. Modifications to
+gcin/IC.h</h3>
+<p>IC.h requires guards in three places:</p>
+<p><strong>PreeditAttributes/StatusAttributes</strong>: Change
+<code>#if UNIX</code> to
+<code>#if UNIX &amp;&amp; !defined(GCIN_CORE_BUILD)</code> — these
+structs need <code>XRectangle</code>, <code>Colormap</code>,
+<code>Pixmap</code>, <code>Cursor</code> which are not in the
+GCIN_CORE_BUILD block. But since <code>UNIX=1</code> is defined, the
+block would compile in GCIN_CORE_BUILD without this extra guard.</p>
+<p><strong>ClientState</strong>: Guard <code>Window client_win</code>,
+<code>INT32 input_style</code>, and <code>XPoint spot_location</code>
+with <code>#ifndef GCIN_CORE_BUILD</code> — none of these fields are
+accessed by compiled code (<code>current_CS-&gt;b_half_full_char</code>,
+<code>-&gt;in_method</code>, <code>-&gt;tsin_pho_mode</code> are the
+only accessed fields).</p>
+<p><strong>IC struct and DUAL_XIM_ENTRY</strong>: Guard the entire
+definitions with <code>#ifndef GCIN_CORE_BUILD</code> — these XIM
+structures are never referenced in compiled core code.</p>
+<p><strong>gwin0 extern</strong>: Keep
+<code>extern GtkWidget *gwin0;</code> <strong>unguarded</strong> —
+<code>tsin.cpp:tsin_reset()</code> directly references it inside
+<code>#if UNIX</code>.</p>
+<h3 id="c.-modification-to-gcinutil.cpp">1c. Modification to
+gcin/util.cpp</h3>
+<p>Add <code>#ifndef GCIN_CORE_BUILD</code> guard around the GTK dialog
+block in <code>p_err()</code>.</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode diff"><code class="sourceCode diff"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a> #if CLIENT_LIB</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>   fprintf(stderr, &quot;%s\n&quot;, out);</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a> #else</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>   if (getenv(&quot;NO_GTK_INIT&quot;))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>     fprintf(stderr, &quot;%s\n&quot;, out);</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>   else {</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="va">+#ifndef GCIN_CORE_BUILD</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>     GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, ...);</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>     gtk_dialog_run(GTK_DIALOG(dialog));</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>     gtk_widget_destroy(dialog);</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="va">+#else</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="va">+    fprintf(stderr, &quot;%s\n&quot;, out);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="va">+#endif</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>   }</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a> #endif</span></code></pre></div>
+<p>Also guard <code>box_warn()</code> — it uses
+<code>GTK_DIALOG_MODAL</code> etc. and is compiled when
+<code>!GCIN_IME &amp;&amp; !CLIENT_LIB</code> (both 0 by default).
+Change the condition to
+<code>#if !GCIN_IME &amp;&amp; !CLIENT_LIB &amp;&amp; !GCIN_CORE_BUILD</code>.</p>
+<p><strong>Summary of all gcin source modifications (4
+files):</strong></p>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin/gcin.h</code></td>
+<td>GCIN_CORE_BUILD block (5 types + headers + macros + XK_* constants)
++ <code>#ifndef</code> guards on Display/Window/GdkWindow externs and
+XIM declarations</td>
+</tr>
+<tr class="even">
+<td><code>gcin/IC.h</code></td>
+<td>Guard <code>PreeditAttributes</code>/<code>StatusAttributes</code>;
+guard
+<code>client_win</code>/<code>input_style</code>/<code>spot_location</code>
+in ClientState; guard IC struct and DUAL_XIM_ENTRY</td>
+</tr>
+<tr class="odd">
+<td><code>gcin/util.cpp</code></td>
+<td>Guard GTK dialog in <code>p_err()</code>; change condition on
+<code>box_warn()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin/gcin-conf.cpp</code></td>
+<td>Guard <code>#include "os-dep.h"</code>,
+<code>#include &lt;X11/Xatom.h&gt;</code>, and
+<code>get_gcin_atom()</code> body</td>
+</tr>
+</tbody>
+</table>
+<h3 id="d.-gcin_stubs.cpp">1d. gcin_stubs.cpp</h3>
+<p><code>gcin-core/gcin_stubs.cpp</code> provides:</p>
+<ol type="1">
+<li>Definitions for extern globals from excluded files</li>
+<li>UI function stubs (void and boolean)</li>
+<li><code>send_text()</code> / <code>send_utf8_ch()</code> /
+<code>send_ascii()</code> — fire the commit callback</li>
+<li><code>case_inverse()</code> and <code>current_time()</code> —
+reimplemented from excluded <code>gcin-common.cpp</code></li>
+<li><code>gcin_core_init()</code> / <code>gcin_core_feedkey_*()</code> /
+<code>gcin_core_reset()</code> — public API</li>
+</ol>
+<p><strong>Globals needed</strong> (defined in excluded files; confirmed
+by <code>nm</code> audit):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Global</th>
+<th>Source file</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gboolean test_mode</code></td>
+<td><code>eve.cpp</code></td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td><code>int current_in_win_x/y</code></td>
+<td><code>eve.cpp</code></td>
+<td>-1</td>
+</tr>
+<tr class="odd">
+<td><code>int win_xl, win_yl, win_x, win_y</code></td>
+<td><code>gcin.cpp</code></td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td><code>int dpy_xl, dpy_yl</code></td>
+<td><code>gcin.cpp</code></td>
+<td>1920, 1080</td>
+</tr>
+<tr class="odd">
+<td><code>int gcin_font_size</code></td>
+<td><code>gcin-settings.cpp</code></td>
+<td>16</td>
+</tr>
+<tr class="even">
+<td><code>GtkWidget *gwin_gtab</code></td>
+<td><code>win-gtab.cpp</code></td>
+<td>NULL</td>
+</tr>
+<tr class="odd">
+<td><code>int win_gtab_max_key_press</code></td>
+<td><code>win-gtab.cpp</code></td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td><code>gboolean last_cursor_off</code></td>
+<td><code>win-gtab.cpp</code></td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td><code>GtkWidget *gwin_pho</code></td>
+<td><code>win-pho.cpp</code></td>
+<td>NULL</td>
+</tr>
+<tr class="even">
+<td><code>GtkWidget *gwin0</code></td>
+<td><code>win0.cpp</code></td>
+<td>NULL</td>
+</tr>
+<tr class="odd">
+<td><code>GtkWidget *gwin1</code></td>
+<td><code>win1.cpp</code></td>
+<td>NULL</td>
+</tr>
+<tr class="even">
+<td><code>PIN_JUYIN *pin_juyin</code></td>
+<td><code>gcin-common.cpp</code></td>
+<td>NULL</td>
+</tr>
+<tr class="odd">
+<td><code>int text_pho_N</code></td>
+<td><code>gcin-common.cpp</code></td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<p>Note: <code>TableDir</code>, <code>seltab</code>,
+<code>cur_inmd</code>, <code>_gtab_space_auto_first</code>,
+<code>ph_key_sz</code>, <code>hash_pho</code>, <code>phkbm</code>,
+<code>b_hsu_kbm</code>, <code>tsin_is_gtab</code>,
+<code>tsin_hand</code> are all defined in compiled files — do NOT define
+in stubs.</p>
+<p><strong>Do NOT stub</strong> (defined in compiled files — would cause
+duplicate symbol errors):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Defined in</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ClrIn</code>, <code>ClrSelArea</code>,
+<code>clear_after_put</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>disp_selection0</code>, <code>close_gtab_pho_win</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="odd">
+<td><code>is_gtab_query_mode</code>, <code>use_tsin_sel_win</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>same_query_show_pho_win</code>,
+<code>set_gtab_target_displayed</code></td>
+<td><code>gtab.cpp</code></td>
+</tr>
+<tr class="odd">
+<td><code>clr_in_area_pho</code>, <code>clrin_pho</code></td>
+<td><code>pho.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>drawcursor</code></td>
+<td><code>tsin.cpp</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>case_inverse</code> reimplementation</strong> (flip
+alpha KeySym case by ±0x20):</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> case_inverse<span class="op">(</span>KeySym <span class="op">*</span>xkey<span class="op">,</span> <span class="dt">int</span> shift_m<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(*</span>xkey <span class="op">&gt;=</span> <span class="ch">&#39;a&#39;</span> <span class="op">&amp;&amp;</span> <span class="op">*</span>xkey <span class="op">&lt;=</span> <span class="ch">&#39;z&#39;</span><span class="op">)</span>      <span class="op">*</span>xkey <span class="op">-=</span> <span class="bn">0x20</span><span class="op">;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> <span class="op">(*</span>xkey <span class="op">&gt;=</span> <span class="ch">&#39;A&#39;</span> <span class="op">&amp;&amp;</span> <span class="op">*</span>xkey <span class="op">&lt;=</span> <span class="ch">&#39;Z&#39;</span><span class="op">)</span> <span class="op">*</span>xkey <span class="op">+=</span> <span class="bn">0x20</span><span class="op">;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><code>current_time</code> reimplementation</strong>
+(monotonic microseconds, no GLib):</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gint64 current_time<span class="op">()</span> <span class="op">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">struct</span> timespec ts<span class="op">;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    clock_gettime<span class="op">(</span>CLOCK_MONOTONIC<span class="op">,</span> <span class="op">&amp;</span>ts<span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">(</span>gint64<span class="op">)</span>ts<span class="op">.</span>tv_sec <span class="op">*</span> <span class="dv">1000000</span><span class="bu">LL</span> <span class="op">+</span> ts<span class="op">.</span>tv_nsec <span class="op">/</span> <span class="dv">1000</span><span class="bu">LL</span><span class="op">;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="d.-gcin-core.h-public-api">1d. gcin-core.h — public API</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#pragma once</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef __cplusplus</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> <span class="st">&quot;C&quot;</span> <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">/* Callback fired when gcin commits a character or string */</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="dt">void</span> <span class="op">(*</span>GcinCommitCb<span class="op">)(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>utf8<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">);</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">/* Register the commit callback before calling init or feedkey */</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> gcin_core_set_commit_cb<span class="op">(</span>GcinCommitCb cb<span class="op">,</span> <span class="dt">void</span> <span class="op">*</span>userdata<span class="op">);</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="co">/* Initialize gcin core. table_dir: path to compiled data tables</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co">   (the directory containing cj.gtab, pho.tab, tsin, etc.)</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co">   Returns 0 on success, -1 on failure. */</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_init<span class="op">(</span><span class="dt">const</span> <span class="dt">char</span> <span class="op">*</span>table_dir<span class="op">);</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co">/* Feed a keypress to the Cangjie engine.</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co">   keyval: IBus/X11 key symbol. modifiers: IBus/X11 modifier bitmask.</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co">   Returns 1 if key was consumed, 0 to pass through to application. */</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_cangjie<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_cangjie_release<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="co">/* Feed a keypress to the Zhuyin engine. Same conventions. */</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_zhuyin<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="co">/* Reset engine state (e.g. on focus loss) */</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> gcin_core_reset<span class="op">(</span><span class="dt">void</span><span class="op">);</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="pp">#ifdef __cplusplus</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="pp">#endif</span></span></code></pre></div>
+<h3 id="e.-makefile-for-libgcin-core.a">1e. Makefile for
+libgcin-core.a</h3>
+<p><strong>Important:</strong> Compile as C (<code>-x c</code>), not
+C++. The gcin source uses <code>goto</code> that jumps over variable
+initializations — valid C but an error in C++.</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="dt">GCIN</span>     <span class="ch">:=</span><span class="st"> ../gcin</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Compile as C: gcin source uses goto-over-init (valid C, error in C++)</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># -Wno-implicit-function-declaration: gcin has forward-reference patterns</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="dt">CFLAGS</span> <span class="ch">:=</span><span class="st"> -x c -std=gnu99 -g -O2 -Wno-implicit-function-declaration </span><span class="ch">\</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="st">           -DGCIN_CORE_BUILD -DHAVE_CONFIG_H -DUSE_TSIN=1 </span><span class="ch">\</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="st">           -DGCIN_TABLE_DIR=\&quot;/usr/share/gcin\&quot; </span><span class="ch">\</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="st">           -DGCIN_BIN_DIR=\&quot;/usr/lib/gcin\&quot; </span><span class="ch">\</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="st">           -I</span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st"> -I</span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/IMdkit/include</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="dt">GCIN_SRCS</span> <span class="ch">:=</span><span class="st"> </span><span class="ch">\</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab.cpp          </span><span class="ch">\</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-init.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-list.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-buf.cpp      </span><span class="ch">\</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-util.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-tsin-fname.cpp </span><span class="ch">\</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/pho.cpp           </span><span class="ch">\</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/pho-lookup.cpp    </span><span class="ch">\</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/pho-util.cpp      </span><span class="ch">\</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/pho-kbm-name.cpp  </span><span class="ch">\</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/pho-sym.cpp       </span><span class="ch">\</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/tsin.cpp          </span><span class="ch">\</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/tsin-util.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/tsin-char.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/tsin-scan.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/tsin-parse.cpp    </span><span class="ch">\</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/util.cpp          </span><span class="ch">\</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gcin-conf.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gcin-settings.cpp </span><span class="ch">\</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/fullchar.cpp      </span><span class="ch">\</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/cache.cpp         </span><span class="ch">\</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/lang.cpp          </span><span class="ch">\</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/unix-exec.cpp     </span><span class="ch">\</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/locale.cpp        </span><span class="ch">\</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/phrase.cpp        </span><span class="ch">\</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/gtab-use-count.cpp </span><span class="ch">\</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span><span class="st">/table-update.cpp</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a><span class="dt">CORE_SRCS</span> <span class="ch">:=</span><span class="st"> gcin_stubs.cpp</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="dt">OBJS</span> <span class="ch">:=</span><span class="st"> </span><span class="ch">$(</span><span class="kw">patsubst</span><span class="st"> %.cpp</span><span class="kw">,</span><span class="st">%.o</span><span class="kw">,</span><span class="ch">$(</span><span class="kw">notdir</span><span class="st"> </span><span class="ch">$(</span><span class="dt">GCIN_SRCS</span><span class="ch">)))</span><span class="st"> </span><span class="ch">\</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a><span class="st">        </span><span class="ch">$(</span><span class="kw">patsubst</span><span class="st"> %.cpp</span><span class="kw">,</span><span class="st">%.o</span><span class="kw">,</span><span class="ch">$(</span><span class="dt">CORE_SRCS</span><span class="ch">))</span></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a><span class="ot">.PHONY:</span><span class="dt"> all clean</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a><span class="dv">all:</span><span class="dt"> libgcin-core.a</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a><span class="dv">libgcin-core.a:</span><span class="dt"> </span><span class="ch">$(</span><span class="dt">OBJS</span><span class="ch">)</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a><span class="er">    </span><span class="ch">$(</span><span class="dt">AR</span><span class="ch">)</span> rcs <span class="ch">$@</span> <span class="ch">$^</span></span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a><span class="kw">vpath</span> %.cpp <span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span> .</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a><span class="dv">%.o:</span><span class="dt"> %.cpp</span></span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a><span class="er">    </span><span class="ch">$(</span><span class="dt">CC</span><span class="ch">)</span> <span class="ch">$(</span><span class="dt">CFLAGS</span><span class="ch">)</span> -c <span class="ch">$&lt;</span> -o <span class="ch">$@</span></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a><span class="dv">clean:</span></span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a><span class="er">    </span>rm -f *.o libgcin-core.a</span></code></pre></div>
+<p><strong>Files added vs. original plan:</strong></p>
+<ul>
+<li><code>pho-sym.cpp</code> — defines <code>pho_chars[]</code> used by
+tsin.cpp; no X11/GTK deps</li>
+<li><code>unix-exec.cpp</code> — defines <code>unix_exec()</code> used
+by gtab-tsin-fname.cpp; declared in excluded os-dep.h</li>
+<li><code>gcin-settings.cpp</code> — defines nearly all
+<code>gtab_*</code>/<code>tsin_*</code>/<code>pho_*</code>/<code>gcin_*</code>
+configuration globals; zero GTK/X11 calls; required at link time</li>
+<li><code>locale.cpp</code> — all utf8 string utilities
+(<code>utf8_sz</code>, <code>utf8cpy</code>, <code>u8cpy</code>, etc.);
+zero GTK/X11 calls; required at link time</li>
+<li><code>phrase.cpp</code> — <code>feed_phrase</code>,
+<code>watch_fopen</code>; zero GTK/X11 calls</li>
+<li><code>gtab-use-count.cpp</code> — <code>inc_gtab_use_count</code>,
+<code>get_gtab_use_count</code>; zero GTK/X11 calls</li>
+<li><code>table-update.cpp</code> — <code>update_table_file</code>; zero
+GTK/X11 calls</li>
+</ul>
+<p><strong><code>-DUSE_TSIN=1</code> required:</strong>
+<code>add_to_tsin_buf</code> (called from tsin.cpp) is inside
+<code>#if USE_TSIN</code>. Normally set by autoconf
+<code>config.h</code>; must be passed explicitly.</p>
+<p><strong>Files excluded from compiled list (still
+correct):</strong></p>
+<ul>
+<li><code>gcin-common.cpp</code> — has real GTK/X11 calls;
+<code>case_inverse</code>/<code>current_time</code> reimplemented in
+stubs</li>
+</ul>
+<h3 id="f.-build-and-iterate">1f. Build and iterate</h3>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> sources/gcin-everywhere/gcin-core</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-40</span></span></code></pre></div>
+<p>Expect linker errors on the first pass — each undefined symbol gets a
+stub added to <code>gcin_stubs.cpp</code>. Repeat until
+<code>libgcin-core.a</code> builds with zero errors.</p>
+<hr />
+<h2 id="phase-2-ibus-engine-skeleton">Phase 2: IBus Engine Skeleton</h2>
+<p><strong>Goal:</strong> A minimal IBus engine binary that registers
+with ibus-daemon, links <code>libgcin-core.a</code>, and does nothing
+yet.</p>
+<h3 id="component-xml-ibus-enginecomponentgcin.xml">Component XML:
+ibus-engine/component/gcin.xml</h3>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode xml"><code class="sourceCode xml"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span><span class="ot"> version=</span><span class="st">&quot;1.0&quot;</span><span class="ot"> encoding=</span><span class="st">&quot;utf-8&quot;</span><span class="fu">?&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">component</span>&gt;</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">name</span>&gt;org.freedesktop.IBus.Gcin&lt;/<span class="kw">name</span>&gt;</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">description</span>&gt;gcin Traditional Chinese Input Method&lt;/<span class="kw">description</span>&gt;</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">exec</span>&gt;/usr/lib/ibus-gcin/ibus-engine-gcin&lt;/<span class="kw">exec</span>&gt;</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">version</span>&gt;0.1&lt;/<span class="kw">version</span>&gt;</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">author</span>&gt;gcin-everywhere contributors&lt;/<span class="kw">author</span>&gt;</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">license</span>&gt;GPL&lt;/<span class="kw">license</span>&gt;</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">homepage</span>&gt;https://github.com/pkg-ime/gcin&lt;/<span class="kw">homepage</span>&gt;</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">textdomain</span>&gt;gcin&lt;/<span class="kw">textdomain</span>&gt;</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">engines</span>&gt;</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">engine</span>&gt;</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">name</span>&gt;gcin-cangjie&lt;/<span class="kw">name</span>&gt;</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">language</span>&gt;zh_TW&lt;/<span class="kw">language</span>&gt;</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">license</span>&gt;GPL&lt;/<span class="kw">license</span>&gt;</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">longname</span>&gt;gcin Cangjie (倉頡)&lt;/<span class="kw">longname</span>&gt;</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">description</span>&gt;Cangjie Traditional Chinese input via gcin engine&lt;/<span class="kw">description</span>&gt;</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">rank</span>&gt;99&lt;/<span class="kw">rank</span>&gt;</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">symbol</span>&gt;倉&lt;/<span class="kw">symbol</span>&gt;</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">layout</span>&gt;default&lt;/<span class="kw">layout</span>&gt;</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">engine</span>&gt;</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">engine</span>&gt;</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">name</span>&gt;gcin-zhuyin&lt;/<span class="kw">name</span>&gt;</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">language</span>&gt;zh_TW&lt;/<span class="kw">language</span>&gt;</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">license</span>&gt;GPL&lt;/<span class="kw">license</span>&gt;</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">longname</span>&gt;gcin Zhuyin (注音)&lt;/<span class="kw">longname</span>&gt;</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">description</span>&gt;Zhuyin/Bopomofo Traditional Chinese input via gcin engine&lt;/<span class="kw">description</span>&gt;</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">rank</span>&gt;99&lt;/<span class="kw">rank</span>&gt;</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">symbol</span>&gt;注&lt;/<span class="kw">symbol</span>&gt;</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>      &lt;<span class="kw">layout</span>&gt;default&lt;/<span class="kw">layout</span>&gt;</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">engine</span>&gt;</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>  &lt;/<span class="kw">engines</span>&gt;</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">component</span>&gt;</span></code></pre></div>
+<h3 id="skeleton-gcin_engine.c">Skeleton gcin_engine.c</h3>
+<p>IBus GObject subclass — passes all keys through for now.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;ibus.h&gt;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#include </span><span class="im">&quot;../gcin-core/gcin-core.h&quot;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> _GcinEngine      GcinEngine<span class="op">;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> _GcinEngineClass GcinEngineClass<span class="op">;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> _GcinEngine <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    IBusEngine       parent<span class="op">;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    IBusLookupTable <span class="op">*</span>table<span class="op">;</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span>              mode<span class="op">;</span>         <span class="co">/* 0=Cangjie, 1=Zhuyin */</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    gboolean         chinese_mode<span class="op">;</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> _GcinEngineClass <span class="op">{</span> IBusEngineClass parent<span class="op">;</span> <span class="op">};</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>G_DEFINE_TYPE<span class="op">(</span>GcinEngine<span class="op">,</span> gcin_engine<span class="op">,</span> IBUS_TYPE_ENGINE<span class="op">)</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co">/* G_DEFINE_TYPE does NOT generate GCIN_TYPE_ENGINE — must define manually */</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="pp">#define GCIN_TYPE_ENGINE </span><span class="op">(</span><span class="pp">gcin_engine_get_type</span><span class="op">())</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> gboolean gcin_engine_process_key_event<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">,</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        guint keyval<span class="op">,</span> guint keycode<span class="op">,</span> guint modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> FALSE<span class="op">;</span> <span class="co">/* Phase 3/4 */</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_enable<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">)</span>    <span class="op">{}</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_disable<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">)</span>   <span class="op">{}</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_reset<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">)</span>     <span class="op">{}</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_focus_out<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">)</span> <span class="op">{}</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_class_init<span class="op">(</span>GcinEngineClass <span class="op">*</span>klass<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>    IBusEngineClass <span class="op">*</span>ec <span class="op">=</span> IBUS_ENGINE_CLASS<span class="op">(</span>klass<span class="op">);</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    ec<span class="op">-&gt;</span>process_key_event <span class="op">=</span> gcin_engine_process_key_event<span class="op">;</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    ec<span class="op">-&gt;</span>enable    <span class="op">=</span> gcin_engine_enable<span class="op">;</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    ec<span class="op">-&gt;</span>disable   <span class="op">=</span> gcin_engine_disable<span class="op">;</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    ec<span class="op">-&gt;</span>reset     <span class="op">=</span> gcin_engine_reset<span class="op">;</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>    ec<span class="op">-&gt;</span>focus_out <span class="op">=</span> gcin_engine_focus_out<span class="op">;</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_init<span class="op">(</span>GcinEngine <span class="op">*</span>e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    e<span class="op">-&gt;</span>table        <span class="op">=</span> ibus_lookup_table_new<span class="op">(</span><span class="dv">10</span><span class="op">,</span> <span class="dv">0</span><span class="op">,</span> TRUE<span class="op">,</span> TRUE<span class="op">);</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>    e<span class="op">-&gt;</span>chinese_mode <span class="op">=</span> TRUE<span class="op">;</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>    g_object_ref_sink<span class="op">(</span>e<span class="op">-&gt;</span>table<span class="op">);</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">(</span><span class="dt">int</span> argc<span class="op">,</span> <span class="dt">char</span> <span class="op">**</span>argv<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    ibus_init<span class="op">();</span></span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    IBusBus <span class="op">*</span>bus <span class="op">=</span> ibus_bus_new<span class="op">();</span></span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>    g_assert<span class="op">(</span>ibus_bus_is_connected<span class="op">(</span>bus<span class="op">));</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>    IBusFactory <span class="op">*</span>factory <span class="op">=</span> ibus_factory_new<span class="op">(</span>ibus_bus_get_connection<span class="op">(</span>bus<span class="op">));</span></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>    ibus_factory_add_engine<span class="op">(</span>factory<span class="op">,</span> <span class="st">&quot;gcin-cangjie&quot;</span><span class="op">,</span> GCIN_TYPE_ENGINE<span class="op">);</span> <span class="co">/* gcin_engine */</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>    ibus_factory_add_engine<span class="op">(</span>factory<span class="op">,</span> <span class="st">&quot;gcin-zhuyin&quot;</span><span class="op">,</span>  GCIN_TYPE_ENGINE<span class="op">);</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>    ibus_bus_request_name<span class="op">(</span>bus<span class="op">,</span> <span class="st">&quot;org.freedesktop.IBus.Gcin&quot;</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>    gcin_core_init<span class="op">(</span><span class="st">&quot;/usr/share/gcin&quot;</span><span class="op">);</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>    ibus_main<span class="op">();</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="makefile-ibus-enginemakefile">Makefile:
+ibus-engine/Makefile</h3>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="dt">GCIN_CORE</span> <span class="ch">:=</span><span class="st"> ../gcin-core</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Override if libibus-1.0-dev not system-installed:</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   make IBUS_CFLAGS=&quot;-I/path/to/ibus-1.0 ...&quot; IBUS_LIBS=&quot;/path/to/libibus-1.0.so.5 ...&quot;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="dt">IBUS_CFLAGS</span> <span class="ch">?=</span><span class="st"> </span><span class="ch">$(</span><span class="kw">shell</span><span class="st"> pkg-config --cflags ibus-1.0</span><span class="ch">)</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="dt">IBUS_LIBS</span>   <span class="ch">?=</span><span class="st"> </span><span class="ch">$(</span><span class="kw">shell</span><span class="st"> pkg-config --libs   ibus-1.0</span><span class="ch">)</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="dt">CFLAGS</span>  <span class="ch">:=</span><span class="st"> -g -O2 </span><span class="ch">$(</span><span class="dt">IBUS_CFLAGS</span><span class="ch">)</span><span class="st"> -I</span><span class="ch">$(</span><span class="dt">GCIN_CORE</span><span class="ch">)</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co"># -lm required: tsin-parse.cpp uses pow()</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="dt">LDFLAGS</span> <span class="ch">:=</span><span class="st"> </span><span class="ch">$(</span><span class="dt">IBUS_LIBS</span><span class="ch">)</span><span class="st"> -L</span><span class="ch">$(</span><span class="dt">GCIN_CORE</span><span class="ch">)</span><span class="st"> -lgcin-core -lm</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="dv">all:</span><span class="dt"> ibus-engine-gcin</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="dv">ibus-engine-gcin:</span><span class="dt"> gcin_engine.c </span><span class="ch">$(</span><span class="dt">GCIN_CORE</span><span class="ch">)</span><span class="dt">/libgcin-core.a</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="er">    </span><span class="ch">$(</span><span class="dt">CC</span><span class="ch">)</span> <span class="ch">$(</span><span class="dt">CFLAGS</span><span class="ch">)</span> <span class="ch">$&lt;</span> -o <span class="ch">$@</span> <span class="ch">$(</span><span class="dt">LDFLAGS</span><span class="ch">)</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="dv">$(GCIN_CORE)/libgcin-core.a:</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="er">    </span><span class="ch">$(</span><span class="dt">MAKE</span><span class="ch">)</span> -C <span class="ch">$(</span><span class="dt">GCIN_CORE</span><span class="ch">)</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="dv">clean:</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="er">    </span>rm -f ibus-engine-gcin</span></code></pre></div>
+<p><strong>libibus-1.0-dev not installed:</strong> If <code>sudo</code>
+is unavailable, extract the dev package headers without installing:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">apt-get</span> download libibus-1.0-dev</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">dpkg-deb</span> <span class="at">-x</span> libibus-1.0-dev_<span class="pp">*</span>.deb /tmp/ibus-dev-extract/</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Then build with:</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> IBUS_CFLAGS=<span class="st">&quot;-I/tmp/ibus-dev-extract/usr/include/ibus-1.0 </span><span class="va">$(</span><span class="ex">pkg-config</span> <span class="at">--cflags</span> glib-2.0 gobject-2.0 gio-2.0<span class="va">)</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>     IBUS_LIBS=<span class="st">&quot;/usr/lib/x86_64-linux-gnu/libibus-1.0.so.5 </span><span class="va">$(</span><span class="ex">pkg-config</span> <span class="at">--libs</span> glib-2.0 gobject-2.0 gio-2.0<span class="va">)</span><span class="st">&quot;</span></span></code></pre></div>
+<p>The extracted <code>.so</code> symlink in the dev package points to a
+non-existent target; pass the installed <code>.so.5</code> directly.</p>
+<h3 id="verify-skeleton-registers">Verify skeleton registers</h3>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> cp component/gcin.xml /usr/share/ibus/component/</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./ibus-engine-gcin</span> <span class="kw">&amp;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ibus</span> list-engine <span class="kw">|</span> <span class="fu">grep</span> gcin</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># expect: gcin-cangjie and gcin-zhuyin listed</span></span></code></pre></div>
+<hr />
+<h2 id="phase-3-cangjie-integration">Phase 3: Cangjie Integration</h2>
+<p><strong>Goal:</strong> <code>process_key_event</code> routes to
+<code>feedkey_gtab()</code>, commits characters, updates preedit and
+candidate list.</p>
+<h3 id="key-routing">Key routing</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> gboolean gcin_engine_process_key_event<span class="op">(</span>IBusEngine <span class="op">*</span>iengine<span class="op">,</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>        guint keyval<span class="op">,</span> guint keycode<span class="op">,</span> guint modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>modifiers <span class="op">&amp;</span> IBUS_RELEASE_MASK<span class="op">)</span> <span class="cf">return</span> FALSE<span class="op">;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    GcinEngine <span class="op">*</span>e <span class="op">=</span> <span class="op">(</span>GcinEngine <span class="op">*)</span>iengine<span class="op">;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>e<span class="op">-&gt;</span>chinese_mode<span class="op">)</span> <span class="cf">return</span> FALSE<span class="op">;</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> consumed <span class="op">=</span> gcin_core_feedkey_cangjie<span class="op">(</span>keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Commit — gcin called send_text() → our callback stored the text */</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* (implementation detail: adapt callback to call ibus_engine_commit_text) */</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Preedit — read from gcin&#39;s ggg buffer via get_DispInArea_str() */</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Candidates — disp_gtab_sel() stub captures candidate string */</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> consumed<span class="op">;</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The commit callback (registered via
+<code>gcin_core_set_commit_cb</code>) calls
+<code>ibus_engine_commit_text()</code> directly on the IBus engine.</p>
+<p>For preedit: expose
+<code>gcin_core_get_preedit(char *out, int outlen)</code> in
+gcin-core.h, implemented by calling gcin’s
+<code>get_DispInArea_str()</code> (gtab.cpp:376).</p>
+<p>For candidates: the <code>disp_gtab_sel(char *s)</code> stub captures
+the candidate string. Expose
+<code>gcin_core_get_candidates(char *out, int outlen)</code> in
+gcin-core.h. Parse <code>s</code> into individual characters (each UTF-8
+character is one candidate).</p>
+<h3 id="test">Test</h3>
+<p>Type in GNOME Text Editor with gcin-cangjie selected:</p>
+<ul>
+<li><code>k</code> → preedit shows “大”</li>
+<li><code>o</code> → preedit shows “大人” candidates</li>
+<li><code>1</code> or space → commits 大人</li>
+</ul>
+<hr />
+<h2 id="phase-4-zhuyin-integration">Phase 4: Zhuyin Integration</h2>
+<p><strong>Goal:</strong> Same flow using <code>feedkey_pho()</code> for
+phonetic input.</p>
+<p><code>gcin_core_feedkey_zhuyin(keyval, modifiers)</code> calls
+<code>feedkey_pho(keyval, modifiers)</code>.</p>
+<p>Preedit for Zhuyin comes from <code>poo.typ_pho[]</code> (the
+phonetic buffer in <code>PHO_ST</code>). Expose a
+<code>gcin_core_get_pho_preedit()</code> helper that reads
+<code>poo</code> and converts the phonetic codes to display characters
+using <code>phokey_to_str()</code> (pho.cpp).</p>
+<p>Candidates: <code>disp_pho_sel(char *s)</code> stub captures them —
+same parse logic.</p>
+<p>Keyboard layout: starts with Standard (大千). The layout is loaded
+from <code>pho.tab2.src</code> which encodes the Standard layout by
+default.</p>
+<h3 id="test-1">Test</h3>
+<p>Type ㄓ (v) + ㄨ (u) + ˋ (4) → candidates include 住, 助, 注, etc.
+Select with number key → commits character.</p>
+<hr />
+<h2 id="phase-5-ibus-registration-install">Phase 5: IBus Registration
+&amp; Install</h2>
+<h3 id="install-paths">Install paths</h3>
+<pre><code>/usr/lib/ibus-gcin/ibus-engine-gcin
+/usr/share/ibus/component/gcin.xml
+/usr/share/gcin/              (cj.gtab, pho.tab, tsin, ...)</code></pre>
+<h3 id="compile-data-tables">Compile data tables</h3>
+<p><strong>Tool names:</strong> <code>gcin2tab</code> (not
+<code>cintotab</code>), <code>phoa2d</code> (not <code>phoconv</code>).
+Output goes beside the input file; run from the table output
+directory.</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build tools without GTK2 (using libgcin-core.a):</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> sources/gcin-everywhere/gcin-core <span class="kw">&amp;&amp;</span> <span class="fu">make</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ../gcin</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">printf</span> <span class="st">&#39;void gtk_init(int*a,char***b){}\ntypedef void Display;\nvoid send_gcin_message(Display*d,char*s){}\ntypedef unsigned short phokey_t;\nphokey_t pinyin2phokey(char*s){return 0;}\n&#39;</span> <span class="op">&gt;</span> /tmp/gtk_stub.c</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="va">CFLAGS</span><span class="op">=</span><span class="st">&quot;-x c -std=gnu99 -O2 -Wno-implicit-function-declaration -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 -DGCIN_CORE_BUILD -DHAVE_CONFIG_H -DUSE_TSIN=1 -DGCIN_TABLE_DIR=</span><span class="dt">\&quot;</span><span class="st">/usr/share/gcin</span><span class="dt">\&quot;</span><span class="st"> -DGCIN_BIN_DIR=</span><span class="dt">\&quot;</span><span class="st">/usr/lib/gcin</span><span class="dt">\&quot;</span><span class="st"> -I. -I./IMdkit/include -I../gcin-core&quot;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">cc</span> <span class="va">$CFLAGS</span> gcin2tab.cpp /tmp/gtk_stub.c <span class="at">-o</span> gcin2tab <span class="at">-L..</span>/gcin-core <span class="at">-lgcin-core</span> <span class="at">-lm</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="fu">cc</span> <span class="va">$CFLAGS</span> phoa2d.cpp   /tmp/gtk_stub.c <span class="at">-o</span> phoa2d  <span class="at">-L..</span>/gcin-core <span class="at">-lgcin-core</span> <span class="at">-lm</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">cc</span> <span class="va">$CFLAGS</span> tsa2d32.cpp  /tmp/gtk_stub.c <span class="at">-o</span> tsa2d32 <span class="at">-L..</span>/gcin-core <span class="at">-lgcin-core</span> <span class="at">-lm</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">cc</span> <span class="va">$CFLAGS</span> kbmcv.cpp    /tmp/gtk_stub.c <span class="at">-o</span> kbmcv   <span class="at">-L..</span>/gcin-core <span class="at">-lgcin-core</span> <span class="at">-lm</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Compile tables (outputs go beside input files in data/):</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> /tmp/gcin-tables</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="va">NO_GTK_INIT</span><span class="op">=</span>1 <span class="ex">./gcin2tab</span> data/cj.cin       <span class="kw">&amp;&amp;</span> <span class="fu">cp</span> data/cj.gtab  /tmp/gcin-tables/</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="va">NO_GTK_INIT</span><span class="op">=</span>1 <span class="ex">./phoa2d</span>   data/pho.tab2.src  <span class="kw">&amp;&amp;</span> <span class="fu">cp</span> data/pho.tab2 /tmp/gcin-tables/</span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="va">NO_GTK_INIT</span><span class="op">=</span>1 <span class="ex">./tsa2d32</span>  data/tsin.src /tmp/gcin-tables/tsin32</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="va">NO_GTK_INIT</span><span class="op">=</span>1 <span class="ex">./kbmcv</span>    data/zo.kbmsrc     <span class="kw">&amp;&amp;</span> <span class="fu">cp</span> data/zo.kbm   /tmp/gcin-tables/</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> data/gtab.list /tmp/gcin-tables/</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Verify unit tests pass:</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ../gcin-core <span class="kw">&amp;&amp;</span> <span class="va">GCIN_TABLE_DIR</span><span class="op">=</span>/tmp/gcin-tables <span class="fu">make</span> test</span></code></pre></div>
+<h3 id="activate-and-test-end-to-end">Activate and test end-to-end</h3>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> make install</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ibus</span> restart</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># GNOME Settings → Keyboard → Input Sources → + → Chinese (Traditional)</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co"># → gcin Cangjie  (or gcin Zhuyin)</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Open gedit, switch to gcin Cangjie, type: k o → select 大人</span></span></code></pre></div>
+<hr />
+<h2 id="gcin-source-file-reference">gcin Source File Reference</h2>
+<h3 id="files-compiled-into-libgcin-core.a">Files compiled into
+libgcin-core.a</h3>
+<table>
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 40%" />
+<col style="width: 31%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Verdict</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gtab.cpp</code></td>
+<td>INCLUDE</td>
+<td>only <code>extern GtkWidget*</code> decls — no GTK calls</td>
+</tr>
+<tr class="even">
+<td><code>gtab-init.cpp</code></td>
+<td>INCLUDE</td>
+<td>no GTK/X11 calls at all</td>
+</tr>
+<tr class="odd">
+<td><code>gtab-list.cpp</code></td>
+<td>INCLUDE</td>
+<td>no GTK/X11 calls</td>
+</tr>
+<tr class="even">
+<td><code>gtab-buf.cpp</code></td>
+<td>INCLUDE</td>
+<td>only <code>extern GtkWidget*</code> decls; contains
+<code>feedkey_gtab_release()</code> and
+<code>output_gbuf()</code>→<code>send_text()</code></td>
+</tr>
+<tr class="odd">
+<td><code>gtab-util.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: <code>CONVT2()</code>, <code>gtab_key2name()</code></td>
+</tr>
+<tr class="even">
+<td><code>gtab-tsin-fname.cpp</code></td>
+<td>INCLUDE</td>
+<td>file path utilities</td>
+</tr>
+<tr class="odd">
+<td><code>pho.cpp</code></td>
+<td>INCLUDE</td>
+<td>only <code>extern GtkWidget*</code> decl — no GTK calls</td>
+</tr>
+<tr class="even">
+<td><code>pho-lookup.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: phonetic lookup</td>
+</tr>
+<tr class="odd">
+<td><code>pho-util.cpp</code></td>
+<td>INCLUDE</td>
+<td>file I/O: loads pho.tab</td>
+</tr>
+<tr class="even">
+<td><code>pho-kbm-name.cpp</code></td>
+<td>INCLUDE</td>
+<td>keyboard layout name table</td>
+</tr>
+<tr class="odd">
+<td><code>tsin.cpp</code></td>
+<td>INCLUDE</td>
+<td>only <code>extern GtkWidget*</code> decl;
+<code>im-client/gcin-im-client-attr.h</code> is pure typedefs</td>
+</tr>
+<tr class="even">
+<td><code>tsin-util.cpp</code></td>
+<td>INCLUDE</td>
+<td>file I/O: loads tsin database</td>
+</tr>
+<tr class="odd">
+<td><code>tsin-char.cpp</code></td>
+<td>INCLUDE</td>
+<td>character index</td>
+</tr>
+<tr class="even">
+<td><code>tsin-scan.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: phrase matching</td>
+</tr>
+<tr class="odd">
+<td><code>tsin-parse.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: recursive parse</td>
+</tr>
+<tr class="even">
+<td><code>util.cpp</code></td>
+<td>MODIFY</td>
+<td>one <code>#ifdef GCIN_CORE_BUILD</code> guard in
+<code>p_err()</code> — only GTK function calls in the library</td>
+</tr>
+<tr class="odd">
+<td><code>gcin-conf.cpp</code></td>
+<td>INCLUDE</td>
+<td>file path + config loading</td>
+</tr>
+<tr class="even">
+<td><code>fullchar.cpp</code></td>
+<td>INCLUDE</td>
+<td>full-width character table</td>
+</tr>
+<tr class="odd">
+<td><code>cache.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: parse result cache</td>
+</tr>
+<tr class="even">
+<td><code>lang.cpp</code></td>
+<td>INCLUDE</td>
+<td>pure: language detection</td>
+</tr>
+</tbody>
+</table>
+<h3 id="files-excluded-not-compiled">Files excluded (not compiled)</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-common.cpp</code></td>
+<td>actual GTK/X11 calls (<code>XBell</code>, <code>gdk_beep</code>,
+<code>gtk_label_set_text</code>, Pango); <code>case_inverse</code> and
+<code>current_time</code> re-implemented in
+<code>gcin_stubs.cpp</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin.cpp</code></td>
+<td>main() — application entry point</td>
+</tr>
+<tr class="odd">
+<td><code>gcin-send.cpp</code></td>
+<td>XIM text dispatch — replaced by <code>gcin_stubs.cpp</code>
+send_text callback</td>
+</tr>
+<tr class="even">
+<td><code>IC.cpp</code></td>
+<td>X11 input context — not used</td>
+</tr>
+<tr class="odd">
+<td><code>win-*.cpp</code>, <code>win0.cpp</code>,
+<code>win1.cpp</code></td>
+<td>X11/GTK windows</td>
+</tr>
+<tr class="even">
+<td><code>gcin-icon.cpp</code>, <code>tray.cpp</code>,
+<code>eggtrayicon.cpp</code></td>
+<td>system tray</td>
+</tr>
+<tr class="odd">
+<td><code>im-srv.cpp</code>, <code>im-addr.cpp</code>,
+<code>im-dispatch.cpp</code></td>
+<td>XIM server</td>
+</tr>
+<tr class="even">
+<td><code>gcin-setup*.cpp</code>, <code>gcin-module*.cpp</code></td>
+<td>settings UI, plugin loader</td>
+</tr>
+<tr class="odd">
+<td><code>phoa2d.cpp</code>, <code>phod2a.cpp</code></td>
+<td>standalone conversion tools (have own <code>main()</code>)</td>
+</tr>
+<tr class="even">
+<td><code>IMdkit/</code> (entire dir)</td>
+<td>X11 XIM server implementation</td>
+</tr>
+<tr class="odd">
+<td><code>eve.cpp</code></td>
+<td>X11 event loop dispatcher</td>
+</tr>
+</tbody>
+</table>
+<h3
+id="key-data-files-built-by-gcins-tools-installed-to-usrsharegcin">Key
+data files (built by gcin’s tools, installed to /usr/share/gcin/)</h3>
+<table>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Source</th>
+<th>Input method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>cj.gtab</code></td>
+<td><code>data/cj.cin</code> → <code>gcin2tab</code></td>
+<td>Cangjie (倉頡)</td>
+</tr>
+<tr class="even">
+<td><code>pho.tab2</code></td>
+<td><code>data/pho.tab2.src</code> → <code>phoa2d</code></td>
+<td>Zhuyin Standard (大千)</td>
+</tr>
+<tr class="odd">
+<td><code>zo.kbm</code></td>
+<td><code>data/zo.kbmsrc</code> → <code>kbmcv</code></td>
+<td>Zhuyin Standard keyboard map</td>
+</tr>
+<tr class="even">
+<td><code>tsin32</code></td>
+<td><code>data/tsin.src</code> → <code>tsa2d32</code></td>
+<td>Word frequency database</td>
+</tr>
+<tr class="odd">
+<td><code>gtab.list</code></td>
+<td><code>data/gtab.list</code> (copy as-is)</td>
+<td>Input method registry</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2
+id="phase-6-full-width-character-mode-cangjie-zhuyin-punctuation">Phase
+6: Full-Width Character Mode (Cangjie + Zhuyin Punctuation)</h2>
+<p><strong>Goal:</strong> Shift+Space toggles full-width mode. In
+full-width mode, all printable ASCII keys (letters, digits, punctuation)
+are converted to their full-width Unicode equivalents via gcin’s own
+<code>fullchar[]</code> table and <code>full_char_proc()</code> —
+exactly as gcin does it.</p>
+<p>See <a
+href="DESIGN.html#6-full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly">Design
+Decision 6</a> for the full rationale.</p>
+<h3 id="convention-copying-functions-from-excluded-files">Convention:
+copying functions from excluded files</h3>
+<p><code>half_char_to_full_char()</code> lives in <code>gcin.cpp</code>
+and <code>full_char_proc()</code> lives in <code>eve.cpp</code>. Both
+files are excluded from <code>libgcin-core.a</code> because they contain
+many other functions with X11/GTK dependencies (<code>main()</code>, XIM
+setup, XTest calls, GDK event handling, etc.) that cannot be
+economically guarded with <code>#ifdef GCIN_CORE_BUILD</code>. The
+functions themselves have no X11/GTK calls.</p>
+<p>We add them to <code>gcin_stubs.cpp</code> with a comment explaining
+why:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Copied from &lt;source-file&gt; (excluded — &lt;reason the file can&#39;t be compiled&gt;).</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">   The function itself has no X11/GTK calls; dependencies are &lt;list&gt;. */</span></span></code></pre></div>
+<p>This is the same pattern already used for <code>case_inverse()</code>
+and <code>current_time()</code> from excluded
+<code>gcin-common.cpp</code>.</p>
+<h3 id="step-1-copy-half_char_to_full_char-into-gcin_stubs.cpp">Step 1 —
+Copy <code>half_char_to_full_char()</code> into
+<code>gcin_stubs.cpp</code></h3>
+<p>Replace the NULL stub. <code>fullchar[]</code> is already compiled
+from <code>fullchar.cpp</code>:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Copied from gcin.cpp (excluded — defines globals dpy/root/win_xl that conflict</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">   with our stubs, plus main() and X11/XIM setup). No X11/GTK calls; only uses</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">   fullchar[] from fullchar.cpp (compiled). */</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>half_char_to_full_char<span class="op">(</span>KeySym xkey<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">extern</span> unich_t <span class="op">*</span>fullchar<span class="op">[];</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>xkey <span class="op">&lt;</span> <span class="ch">&#39; &#39;</span> <span class="op">||</span> xkey <span class="op">&gt;</span> <span class="dv">127</span><span class="op">)</span> <span class="cf">return</span> NULL<span class="op">;</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fullchar<span class="op">[</span>xkey <span class="op">-</span> <span class="ch">&#39; &#39;</span><span class="op">];</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-2-copy-full_char_proc-into-gcin_stubs.cpp">Step 2 — Copy
+<code>full_char_proc()</code> into <code>gcin_stubs.cpp</code></h3>
+<p>Replace the FALSE stub. The original has branches for TSIN mode and
+phrase buffer mode, both inactive in our build (phrase buffer disabled,
+<code>current_method_type()</code> returns 0), so they are omitted:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Copied from eve.cpp (excluded — contains XTest, GDK, and hundreds of</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">   X11-dependent functions that can&#39;t be economically guarded). No X11/GTK</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">   calls; uses half_char_to_full_char(), utf8cpy() (locale.cpp), send_text().</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">   TSIN-mode and phrase-buffer branches omitted — both inactive in our build. */</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>gboolean full_char_proc<span class="op">(</span>KeySym keysym<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> <span class="op">*</span>s <span class="op">=</span> half_char_to_full_char<span class="op">(</span>keysym<span class="op">);</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>s<span class="op">)</span> <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> tt<span class="op">[</span>CH_SZ <span class="op">+</span> <span class="dv">1</span><span class="op">];</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>    utf8cpy<span class="op">(</span>tt<span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>    send_text<span class="op">(</span>tt<span class="op">);</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-3-add-toggle-api-to-gcin-core.h-and-gcin_stubs.cpp">Step 3
+— Add toggle API to <code>gcin-core.h</code> and
+<code>gcin_stubs.cpp</code></h3>
+<p><code>gcin_engine.c</code> needs to toggle
+<code>current_CS-&gt;b_half_full_char</code> without accessing internal
+gcin state directly. Expose via the public API:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* gcin-core.h */</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">/* Toggle full-width character mode (Shift+Space in gcin). Returns new state. */</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_toggle_full_width<span class="op">(</span><span class="dt">void</span><span class="op">);</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_get_full_width<span class="op">(</span><span class="dt">void</span><span class="op">);</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* gcin_stubs.cpp — mirrors toggle_half_full_char() in eve.cpp (excluded).</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">   Omits display-update side effects (disp_im_half_full etc.) not needed here. */</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_toggle_full_width<span class="op">(</span><span class="dt">void</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    current_CS<span class="op">-&gt;</span>b_half_full_char <span class="op">=</span> <span class="op">!</span>current_CS<span class="op">-&gt;</span>b_half_full_char<span class="op">;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> current_CS<span class="op">-&gt;</span>b_half_full_char<span class="op">;</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_get_full_width<span class="op">(</span><span class="dt">void</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> current_CS<span class="op">-&gt;</span>b_half_full_char<span class="op">;</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-4-handle-shiftspace-in-gcin_engine.c">Step 4 — Handle
+Shift+Space in <code>gcin_engine.c</code></h3>
+<p>Add at the top of <code>gcin_engine_process_key_event()</code>,
+before the feedkey routing:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Shift+Space: toggle full-width character mode, same as gcin&#39;s Shift+Space</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">   binding (toggle_half_full_char in eve.cpp). Clear any pending composition. */</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>keyval <span class="op">==</span> XK_space <span class="op">&amp;&amp;</span> <span class="op">(</span>modifiers <span class="op">&amp;</span> IBUS_SHIFT_MASK<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    gcin_core_toggle_full_width<span class="op">();</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    gcin_core_reset<span class="op">();</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    ibus_engine_hide_preedit_text<span class="op">(</span>iengine<span class="op">);</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    ibus_engine_hide_lookup_table<span class="op">(</span>iengine<span class="op">);</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> TRUE<span class="op">;</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-5-tests">Step 5 — Tests</h3>
+<div class="sourceCode" id="cb30"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> test_cangjie_full_width<span class="op">(</span><span class="dt">void</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* default: half-width mode — comma passes through as-is */</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    gcin_core_feedkey_cangjie<span class="op">(</span><span class="ch">&#39;,&#39;</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;,&quot;</span><span class="op">,</span> <span class="st">&quot;cangjie: comma in half-width mode passes through&quot;</span><span class="op">);</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* toggle to full-width — comma becomes ， */</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    gcin_core_toggle_full_width<span class="op">();</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>    gcin_core_feedkey_cangjie<span class="op">(</span><span class="ch">&#39;,&#39;</span><span class="op">,</span> <span class="dv">0</span><span class="op">);</span></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;，&quot;</span><span class="op">,</span> <span class="st">&quot;cangjie: comma in full-width mode commits ，&quot;</span><span class="op">);</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>    gcin_core_toggle_full_width<span class="op">();</span>  <span class="co">/* restore half-width for subsequent tests */</span></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="files-changed">Files changed</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Replace NULL/FALSE stubs with copied implementations; add
+<code>gcin_core_toggle_full_width()</code> /
+<code>gcin_core_get_full_width()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Add <code>gcin_core_toggle_full_width()</code> and
+<code>gcin_core_get_full_width()</code></td>
+</tr>
+<tr class="odd">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Add <code>test_cangjie_full_width()</code></td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Handle Shift+Space → <code>gcin_core_toggle_full_width()</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phase-7-altshift-phrase-table">Phase 7: Alt+Shift Phrase
+Table</h2>
+<p><strong>Goal:</strong> Alt+Shift+<code>&lt;key&gt;</code> inserts
+Chinese punctuation and special characters from
+<code>phrase.table</code>, exactly as gcin does.</p>
+<p>See <a
+href="DESIGN.html#7-altshift-phrase-table-intercept-in-engine-delegate-to-feed_phrase">Design
+Decision 7</a> for rationale.</p>
+<h3 id="step-1-add-gcin_core_feed_phrase-to-gcin-core.h">Step 1 — Add
+<code>gcin_core_feed_phrase()</code> to <code>gcin-core.h</code></h3>
+<div class="sourceCode" id="cb31"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Feed an Alt+Shift key to the phrase table (phrase.table).</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="co">   keyval: IBus/X11 key symbol. modifiers: IBus/X11 modifier bitmask.</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co">   Returns 1 if a phrase was found and committed, 0 otherwise. */</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feed_phrase<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span></code></pre></div>
+<h3 id="step-2-implement-in-gcin_stubs.cpp">Step 2 — Implement in
+<code>gcin_stubs.cpp</code></h3>
+<p><code>feed_phrase()</code> is already compiled from
+<code>phrase.cpp</code>. Just expose it via the public API. No copy
+needed — this function has no X11/GTK dependencies.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Wraps feed_phrase() from phrase.cpp (compiled). Provides extern &quot;C&quot; bridge</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="co">   and keeps gcin_engine.c isolated from libgcin-core internals. */</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> gboolean feed_phrase<span class="op">(</span>KeySym ksym<span class="op">,</span> <span class="dt">int</span> state<span class="op">);</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feed_phrase<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feed_phrase<span class="op">((</span>KeySym<span class="op">)</span>keyval<span class="op">,</span> modifiers<span class="op">)</span> <span class="op">?</span> <span class="dv">1</span> <span class="op">:</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-3-intercept-altshift-and-ctrl-in-gcin_engine.c">Step 3 —
+Intercept Alt+Shift and Ctrl in <code>gcin_engine.c</code></h3>
+<p>Add two intercepts before the feedkey routing in
+<code>gcin_engine_process_key_event()</code>, after the Shift+Space
+check. Both call <code>gcin_core_feed_phrase()</code> —
+<code>feed_phrase()</code> routes internally to the right table based on
+<code>ControlMask</code>.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Alt+Shift: phrase.table lookup — same as gcin&#39;s eve.cpp:1227 */</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>modifiers <span class="op">&amp;</span> <span class="op">(</span>IBUS_MOD1_MASK<span class="op">|</span>IBUS_SHIFT_MASK<span class="op">))</span> <span class="op">==</span> <span class="op">(</span>IBUS_MOD1_MASK<span class="op">|</span>IBUS_SHIFT_MASK<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    gcin_core_set_commit_cb<span class="op">(</span>on_commit<span class="op">,</span> iengine<span class="op">);</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gcin_core_feed_phrase<span class="op">(</span>keyval<span class="op">,</span> Mod1Mask<span class="op">|</span>ShiftMask<span class="op">)</span> <span class="op">?</span> TRUE <span class="op">:</span> FALSE<span class="op">;</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="co">/* Ctrl (without Alt): phrase-ctrl.table lookup — same as gcin&#39;s eve.cpp:1293.</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="co">   Returns FALSE (not consumed) if key not in table, so app shortcuts pass through. */</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>modifiers <span class="op">&amp;</span> IBUS_CONTROL_MASK<span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">!(</span>modifiers <span class="op">&amp;</span> IBUS_MOD1_MASK<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    gcin_core_set_commit_cb<span class="op">(</span>on_commit<span class="op">,</span> iengine<span class="op">);</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>gcin_core_feed_phrase<span class="op">(</span>keyval<span class="op">,</span> ControlMask<span class="op">))</span> <span class="cf">return</span> TRUE<span class="op">;</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Note: IBus modifier constants (<code>IBUS_MOD1_MASK</code> etc.) are
+used for the IBus check; X11 values (<code>Mod1Mask</code>,
+<code>ControlMask</code>) are passed to <code>feed_phrase()</code> since
+that is what the library expects internally.</p>
+<h3 id="step-4-install-phrase-table-files">Step 4 — Install phrase table
+files</h3>
+<p>Add to the top-level <code>Makefile</code> <code>tables</code>
+target:</p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>cp <span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span>/data/phrase.table      <span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span>/</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>cp <span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span>/data/phrase-ctrl.table <span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span>/</span></code></pre></div>
+<h3 id="step-5-tests-1">Step 5 — Tests</h3>
+<div class="sourceCode" id="cb35"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> test_phrase_table<span class="op">(</span><span class="dt">void</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Alt+Shift+i → 、  (phrase.table: &quot;i  、&quot;) */</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>    gcin_core_feed_phrase<span class="op">(</span><span class="ch">&#39;i&#39;</span><span class="op">,</span> Mod1Mask<span class="op">|</span>ShiftMask<span class="op">);</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;、&quot;</span><span class="op">,</span> <span class="st">&quot;alt+shift+i commits 、&quot;</span><span class="op">);</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Alt+Shift+o → 。 (phrase.table: &quot;o  。&quot;) */</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    gcin_core_feed_phrase<span class="op">(</span><span class="ch">&#39;o&#39;</span><span class="op">,</span> Mod1Mask<span class="op">|</span>ShiftMask<span class="op">);</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;。&quot;</span><span class="op">,</span> <span class="st">&quot;alt+shift+o commits 。&quot;</span><span class="op">);</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Ctrl+, → ， (phrase-ctrl.table: &quot;,  ，&quot;) */</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    gcin_core_feed_phrase<span class="op">(</span><span class="ch">&#39;,&#39;</span><span class="op">,</span> ControlMask<span class="op">);</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;，&quot;</span><span class="op">,</span> <span class="st">&quot;ctrl+, commits ，&quot;</span><span class="op">);</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Ctrl+&#39; → 、 (phrase-ctrl.table: &quot;&#39;  、&quot;) */</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>    reset<span class="op">();</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a>    gcin_core_feed_phrase<span class="op">(</span><span class="ch">&#39;</span><span class="sc">\&#39;</span><span class="ch">&#39;</span><span class="op">,</span> ControlMask<span class="op">);</span></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a>    EXPECT_COMMITTED<span class="op">(</span><span class="st">&quot;、&quot;</span><span class="op">,</span> <span class="st">&quot;ctrl+&#39; commits 、&quot;</span><span class="op">);</span></span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="files-changed-1">Files changed</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Add <code>gcin_core_feed_phrase()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Implement <code>gcin_core_feed_phrase()</code></td>
+</tr>
+<tr class="odd">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Add <code>test_alt_shift_phrase()</code></td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Intercept Alt+Shift before feedkey routing</td>
+</tr>
+<tr class="odd">
+<td><code>Makefile</code> (top-level)</td>
+<td>Copy <code>phrase.table</code> and <code>phrase-ctrl.table</code> to
+<code>$(TABLES)/</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phase-8-quick-and-array-input-methods">Phase 8: Quick and Array
+Input Methods</h2>
+<p><strong>Goal:</strong> Add Quick (速成) and Array (行列) IBus
+engines. Both are gtab-based and share the same
+<code>feedkey_gtab</code> code path as Cangjie — only the loaded
+<code>.gtab</code> table differs.</p>
+<h3 id="adapter-pattern-feedkey_gtab_method">Adapter pattern:
+<code>feedkey_gtab_method()</code></h3>
+<p>All three gtab-based methods (Cangjie, Quick, Array) call
+<code>feedkey_gtab()</code>. The only per-method variable is
+<code>cur_inmd</code> — the currently active input method descriptor. A
+single shared helper switches <code>cur_inmd</code> and loads the table
+before dispatching:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* gcin-core/gcin_stubs.cpp */</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> g_cangjie_inmd <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span>  <span class="co">/* set in gcin_core_init() via find_inmd(&quot;cj&quot;) */</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> g_quick_inmd   <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span>  <span class="co">/* set via find_inmd(&quot;simplex&quot;) */</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> g_array_inmd   <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span>  <span class="co">/* set via find_inmd(&quot;ar30&quot;) */</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> feedkey_gtab_method<span class="op">(</span><span class="dt">int</span> inmd_idx<span class="op">,</span> <span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>    cur_inmd <span class="op">=</span> <span class="op">&amp;</span>inmd<span class="op">[</span>inmd_idx<span class="op">];</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>    init_gtab<span class="op">(</span>inmd_idx<span class="op">);</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab<span class="op">((</span>KeySym<span class="op">)</span>keyval<span class="op">,</span> modifiers<span class="op">)</span> <span class="op">?</span> <span class="dv">1</span> <span class="op">:</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_quick<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab_method<span class="op">(</span>g_quick_inmd<span class="op">,</span> keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_array<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab_method<span class="op">(</span>g_array_inmd<span class="op">,</span> keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>find_inmd(name)</code> searches <code>gtab.list</code> (loaded
+during <code>gcin_core_init()</code>) for the named method and returns
+its index.</p>
+<h3 id="mode-enum">Mode enum</h3>
+<p><code>GcinEngine.mode</code> in <code>gcin_engine.c</code> maps
+engine names to integer constants:</p>
+<table>
+<thead>
+<tr class="header">
+<th>mode</th>
+<th>engine name</th>
+<th>feedkey function</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td><code>gcin-cangjie</code></td>
+<td><code>gcin_core_feedkey_cangjie()</code></td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td><code>gcin-zhuyin</code></td>
+<td><code>gcin_core_feedkey_zhuyin()</code></td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td><code>gcin-quick</code></td>
+<td><code>gcin_core_feedkey_quick()</code></td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td><code>gcin-array</code></td>
+<td><code>gcin_core_feedkey_array()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Mode is set in <code>gcin_engine_enable()</code> by suffix-matching
+the engine name:</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_enable<span class="op">(</span>IBusEngine <span class="op">*</span>iengine<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">const</span> gchar <span class="op">*</span>name <span class="op">=</span> ibus_engine_get_name<span class="op">(</span>iengine<span class="op">);</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    GcinEngine <span class="op">*</span>e <span class="op">=</span> <span class="op">(</span>GcinEngine <span class="op">*)</span>iengine<span class="op">;</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>      <span class="op">(</span>g_str_has_suffix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;zhuyin&quot;</span><span class="op">))</span> e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>g_str_has_suffix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;quick&quot;</span><span class="op">))</span>  e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>g_str_has_suffix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">))</span>  e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>                                        e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">0</span><span class="op">;</span>  <span class="co">/* cangjie default */</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="preedit-and-candidates-are-shared">Preedit and candidates are
+shared</h3>
+<p>All gtab-based engines (Cangjie, Quick, Array) use the same preedit
+and candidates functions:</p>
+<ul>
+<li>Preedit: <code>gcin_core_get_preedit()</code> reads
+<code>gcin</code>’s <code>ggg</code> buffer via
+<code>get_DispInArea_str()</code></li>
+<li>Candidates: <code>gcin_core_get_candidates()</code> reads
+<code>seltab[]</code> directly</li>
+</ul>
+<p>The <code>update_ui()</code> function uses <code>mode != 1</code>
+(i.e., not Zhuyin) as the condition for the gtab path:</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>e<span class="op">-&gt;</span>mode <span class="op">==</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* Zhuyin preedit/candidates */</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* gtab path — Cangjie, Quick, Array all identical here */</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>    gcin_core_get_preedit<span class="op">(</span>preedit<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>preedit<span class="op">));</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    gcin_core_get_candidates<span class="op">(</span>cands<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>cands<span class="op">));</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* ... update IBus preedit and lookup table ... */</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="data-tables">Data tables</h3>
+<p>Add to the top-level <code>Makefile</code> <code>tables</code>
+target:</p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="dt">NO_GTK_INIT</span><span class="ch">=</span><span class="st">1 ./gcin2tab data/simplex.cin &amp;&amp; cp data/simplex.gtab </span><span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span><span class="st">/</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="dt">NO_GTK_INIT</span><span class="ch">=</span><span class="st">1 ./gcin2tab data/ar30.cin    &amp;&amp; cp data/ar30.gtab    </span><span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span><span class="st">/</span></span></code></pre></div>
+<h3 id="component-xml-entries">Component XML entries</h3>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode xml"><code class="sourceCode xml"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">engine</span>&gt;</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">name</span>&gt;gcin-quick&lt;/<span class="kw">name</span>&gt;</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">language</span>&gt;zh_TW&lt;/<span class="kw">language</span>&gt;</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">license</span>&gt;GPL&lt;/<span class="kw">license</span>&gt;</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">longname</span>&gt;gcin Quick (速成)&lt;/<span class="kw">longname</span>&gt;</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">description</span>&gt;Quick Traditional Chinese input via gcin engine&lt;/<span class="kw">description</span>&gt;</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">rank</span>&gt;99&lt;/<span class="kw">rank</span>&gt;</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">symbol</span>&gt;速&lt;/<span class="kw">symbol</span>&gt;</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">layout</span>&gt;default&lt;/<span class="kw">layout</span>&gt;</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">engine</span>&gt;</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">engine</span>&gt;</span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">name</span>&gt;gcin-array&lt;/<span class="kw">name</span>&gt;</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">language</span>&gt;zh_TW&lt;/<span class="kw">language</span>&gt;</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">license</span>&gt;GPL&lt;/<span class="kw">license</span>&gt;</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">longname</span>&gt;gcin Array (行列)&lt;/<span class="kw">longname</span>&gt;</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">description</span>&gt;Array Traditional Chinese input via gcin engine&lt;/<span class="kw">description</span>&gt;</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">rank</span>&gt;99&lt;/<span class="kw">rank</span>&gt;</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">symbol</span>&gt;列&lt;/<span class="kw">symbol</span>&gt;</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">layout</span>&gt;default&lt;/<span class="kw">layout</span>&gt;</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">engine</span>&gt;</span></code></pre></div>
+<h3 id="key-behavioral-notes">Key behavioral notes</h3>
+<ul>
+<li><strong>Quick candidate order</strong> — sorted by tsin use-count in
+the compiled binary, not by <code>.cin</code> file order. Unit tests for
+multi-match cases should use <code>EXPECT_COMMITTED_NONEMPTY</code>
+rather than asserting a specific character.</li>
+<li><strong>Array <code>%endkey 1234567890</code></strong> — digits are
+combined endkey+selkey. After a full code, pressing a digit auto-commits
+the single match without needing to press space first.</li>
+<li><strong>Dayi skipped</strong> — <code>dayi3.cin</code> is absent
+from the gcin source snapshot; skip until a snapshot with it is
+available.</li>
+</ul>
+<h3 id="files-changed-2">Files changed</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Added <code>g_quick_inmd</code>, <code>g_array_inmd</code>;
+<code>feedkey_gtab_method()</code> helper;
+<code>gcin_core_feedkey_quick()</code>,
+<code>gcin_core_feedkey_array()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Added declarations for <code>gcin_core_feedkey_quick()</code> and
+<code>gcin_core_feedkey_array()</code></td>
+</tr>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Extended mode enum; gtab catch-all in <code>update_ui()</code>;
+<code>switch(mode)</code> routing; Quick/Array detection in
+<code>enable()</code>; factory registration</td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/component/gcin.xml</code></td>
+<td>Added <code>gcin-quick</code> and <code>gcin-array</code> engine
+entries</td>
+</tr>
+<tr class="odd">
+<td><code>Makefile</code></td>
+<td>Added <code>simplex.gtab</code> and <code>ar30.gtab</code> to
+<code>tables</code> target</td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Added 5 Quick/Array unit tests (20 total)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Last Updated:</strong> 2026-05-05 (Session 14 — Phase 2:
+Quick and Array input methods)</p>
+</body>
+</html>

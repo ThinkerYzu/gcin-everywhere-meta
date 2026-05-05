@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#gcin-everywhere"
+id="toc-gcin-everywhere">gcin-everywhere</a>
+<ul>
+<li><a href="#project-documentation"
+id="toc-project-documentation">Project Documentation</a>
+<ul>
+<li><a href="#core-documentation" id="toc-core-documentation">Core
+Documentation</a></li>
+<li><a href="#testing-documentation"
+id="toc-testing-documentation">Testing Documentation</a></li>
+</ul></li>
+<li><a href="#overview" id="toc-overview">Overview</a></li>
+<li><a href="#recent-updates" id="toc-recent-updates">Recent
+Updates</a></li>
+<li><a href="#core-concepts" id="toc-core-concepts">Core Concepts</a>
+<ul>
+<li><a href="#adapter-pattern-gcin-core-stays-untouched"
+id="toc-adapter-pattern-gcin-core-stays-untouched">Adapter pattern: gcin
+core stays untouched</a></li>
+<li><a href="#table-based-vs.-phonetic-engines"
+id="toc-table-based-vs.-phonetic-engines">Table-based vs. phonetic
+engines</a></li>
+</ul></li>
+<li><a href="#implementation-phases"
+id="toc-implementation-phases">Implementation Phases</a>
+<ul>
+<li><a href="#phase-1-gnomewayland-via-ibus-in-progress"
+id="toc-phase-1-gnomewayland-via-ibus-in-progress">Phase 1:
+GNOME/Wayland via IBus (IN PROGRESS)</a></li>
+<li><a href="#phase-2-additional-input-methods-in-progress"
+id="toc-phase-2-additional-input-methods-in-progress">Phase 2:
+Additional Input Methods (IN PROGRESS)</a></li>
+<li><a href="#phase-3-cross-platform-future"
+id="toc-phase-3-cross-platform-future">Phase 3: Cross-Platform
+(FUTURE)</a></li>
+</ul></li>
+<li><a href="#development-repository"
+id="toc-development-repository">Development Repository</a></li>
+<li><a href="#related-projects" id="toc-related-projects">Related
+Projects</a></li>
+<li><a href="#documentation-maintenance"
+id="toc-documentation-maintenance">Documentation Maintenance</a>
+<ul>
+<li><a href="#documentation-as-a-web"
+id="toc-documentation-as-a-web">Documentation as a Web</a></li>
+<li><a href="#agent-responsibilities"
+id="toc-agent-responsibilities">Agent Responsibilities</a></li>
+<li><a href="#handoff-as-complete-package"
+id="toc-handoff-as-complete-package">Handoff as Complete
+Package</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="gcin-everywhere">gcin-everywhere</h1>
+<p><strong>Status:</strong> Phase 2 complete — Cangjie, Zhuyin, Quick,
+Array, full-width, phrase tables all working <strong>Created:</strong>
+2026-05-04 <strong>Last Updated:</strong> 2026-05-05
+<strong>Goal:</strong> Port gcin’s Traditional Chinese input engine to
+modern platforms, starting with GNOME/Wayland via IBus.</p>
+<hr />
+<h2 id="project-documentation">Project Documentation</h2>
+<h3 id="core-documentation">Core Documentation</h3>
+<ul>
+<li><strong>README.md</strong> (This document) - Project overview and
+getting started</li>
+<li><strong><a href="SPEC.html">SPEC.md</a></strong> — Problem statement,
+requirements, constraints, and success criteria</li>
+<li><strong><a href="DESIGN.html">DESIGN.md</a></strong> — Architecture,
+design decisions, and technical approach</li>
+<li><strong><a
+href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE.md</a></strong> —
+Detailed implementation guide with code examples</li>
+<li><strong><a href="HANDOFF.html">HANDOFF.md</a></strong> — Current
+status, next actions, session logs (the handoff package)</li>
+</ul>
+<h3 id="testing-documentation">Testing Documentation</h3>
+<ul>
+<li><strong><a href="TESTING-GUIDE.html">TESTING-GUIDE.md</a></strong> —
+Testing procedures, expected output, troubleshooting</li>
+</ul>
+<p><strong>Quick Links:</strong></p>
+<ul>
+<li><a href="#overview">Overview</a> | <a href="DESIGN.html">Design &amp;
+Architecture</a> | <a href="HANDOFF.html#current-status">Current
+Status</a> | <a href="TESTING-GUIDE.html">Testing</a></li>
+</ul>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>gcin is a Traditional Chinese input method framework that was widely
+used in Taiwan for input methods such as Cangjie (倉頡), Zhuyin
+(注音/Bopomofo), Array (行列), and others. Built for X11, it became
+effectively unmaintained as modern Linux desktops moved to Wayland.
+Users who grew up with gcin find no adequate replacement — current
+alternatives behave differently and break years of muscle memory.</p>
+<p>gcin-everywhere ports gcin’s engine and data tables to modern
+platforms. Rather than reimplementing the input logic, it reuses gcin’s
+existing C source code and character lookup tables directly, wrapping
+them in platform-specific integration layers. Phase 1 targets
+GNOME/Wayland via IBus — the standard input method framework for
+GNOME.</p>
+<p>The architecture is designed for portability: the gcin core is
+isolated from the platform layer, making future ports to Windows (TSF)
+and macOS (IMKit) straightforward additions.</p>
+<h2 id="recent-updates">Recent Updates</h2>
+<p>See <a href="HANDOFF.html">HANDOFF.md</a> for the full changelog,
+session history, and next actions.</p>
+<hr />
+<h2 id="core-concepts">Core Concepts</h2>
+<h3 id="adapter-pattern-gcin-core-stays-untouched">Adapter pattern: gcin
+core stays untouched</h3>
+<p>gcin’s input logic (<code>gtab.cpp</code>, <code>pho.cpp</code>, and
+~15 related files) is compiled into <code>libgcin-core.a</code> — a
+static library with no GTK or X11 runtime dependency. Two gcin source
+files are minimally modified: <code>gcin.h</code> gains a
+<code>GCIN_CORE_BUILD</code> block that defines all needed types as
+plain C types (no system headers), and <code>util.cpp</code> guards one
+GTK dialog call. <code>gcin_stubs.cpp</code> provides extern globals, UI
+function stubs, and intercepts <code>send_text()</code> to fire a
+callback instead of sending to X11 clients.</p>
+<h3 id="table-based-vs.-phonetic-engines">Table-based vs. phonetic
+engines</h3>
+<p>gcin has two distinct input paths. <strong>Cangjie</strong> is
+table-based: keystrokes are packed into a bitmask and binary-searched in
+a compiled <code>.gtab</code> file. <strong>Zhuyin</strong> is phonetic:
+keys accumulate an initial/medial/final/tone syllable buffer and look up
+matching characters in a phonetic index. Both paths eventually call
+<code>send_text()</code> to output the selected character.</p>
+<hr />
+<h2 id="implementation-phases">Implementation Phases</h2>
+<h3 id="phase-1-gnomewayland-via-ibus-in-progress">Phase 1:
+GNOME/Wayland via IBus (IN PROGRESS)</h3>
+<ul>
+<li>✅ Step 1: Stub layer — compile gcin core with X11/GTK globals
+stubbed out</li>
+<li>✅ Step 2: IBus skeleton — GObject subclass, component XML, engine
+registration</li>
+<li>✅ Step 3: Cangjie — gtab key routing, preedit, candidate display,
+commit</li>
+<li>✅ Step 4: Zhuyin — phonetic key routing, syllable buffer,
+commit</li>
+<li>✅ Step 5: Install, enable in GNOME Settings, end-to-end test</li>
+<li>✅ Step 6: Full-width mode (Shift+Space)</li>
+<li>✅ Step 7: Alt+Shift / Ctrl phrase tables</li>
+</ul>
+<h3 id="phase-2-additional-input-methods-in-progress">Phase 2:
+Additional Input Methods (IN PROGRESS)</h3>
+<ul>
+<li>✅ Quick (速成) —
+<code>feedkey_gtab_method(g_quick_inmd, ...)</code>; simplex.gtab</li>
+<li>✅ Array (行列) —
+<code>feedkey_gtab_method(g_array_inmd, ...)</code>; ar30.gtab</li>
+<li>Dayi (大易) — skipped (dayi3.cin absent from gcin snapshot)</li>
+<li>Bu-xie-mi (嘸蝦米) — future</li>
+</ul>
+<h3 id="phase-3-cross-platform-future">Phase 3: Cross-Platform
+(FUTURE)</h3>
+<ul>
+<li>Windows via Text Services Framework (TSF)</li>
+<li>macOS via Input Method Kit (IMKit)</li>
+</ul>
+<hr />
+<h2 id="development-repository">Development Repository</h2>
+<p><strong>Working Directory:</strong>
+<code>sources/gcin-everywhere/</code> (relative to claudebugzilla root)
+<strong>Git Branch:</strong> master <strong>gcin upstream:</strong>
+<code>sources/gcin-everywhere/gcin/</code> (git submodule:
+github.com/pkg-ime/gcin) <strong>New engine code:</strong>
+<code>sources/gcin-everywhere/ibus-engine/</code></p>
+<hr />
+<h2 id="related-projects">Related Projects</h2>
+<ul>
+<li><a href="https://wiki.archlinux.org/title/Gcin">gcin (Arch Linux
+Wiki)</a> — Original project documentation</li>
+</ul>
+<hr />
+<h2 id="documentation-maintenance">Documentation Maintenance</h2>
+<h3 id="documentation-as-a-web">Documentation as a Web</h3>
+<p><strong>Core Principle:</strong> This project directory is maintained
+as a <strong>web of interconnected documents</strong>, not isolated
+files.</p>
+<ul>
+<li>Documents are connected through <strong>hyperlinks</strong> (both
+markdown and HTML)</li>
+<li>Every document includes <strong>navigation sections</strong> at the
+top</li>
+<li>Cross-references point to <strong>specific sections</strong> using
+anchor links (#section-name)</li>
+</ul>
+<h3 id="agent-responsibilities">Agent Responsibilities</h3>
+<p>The agent (Claude) must actively maintain both <strong>content and
+connections</strong> in this documentation web:</p>
+<p><strong>Content updates:</strong></p>
+<ul>
+<li><strong>Progress tracking</strong>: Update status and milestone
+achievements</li>
+<li><strong>Implementation details</strong>: Document design decisions,
+code structure, and technical approaches</li>
+<li><strong>Technical findings</strong>: Record measurements, results,
+and key learnings</li>
+<li><strong>Architecture evolution</strong>: Update design documents as
+the design evolves</li>
+<li><strong>Log maintenance</strong>: Keep HANDOFF.md current with
+development activities</li>
+</ul>
+<p><strong>Link maintenance:</strong></p>
+<ul>
+<li><strong>Add cross-references</strong>: When creating new content,
+link to related existing content</li>
+<li><strong>Update navigation</strong>: Add new documents to navigation
+bars on all pages</li>
+<li><strong>Verify links</strong>: Ensure links remain valid as
+documents evolve</li>
+</ul>
+<h3 id="handoff-as-complete-package">Handoff as Complete Package</h3>
+<p><strong>Philosophy:</strong> HANDOFF.md should serve as a
+<strong>complete handoff package</strong> that enables anyone to pick up
+the task and push forward without asking questions.</p>
+<p><strong>Handoff quality test:</strong> “Could a new team member read
+this and implement the next phase without asking clarifying
+questions?”</p>
+<hr />
+<p><strong>Last Updated:</strong> 2026-05-05</p>
+</body>
+</html>

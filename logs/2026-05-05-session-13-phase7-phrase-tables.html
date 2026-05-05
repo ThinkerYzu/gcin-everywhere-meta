@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-05-05-session-13-phase7-phrase-tables – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#session-13-phase-7-altshift-ctrl-phrase-tables"
+id="toc-session-13-phase-7-altshift-ctrl-phrase-tables">Session 13:
+Phase 7 — Alt+Shift / Ctrl Phrase Tables</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#summary" id="toc-summary">Summary</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a
+href="#step-1-gcin_core_feed_phrase-added-to-gcin-coregcin-core.h"
+id="toc-step-1-gcin_core_feed_phrase-added-to-gcin-coregcin-core.h">Step
+1 — <code>gcin_core_feed_phrase()</code> added to
+<code>gcin-core/gcin-core.h</code></a></li>
+<li><a href="#step-2-implemented-in-gcin-coregcin_stubs.cpp"
+id="toc-step-2-implemented-in-gcin-coregcin_stubs.cpp">Step 2 —
+Implemented in <code>gcin-core/gcin_stubs.cpp</code></a></li>
+<li><a href="#step-3-bug-fix-watch_fopen-stub-updated"
+id="toc-step-3-bug-fix-watch_fopen-stub-updated">Step 3 — Bug fix:
+<code>watch_fopen</code> stub updated</a></li>
+<li><a href="#step-4-intercepts-added-to-ibus-enginegcin_engine.c"
+id="toc-step-4-intercepts-added-to-ibus-enginegcin_engine.c">Step 4 —
+Intercepts added to <code>ibus-engine/gcin_engine.c</code></a></li>
+<li><a
+href="#step-5-phrase.table-and-phrase-ctrl.table-added-to-makefile"
+id="toc-step-5-phrase.table-and-phrase-ctrl.table-added-to-makefile">Step
+5 — <code>phrase.table</code> and <code>phrase-ctrl.table</code> added
+to Makefile</a></li>
+<li><a href="#step-6-unit-tests-added-to-gcin-coretest_feedkey.c"
+id="toc-step-6-unit-tests-added-to-gcin-coretest_feedkey.c">Step 6 —
+Unit tests added to <code>gcin-core/test_feedkey.c</code></a></li>
+</ul></li>
+<li><a href="#test-results" id="toc-test-results">Test Results</a></li>
+<li><a href="#files-changed" id="toc-files-changed">Files
+Changed</a></li>
+<li><a href="#key-discovery" id="toc-key-discovery">Key
+Discovery</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="session-13-phase-7-altshift-ctrl-phrase-tables">Session 13:
+Phase 7 — Alt+Shift / Ctrl Phrase Tables</h1>
+<p><strong>Date:</strong> 2026-05-05 <strong>Phase:</strong> Phase 7
+<strong>Status:</strong> Complete</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="../README.html">README</a> | <a
+href="../SPEC.html">SPEC</a> | <a href="../DESIGN.html">DESIGN</a> | <a
+href="../IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> | <a
+href="../HANDOFF.html">HANDOFF</a></p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>Implemented Phase 7: Alt+Shift phrase table and Ctrl phrase-ctrl
+table support. <code>feed_phrase()</code> was already compiled from
+<code>phrase.cpp</code>; this session wired it into the public API and
+the IBus engine. 15/15 unit tests pass.</p>
+<hr />
+<h2 id="what-was-done">What Was Done</h2>
+<h3 id="step-1-gcin_core_feed_phrase-added-to-gcin-coregcin-core.h">Step
+1 — <code>gcin_core_feed_phrase()</code> added to
+<code>gcin-core/gcin-core.h</code></h3>
+<p>New declaration:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feed_phrase<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span></code></pre></div>
+<p><code>modifiers</code> uses X11 bitmask values
+(<code>Mod1Mask|ShiftMask</code> for Alt+Shift, <code>ControlMask</code>
+for Ctrl).</p>
+<h3 id="step-2-implemented-in-gcin-coregcin_stubs.cpp">Step 2 —
+Implemented in <code>gcin-core/gcin_stubs.cpp</code></h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">extern</span> gboolean feed_phrase<span class="op">(</span>KeySym ksym<span class="op">,</span> <span class="dt">int</span> state<span class="op">);</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feed_phrase<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feed_phrase<span class="op">((</span>KeySym<span class="op">)</span>keyval<span class="op">,</span> modifiers<span class="op">)</span> <span class="op">?</span> <span class="dv">1</span> <span class="op">:</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>feed_phrase()</code> is in <code>phrase.cpp</code> (already
+compiled into <code>libgcin-core.a</code>). It internally routes to
+<code>phrase.table</code> when <code>Mod1Mask|ShiftMask</code> is set
+and to <code>phrase-ctrl.table</code> when <code>ControlMask</code> is
+set.</p>
+<h3 id="step-3-bug-fix-watch_fopen-stub-updated">Step 3 — Bug fix:
+<code>watch_fopen</code> stub updated</h3>
+<p><code>feed_phrase()</code> calls
+<code>load_phrase("phrase.table", ...)</code> with a bare filename. The
+real <code>watch_fopen</code> in <code>win-sym.cpp</code> prepends
+<code>TableDir/</code> as fallback. Our stub only did a plain
+<code>fopen()</code>, so it found nothing. Fixed the stub to mirror the
+real behavior:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">FILE</span> <span class="op">*</span>watch_fopen<span class="op">(</span><span class="dt">char</span> <span class="op">*</span>filename<span class="op">,</span> <span class="dt">time_t</span> <span class="op">*</span>pfile_modify_time<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">FILE</span> <span class="op">*</span>fp <span class="op">=</span> fopen<span class="op">(</span>filename<span class="op">,</span> <span class="st">&quot;rb&quot;</span><span class="op">);</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>fp <span class="op">&amp;&amp;</span> TableDir<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">char</span> path<span class="op">[</span><span class="dv">512</span><span class="op">];</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        snprintf<span class="op">(</span>path<span class="op">,</span> <span class="kw">sizeof</span><span class="op">(</span>path<span class="op">),</span> <span class="st">&quot;</span><span class="sc">%s</span><span class="st">/</span><span class="sc">%s</span><span class="st">&quot;</span><span class="op">,</span> TableDir<span class="op">,</span> filename<span class="op">);</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        fp <span class="op">=</span> fopen<span class="op">(</span>path<span class="op">,</span> <span class="st">&quot;rb&quot;</span><span class="op">);</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This also fixes any future file that loads by bare name via
+<code>watch_fopen</code>.</p>
+<h3 id="step-4-intercepts-added-to-ibus-enginegcin_engine.c">Step 4 —
+Intercepts added to <code>ibus-engine/gcin_engine.c</code></h3>
+<p>Added X11 modifier defines at the top (IBus headers don’t include
+<code>&lt;X11/X.h&gt;</code>):</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#define ShiftMask   </span><span class="bn">0x0001</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">#define ControlMask </span><span class="bn">0x0004</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">#define Mod1Mask    </span><span class="bn">0x0008</span></span></code></pre></div>
+<p>Intercepts inserted after the Shift+Space check, before the feedkey
+routing:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* Alt+Shift: phrase.table */</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>modifiers <span class="op">&amp;</span> <span class="op">(</span>IBUS_MOD1_MASK<span class="op">|</span>IBUS_SHIFT_MASK<span class="op">))</span> <span class="op">==</span> <span class="op">(</span>IBUS_MOD1_MASK<span class="op">|</span>IBUS_SHIFT_MASK<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    gcin_core_set_commit_cb<span class="op">(</span>on_commit<span class="op">,</span> iengine<span class="op">);</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gcin_core_feed_phrase<span class="op">(</span>keyval<span class="op">,</span> Mod1Mask<span class="op">|</span>ShiftMask<span class="op">)</span> <span class="op">?</span> TRUE <span class="op">:</span> FALSE<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">/* Ctrl (without Alt): phrase-ctrl.table — pass through if key not in table */</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>modifiers <span class="op">&amp;</span> IBUS_CONTROL_MASK<span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">!(</span>modifiers <span class="op">&amp;</span> IBUS_MOD1_MASK<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    gcin_core_set_commit_cb<span class="op">(</span>on_commit<span class="op">,</span> iengine<span class="op">);</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>gcin_core_feed_phrase<span class="op">(</span>keyval<span class="op">,</span> ControlMask<span class="op">))</span> <span class="cf">return</span> TRUE<span class="op">;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3
+id="step-5-phrase.table-and-phrase-ctrl.table-added-to-makefile">Step 5
+— <code>phrase.table</code> and <code>phrase-ctrl.table</code> added to
+Makefile</h3>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>cp <span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span>/data/phrase.table      <span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span>/</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cp <span class="ch">$(</span><span class="dt">GCIN</span><span class="ch">)</span>/data/phrase-ctrl.table <span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span>/</span></code></pre></div>
+<h3 id="step-6-unit-tests-added-to-gcin-coretest_feedkey.c">Step 6 —
+Unit tests added to <code>gcin-core/test_feedkey.c</code></h3>
+<p>Added <code>ShiftMask</code>, <code>ControlMask</code>,
+<code>Mod1Mask</code> defines and <code>test_phrase_table()</code>:</p>
+<ul>
+<li><code>alt+shift+i</code> → <code>、</code> (phrase.table)</li>
+<li><code>alt+shift+o</code> → <code>。</code> (phrase.table)</li>
+<li><code>ctrl+,</code> → <code>，</code> (phrase-ctrl.table)</li>
+<li><code>ctrl+'</code> → <code>、</code> (phrase-ctrl.table)</li>
+</ul>
+<p>Gracefully SKIPs if <code>phrase.table</code> is absent.</p>
+<hr />
+<h2 id="test-results">Test Results</h2>
+<pre><code>15 passed, 0 failed, 0 skipped</code></pre>
+<p>All 11 pre-existing tests continue to pass; 4 new phrase table tests
+pass.</p>
+<hr />
+<h2 id="files-changed">Files Changed</h2>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Added <code>gcin_core_feed_phrase()</code> declaration</td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Implemented <code>gcin_core_feed_phrase()</code>; fixed
+<code>watch_fopen</code> to prepend <code>TableDir</code></td>
+</tr>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Added X11 modifier defines; Alt+Shift and Ctrl intercepts in
+<code>process_key_event</code></td>
+</tr>
+<tr class="even">
+<td><code>Makefile</code></td>
+<td>Copy <code>phrase.table</code> + <code>phrase-ctrl.table</code> in
+<code>tables</code> target</td>
+</tr>
+<tr class="odd">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Added modifier defines; <code>test_phrase_table()</code> with 4
+tests</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-discovery">Key Discovery</h2>
+<p><strong><code>watch_fopen</code> must prepend
+<code>TableDir</code></strong> — <code>phrase.cpp</code> calls
+<code>load_phrase("phrase.table", ...)</code> with a bare filename. The
+real <code>watch_fopen</code> (in <code>win-sym.cpp</code>) uses
+<code>get_gcin_user_or_sys_fname()</code> first, then
+<code>TableDir + "/" + filename</code> as fallback. Our stub only did
+<code>fopen(filename)</code> so it silently missed the file. Fixed to
+match the real behavior.</p>
+</body>
+</html>

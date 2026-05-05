@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>HANDOFF – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#handoff-gcin-everywhere"
+id="toc-handoff-gcin-everywhere">Handoff: gcin-everywhere</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#current-status" id="toc-current-status">Current Status</a>
+<ul>
+<li><a href="#what-we-have" id="toc-what-we-have">What We Have</a></li>
+<li><a href="#key-design-decisions" id="toc-key-design-decisions">Key
+Design Decisions</a></li>
+</ul></li>
+<li><a href="#next-actions" id="toc-next-actions">Next Actions</a></li>
+<li><a href="#session-logs" id="toc-session-logs">Session Logs</a></li>
+<li><a href="#document-web" id="toc-document-web">Document Web</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="handoff-gcin-everywhere">Handoff: gcin-everywhere</h1>
+<p><strong>Project:</strong> gcin-everywhere <strong>Started:</strong>
+2026-05-04</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
+href="SPEC.html">SPEC</a> | <a href="DESIGN.html">DESIGN</a> | <a
+href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> | <a
+href="HANDOFF.html">HANDOFF</a> <em>(you are here)</em></p>
+<p><strong>Quick Jump:</strong> <a href="#current-status">Current
+Status</a> | <a href="#next-actions">Next Actions</a> | <a
+href="#session-logs">Session Logs</a></p>
+<hr />
+<h2 id="current-status">Current Status</h2>
+<p><strong>Phase:</strong> Phase 2 complete — Quick (速成) and Array
+(行列) input methods working <strong>Progress:</strong>
+<code>gcin_core_feedkey_quick/array()</code> via shared
+<code>feedkey_gtab_method()</code>; 4 IBus engines (Cangjie, Zhuyin,
+Quick, Array); 20/20 unit tests pass <strong>Next Milestone:</strong>
+Phase 2 continued — Buxiemi (嘸蝦米) or Windows TSF port
+<strong>Blockers:</strong> None</p>
+<blockquote>
+<p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
+finalized (open questions resolved) - ✅ Design complete - ✅
+Implementation guide ready - ✅ Phase 1 complete — libgcin-core.a (26
+source files, links cleanly) - ✅ Phase 2 complete — ibus-engine-gcin
+skeleton builds - ✅ Unit tests pass (9/9) —
+<code>GCIN_TABLE_DIR=/tmp/gcin-tables make test</code> - ✅ IBus
+registration verified (ibus list-engine | grep gcin) - ✅ Phase 3 —
+Cangjie key routing, preedit, candidates - ✅ Phase 4 — Zhuyin preedit
+and candidates API - ✅ Phase 5 — Local install
+(<code>make install</code>), systemd autostart, GNOME switching works -
+✅ Phase 1 complete — Cangjie and Zhuyin confirmed working end-to-end -
+✅ Phase 6 — full-width mode (Shift+Space), <code>fullchar[]</code>,
+<code>full_char_proc()</code> - ✅ Phase 7 — Alt+Shift phrase.table +
+Ctrl phrase-ctrl.table; <code>gcin_core_feed_phrase()</code> - ✅ Phase
+2 (additional engines) — Quick (速成) and Array (行列) via
+<code>feedkey_gtab_method()</code></p>
+</blockquote>
+<h3 id="what-we-have">What We Have</h3>
+<ul>
+<li><code>gcin-core/libgcin-core.a</code> — 26 source files compiled
+with <code>-DGCIN_CORE_BUILD -DUSE_TSIN=1</code></li>
+<li><code>ibus-engine/ibus-engine-gcin</code> — links against
+libgcin-core.a + libibus-1.0</li>
+<li><code>ibus-engine/component/gcin.xml</code> — IBus component
+descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array)</li>
+<li><code>process_key_event</code> routes via <code>switch(mode)</code>
+to <code>gcin_core_feedkey_cangjie/zhuyin/quick/array()</code>; preedit
+and candidates wired to IBus APIs</li>
+<li><strong>Cangjie working end-to-end</strong> — <code>ko</code> →
+preedit shows 大, candidates appear, select commits 大人</li>
+<li><strong>Zhuyin preedit/candidates wired</strong> —
+<code>gcin_core_get_preedit_zhuyin()</code> /
+<code>gcin_core_get_candidates_zhuyin()</code> implemented; engine
+detects mode from IBus engine name</li>
+<li><strong>Quick and Array added</strong> — share
+<code>feedkey_gtab</code> path via
+<code>feedkey_gtab_method(inmd_idx, ...)</code>; same preedit/candidates
+functions as Cangjie</li>
+<li><strong>Tests:</strong> <code>gcin-core/test_feedkey.c</code> — 20
+unit tests pass; <code>make test</code> skips cleanly without
+tables</li>
+<li><strong>Tests:</strong>
+<code>ibus-engine/test-registration.sh</code> — registration check;
+auto-detects <code>/tmp/gcin-tables</code></li>
+<li><strong>Table tools built</strong> (not committed):
+<code>gcin2tab</code>, <code>phoa2d</code>, <code>tsa2d32</code>,
+<code>kbmcv</code> — built with GCIN_CORE_BUILD + libgcin-core.a</li>
+</ul>
+<h3 id="key-design-decisions">Key Design Decisions</h3>
+<ul>
+<li><strong>No compat/ directory</strong> — <code>gcin.h</code> modified
+with <code>GCIN_CORE_BUILD</code> block instead</li>
+<li><strong><code>gcin-common.cpp</code> excluded</strong> — actual
+GTK/X11 calls; <code>case_inverse</code>/<code>current_time</code>
+re-implemented in stubs</li>
+<li><strong><code>typedef void GtkWidget</code> kept</strong> —
+eliminating it costs 4 more file modifications for zero practical
+benefit</li>
+<li><strong><code>GTK_WIDGET_VISIBLE(w)</code> defined as
+<code>(0)</code></strong> — called in <code>feedkey_gtab:985</code> /
+<code>feedkey_pho:844</code>; always-NULL pointers in core build</li>
+<li><strong><code>pho-sym.cpp</code> and <code>unix-exec.cpp</code>
+added</strong> — not in original guide list but required
+(<code>pho_chars[]</code>, <code>unix_exec</code>)</li>
+<li><strong>Compile as C not C++</strong> — gcin source uses C
+<code>goto</code>-over-init patterns; <code>-x c</code> flag needed</li>
+<li><strong><code>-DUSE_TSIN=1</code> required</strong> —
+<code>add_to_tsin_buf</code> is inside <code>#if USE_TSIN</code>; not in
+config.h without autoconf build</li>
+<li><strong><code>gcin-settings.cpp</code> added to library</strong> —
+defines nearly all
+<code>gtab_*</code>/<code>tsin_*</code>/<code>pho_*</code> globals; no
+GTK/X11 calls</li>
+<li><strong><code>locale.cpp</code> added to library</strong> — all utf8
+utilities (<code>utf8_sz</code>, <code>u8cpy</code>, etc.); no GTK/X11
+calls</li>
+<li><strong>libibus-1.0-dev workaround</strong> — extracted with
+<code>apt-get download</code> + <code>dpkg-deb -x</code>; pass runtime
+<code>.so.5</code> directly to linker since extracted <code>.so</code>
+symlink is broken</li>
+<li><strong><code>gcin_core_init()</code> must call
+<code>load_setttings()</code> + <code>load_gtab_list()</code> +
+<code>init_gtab()</code></strong> — without these,
+<code>pho_kbm_name</code> is NULL (segfault) and <code>cur_inmd</code>
+is NULL (no key processing)</li>
+<li><strong><code>current_CS-&gt;tsin_pho_mode = 1</code>
+required</strong> — without it, <code>feedkey_gtab</code> hits the ASCII
+passthrough branch for all printable keys</li>
+<li><strong><code>gtab_auto_select_by_phrase = GTAB_OPTION_NO</code></strong>
+— phrase buffering must be disabled; otherwise <code>putstr_inp</code>
+routes single characters to the phrase buffer instead of
+<code>send_utf8_ch</code></li>
+<li><strong>Cangjie cj.gtab uses
+<code>GTAB_space_auto_first_nofull</code></strong> — space alone does
+NOT auto-select; correct input is key(s) + space (spc_pressed=1) +
+selection key (1-9)</li>
+<li><strong>Table tools built without GTK2</strong> —
+<code>gcin2tab</code>, <code>phoa2d</code>, <code>tsa2d32</code>,
+<code>kbmcv</code> compile with
+<code>GCIN_CORE_BUILD + libgcin-core.a + gtk_init() stub</code>. GTK2
+not required.</li>
+<li><strong>Candidates read from <code>seltab[]</code> directly</strong>
+— not parsed from <code>disp_gtab_sel</code> HTML string;
+<code>seltab</code> defined in <code>gtab-init.cpp</code>, declared
+extern in <code>gcin_stubs.cpp</code></li>
+<li><strong>Commit callback re-registered per keypress</strong> —
+<code>gcin_core_set_commit_cb(on_commit, iengine)</code> called in
+<code>process_key_event</code> to always target the active engine
+instance</li>
+<li><strong><code>IBUS_space</code> not <code>XK_space</code> in IBus
+engine</strong> — <code>XK_space</code> is undefined in
+<code>gcin_engine.c</code>; use IBus constants (<code>IBUS_space</code>,
+<code>IBUS_SHIFT_MASK</code>) for key checks in the engine layer</li>
+<li><strong>Half-width mode: non-component keys not consumed</strong> —
+<code>feedkey_gtab</code> returns 0 for keys like <code>,</code>; IBus
+passes them to the app. Only full-width mode routes them through
+<code>send_text()</code> via <code>full_char_proc()</code></li>
+<li><strong><code>feed_phrase()</code> already compiled</strong> —
+<code>phrase.cpp</code> is in GCIN_SRCS with no X11/GTK deps; just needs
+an <code>extern</code> declaration wrapper in
+<code>gcin_stubs.cpp</code>, no copy</li>
+<li><strong><code>watch_fopen</code> must prepend
+<code>TableDir</code></strong> — <code>phrase.cpp</code> calls
+<code>load_phrase("phrase.table")</code> with a bare filename; real
+<code>watch_fopen</code> (win-sym.cpp) falls back to
+<code>TableDir + "/" + filename</code>; our stub was missing this so
+phrase tables were silently unfound</li>
+<li><strong><code>cj.gtab</code> <code>zx__</code> codes</strong> —
+<code>、</code>=<code>zxac</code>, <code>…</code>=<code>zxal</code>,
+<code>—</code>=<code>zxay</code> etc. already work; Cangjie users can
+type these directly</li>
+<li><strong>Zhuyin candidates from <code>ch_pho[]</code> not
+<code>disp_pho_sel</code> string</strong> —
+<code>poo.start_idx + poo.cpg</code> gives page start;
+<code>poo.maxi</code> gives count; both set before
+<code>disp_pho_sel()</code> returns, so reading after
+<code>feedkey_pho()</code> is safe</li>
+<li><strong>ㄨ is implicit after ㄓ/ㄔ/ㄕ in Daqian</strong> — pressing
+<code>u</code> after <code>j</code> does not change
+<code>poo.typ_pho[]</code>’s phokey representation; the tone press is
+what grows the preedit</li>
+<li><strong>Engine mode detected in <code>enable()</code> not
+<code>init()</code></strong> — GObject properties are not set when
+<code>_init()</code> runs; <code>ibus_engine_get_name()</code> returns
+NULL there. Mode is set in <code>gcin_engine_enable()</code> which fires
+on each engine switch when the name is valid.</li>
+<li><strong><code>pho_load()</code> checks
+<code>getenv("GCIN_TABLE_DIR")</code> not <code>TableDir</code></strong>
+— <code>gcin_core_init()</code> must call
+<code>setenv("GCIN_TABLE_DIR", table_dir, 1)</code> in addition to
+setting <code>TableDir</code>; otherwise pho_load takes the “copy to
+~/.gcin/” branch and fails</li>
+<li><strong><code>gcin_core_init()</code> must run before
+<code>ibus_bus_new()</code></strong> — table loading blocks the event
+loop; if called after <code>ibus_bus_request_name</code>, IBus daemon
+times out waiting for “CreateEngine” response</li>
+<li><strong>GNOME Shell doesn’t auto-spawn user-local IBus
+engines</strong> — <code>~/.local/share/ibus/component/</code> works for
+<code>ibus list-engine</code> but GNOME only exec’s engines from
+<code>/usr/share/ibus/component/</code>; fix is a systemd user service
+that starts the engine at login</li>
+<li><strong>Quick and Array share <code>feedkey_gtab</code> — only the
+<code>.gtab</code> table differs</strong> — switching
+<code>cur_inmd</code> and calling <code>init_gtab(inmd_idx)</code>
+before <code>feedkey_gtab()</code> is sufficient; preedit and candidates
+functions are identical to Cangjie</li>
+<li><strong>Quick candidates are sorted by tsin use-count, not
+<code>.cin</code> order</strong> — compiled binary orders candidates by
+frequency data; tests for multi-match cases must use
+<code>EXPECT_COMMITTED_NONEMPTY</code> rather than asserting a specific
+character</li>
+<li><strong>Array <code>%endkey 1234567890</code> means digits are
+combined endkey+selkey</strong> — after a full code, pressing a digit
+auto-commits the single match in one step without needing space first;
+pressing space triggers a different but equivalent code path</li>
+</ul>
+<hr />
+<h2 id="next-actions">Next Actions</h2>
+<ol type="1">
+<li><strong>Phase 2 continued — More input methods</strong> — Buxiemi
+(嘸蝦米, <code>bpmf.cin</code>) if present in snapshot; any other
+gtab-based method follows the same <code>feedkey_gtab_method()</code>
+adapter pattern. Dayi (大易) skipped — <code>dayi3.cin</code> absent
+from snapshot.</li>
+<li><strong>Windows TSF port</strong> — next platform after IBus is
+fully stable.</li>
+</ol>
+<p><strong>Deferred:</strong></p>
+<ul>
+<li>macOS (IMKit) port — future phase.</li>
+<li>Fcitx5 engine — not planned for current phase.</li>
+</ul>
+<hr />
+<h2 id="session-logs">Session Logs</h2>
+<ol type="1">
+<li><strong><a
+href="logs/2026-05-05-session-14-phase2-quick-array.html">Session 14:
+Phase 2 — Quick and Array Input Methods</a></strong> (2026-05-05) —
+Added Quick (速成) and Array (行列) engines via shared
+<code>feedkey_gtab_method()</code>; 4 IBus engines; 20/20 tests
+pass.</li>
+<li><strong><a
+href="logs/2026-05-05-session-13-phase7-phrase-tables.html">Session 13:
+Phase 7 — Alt+Shift / Ctrl Phrase Tables</a></strong> (2026-05-05) —
+<code>gcin_core_feed_phrase()</code> wraps <code>feed_phrase()</code>;
+Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed
+<code>watch_fopen</code> stub to prepend TableDir; 15/15 tests
+pass.</li>
+<li><strong><a
+href="logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.html">Session
+12: Phase 6 — Full-Width Mode; Phase 7 Planned</a></strong> (2026-05-05)
+— Implemented Shift+Space full-width toggle; copied
+<code>half_char_to_full_char</code>+<code>full_char_proc</code>; 11/11
+tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.</li>
+<li><strong><a
+href="logs/2026-05-05-session-11-github-and-makefile.html">Session 11:
+GitHub Setup and Top-Level Makefile</a></strong> (2026-05-05) — Forked
+gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level
+Makefile handles full pipeline;
+<code>make test &amp;&amp; make install</code> is the complete
+workflow.</li>
+<li><strong><a
+href="logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.html">Session
+10: Mode Detection Fix — Phase 1 Complete</a></strong> (2026-05-05) —
+Moved mode detection from <code>init()</code> to <code>enable()</code>;
+Cangjie and Zhuyin both confirmed working end-to-end.</li>
+</ol>
+<hr />
+<h2 id="document-web">Document Web</h2>
+<p><strong>Related Documents:</strong></p>
+<ul>
+<li><a href="SPEC.html">SPEC.md</a> - Requirements and constraints</li>
+<li><a href="DESIGN.html">DESIGN.md</a> - Architecture and design
+decisions</li>
+<li><a href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE.md</a> -
+Code-level details</li>
+<li><a href="README.html">README.md</a> - Project overview</li>
+</ul>
+<p><strong>When adding new entries:</strong></p>
+<ul>
+<li>Create new session log in <code>logs/</code> directory</li>
+<li>Update <a href="#session-logs">Session Logs</a> section with link
+(keep last 5; move older to archive)</li>
+<li>Update <a href="#current-status">Current Status</a> with
+progress</li>
+</ul>
+<hr />
+<p><strong>Source Repo:</strong> <code>sources/gcin-everywhere/</code> —
+initialized with gcin submodule at <code>gcin/</code>, new engine code
+goes in <code>ibus-engine/</code></p>
+<p><strong>Last Updated:</strong> 2026-05-05 (Session 14 — Phase 2
+complete: Quick and Array)</p>
+</body>
+</html>

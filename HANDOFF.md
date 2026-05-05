@@ -15,9 +15,9 @@
 
 ## Current Status
 
-**Phase:** Phase 6 complete — full-width character mode working
-**Progress:** Shift+Space toggles full-width mode; all ASCII converts via `fullchar[]`; 11/11 unit tests pass; Phase 7 (Alt+Shift + Ctrl phrase tables) designed and ready to implement
-**Next Milestone:** Phase 7 — `gcin_core_feed_phrase()` wrapper + engine intercepts + phrase table install
+**Phase:** Phase 2 complete — Quick (速成) and Array (行列) input methods working
+**Progress:** `gcin_core_feedkey_quick/array()` via shared `feedkey_gtab_method()`; 4 IBus engines (Cangjie, Zhuyin, Quick, Array); 20/20 unit tests pass
+**Next Milestone:** Phase 2 continued — Buxiemi (嘸蝦米) or Windows TSF port
 **Blockers:** None
 
 > **Phase checklist:**
@@ -34,16 +34,19 @@
 > - ✅ Phase 5 — Local install (`make install`), systemd autostart, GNOME switching works
 > - ✅ Phase 1 complete — Cangjie and Zhuyin confirmed working end-to-end
 > - ✅ Phase 6 — full-width mode (Shift+Space), `fullchar[]`, `full_char_proc()`
+> - ✅ Phase 7 — Alt+Shift phrase.table + Ctrl phrase-ctrl.table; `gcin_core_feed_phrase()`
+> - ✅ Phase 2 (additional engines) — Quick (速成) and Array (行列) via `feedkey_gtab_method()`
 
 ### What We Have
 
 - `gcin-core/libgcin-core.a` — 26 source files compiled with `-DGCIN_CORE_BUILD -DUSE_TSIN=1`
-- `ibus-engine/ibus-engine-gcin` (520KB ELF) — links against libgcin-core.a + libibus-1.0
-- `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie + gcin-zhuyin)
-- `process_key_event` routes to `gcin_core_feedkey_cangjie/zhuyin()`; preedit and candidates wired to IBus APIs
+- `ibus-engine/ibus-engine-gcin` — links against libgcin-core.a + libibus-1.0
+- `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array)
+- `process_key_event` routes via `switch(mode)` to `gcin_core_feedkey_cangjie/zhuyin/quick/array()`; preedit and candidates wired to IBus APIs
 - **Cangjie working end-to-end** — `ko` → preedit shows 大, candidates appear, select commits 大人
 - **Zhuyin preedit/candidates wired** — `gcin_core_get_preedit_zhuyin()` / `gcin_core_get_candidates_zhuyin()` implemented; engine detects mode from IBus engine name
-- **Tests:** `gcin-core/test_feedkey.c` — 9 unit tests pass; `make test` skips cleanly without tables
+- **Quick and Array added** — share `feedkey_gtab` path via `feedkey_gtab_method(inmd_idx, ...)`; same preedit/candidates functions as Cangjie
+- **Tests:** `gcin-core/test_feedkey.c` — 20 unit tests pass; `make test` skips cleanly without tables
 - **Tests:** `ibus-engine/test-registration.sh` — registration check; auto-detects `/tmp/gcin-tables`
 - **Table tools built** (not committed): `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` — built with GCIN_CORE_BUILD + libgcin-core.a
 
@@ -69,6 +72,7 @@
 - **`IBUS_space` not `XK_space` in IBus engine** — `XK_space` is undefined in `gcin_engine.c`; use IBus constants (`IBUS_space`, `IBUS_SHIFT_MASK`) for key checks in the engine layer
 - **Half-width mode: non-component keys not consumed** — `feedkey_gtab` returns 0 for keys like `,`; IBus passes them to the app. Only full-width mode routes them through `send_text()` via `full_char_proc()`
 - **`feed_phrase()` already compiled** — `phrase.cpp` is in GCIN_SRCS with no X11/GTK deps; just needs an `extern` declaration wrapper in `gcin_stubs.cpp`, no copy
+- **`watch_fopen` must prepend `TableDir`** — `phrase.cpp` calls `load_phrase("phrase.table")` with a bare filename; real `watch_fopen` (win-sym.cpp) falls back to `TableDir + "/" + filename`; our stub was missing this so phrase tables were silently unfound
 - **`cj.gtab` `zx__` codes** — `、`=`zxac`, `…`=`zxal`, `—`=`zxay` etc. already work; Cangjie users can type these directly
 - **Zhuyin candidates from `ch_pho[]` not `disp_pho_sel` string** — `poo.start_idx + poo.cpg` gives page start; `poo.maxi` gives count; both set before `disp_pho_sel()` returns, so reading after `feedkey_pho()` is safe
 - **ㄨ is implicit after ㄓ/ㄔ/ㄕ in Daqian** — pressing `u` after `j` does not change `poo.typ_pho[]`'s phokey representation; the tone press is what grows the preedit
@@ -76,32 +80,30 @@
 - **`pho_load()` checks `getenv("GCIN_TABLE_DIR")` not `TableDir`** — `gcin_core_init()` must call `setenv("GCIN_TABLE_DIR", table_dir, 1)` in addition to setting `TableDir`; otherwise pho_load takes the "copy to ~/.gcin/" branch and fails
 - **`gcin_core_init()` must run before `ibus_bus_new()`** — table loading blocks the event loop; if called after `ibus_bus_request_name`, IBus daemon times out waiting for "CreateEngine" response
 - **GNOME Shell doesn't auto-spawn user-local IBus engines** — `~/.local/share/ibus/component/` works for `ibus list-engine` but GNOME only exec's engines from `/usr/share/ibus/component/`; fix is a systemd user service that starts the engine at login
+- **Quick and Array share `feedkey_gtab` — only the `.gtab` table differs** — switching `cur_inmd` and calling `init_gtab(inmd_idx)` before `feedkey_gtab()` is sufficient; preedit and candidates functions are identical to Cangjie
+- **Quick candidates are sorted by tsin use-count, not `.cin` order** — compiled binary orders candidates by frequency data; tests for multi-match cases must use `EXPECT_COMMITTED_NONEMPTY` rather than asserting a specific character
+- **Array `%endkey 1234567890` means digits are combined endkey+selkey** — after a full code, pressing a digit auto-commits the single match in one step without needing space first; pressing space triggers a different but equivalent code path
 
 ---
 
 ## Next Actions
 
-1. **Phase 7 — Alt+Shift phrase table (NEXT)** — Add `gcin_core_feed_phrase()` wrapping `feed_phrase()` (already compiled); intercept Alt+Shift in `gcin_engine.c`; install `phrase.table` + `phrase-ctrl.table`. See [IMPLEMENTATION-GUIDE.md Phase 7](IMPLEMENTATION-GUIDE.md#phase-7-altshift-phrase-table) for the full plan.
-2. **Phase 2 — Additional input methods** — Quick (速成), Array (行列), Dayi (大易). Same adapter pattern as Cangjie; each gets its own `<engine>` in gcin.xml and a mode constant.
+1. **Phase 2 continued — More input methods** — Buxiemi (嘸蝦米, `bpmf.cin`) if present in snapshot; any other gtab-based method follows the same `feedkey_gtab_method()` adapter pattern. Dayi (大易) skipped — `dayi3.cin` absent from snapshot.
+2. **Windows TSF port** — next platform after IBus is fully stable.
 
 **Deferred:**
-- Windows (TSF) and macOS (IMKit) ports — future phases after Phase 1 is working.
-- Fcitx5 engine — not planned for Phase 1.
+- macOS (IMKit) port — future phase.
+- Fcitx5 engine — not planned for current phase.
 
 ---
 
 ## Session Logs
 
-1. **[Session 12: Phase 6 — Full-Width Mode; Phase 7 Planned](logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.md)** (2026-05-05) — Implemented Shift+Space full-width toggle; copied `half_char_to_full_char`+`full_char_proc`; 11/11 tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.
-2. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
-2. **[Session 10: Mode Detection Fix — Phase 1 Complete](logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.md)** (2026-05-05) — Moved mode detection from `init()` to `enable()`; Cangjie and Zhuyin both confirmed working end-to-end.
-2. **[Session 9: Phase 5 — Local Install and Systemd Autostart](logs/2026-05-05-session-09-install-and-autostart.md)** (2026-05-05) — `make install` deploys to `~/.local/`; fixed 3 bugs (setenv, init ordering, GNOME spawn); systemd user service auto-starts engine; GNOME switching works.
-2. **[Session 8: Phase 4 — Zhuyin Preedit and Candidates](logs/2026-05-05-session-08-zhuyin-phase4.md)** (2026-05-05) — Added gcin_core_get_preedit_zhuyin/get_candidates_zhuyin API; wired update_ui() to branch on Cangjie vs Zhuyin mode; mode detected from IBus engine name; 3 new Zhuyin unit tests (9/9 pass).
-2. **[Session 7: Phase 3 — Cangjie Working End-to-End](logs/2026-05-05-session-07-cangjie-phase3.md)** (2026-05-05) — Added gcin_core_get_preedit/get_candidates_cangjie API; wired process_key_event with preedit + lookup table; commit callback; ko → 大人 confirmed working.
-2. **[Session 6: GCIN_TABLE_DIR Support + System-Wide IBus Registration](logs/2026-05-05-session-06-table-dir-and-registration.md)** (2026-05-05) — Engine reads GCIN_TABLE_DIR env var; test script auto-detects /tmp/gcin-tables; silenced mv error (no-op update_table_file stub); ibus list-engine confirms gcin-cangjie + gcin-zhuyin registered.
-3. **[Session 5: Data Tables Compiled; All Unit Tests Pass](logs/2026-05-05-session-05-tables-and-tests.md)** (2026-05-05) — Built gcin2tab/phoa2d/tsa2d32/kbmcv without GTK2; compiled tables to /tmp/gcin-tables/; fixed 6 gcin_core_init() bugs (load_setttings, load_gtab_list, init_gtab, tsin_pho_mode, phrase buffer, reset); all 6 unit tests pass.
-4. **[Session 4: Phase 2 — IBus Engine Skeleton Builds](logs/2026-05-05-session-04-ibus-skeleton.md)** (2026-05-05) — Created gcin_engine.c, gcin.xml, ibus-engine/Makefile; fixed 8 more duplicate stubs; added 5 files to libgcin-core.a; added g_strdup_printf/_()/GError/F-keys to GCIN_CORE_BUILD; added -DUSE_TSIN=1. Binary (520KB) links cleanly.
-5. **[Session 3: Phase 1 Complete — libgcin-core.a Builds](logs/2026-05-05-session-03-libgcin-core-build.md)** (2026-05-05) — Modified 4 gcin files; created gcin-core/ (API, stubs, Makefile); libgcin-core.a (930KB) builds clean. Discoveries: compile as C not C++; pho-sym.cpp and unix-exec.cpp needed; box_warn() needs guarding too.
+1. **[Session 14: Phase 2 — Quick and Array Input Methods](logs/2026-05-05-session-14-phase2-quick-array.md)** (2026-05-05) — Added Quick (速成) and Array (行列) engines via shared `feedkey_gtab_method()`; 4 IBus engines; 20/20 tests pass.
+2. **[Session 13: Phase 7 — Alt+Shift / Ctrl Phrase Tables](logs/2026-05-05-session-13-phase7-phrase-tables.md)** (2026-05-05) — `gcin_core_feed_phrase()` wraps `feed_phrase()`; Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed `watch_fopen` stub to prepend TableDir; 15/15 tests pass.
+3. **[Session 12: Phase 6 — Full-Width Mode; Phase 7 Planned](logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.md)** (2026-05-05) — Implemented Shift+Space full-width toggle; copied `half_char_to_full_char`+`full_char_proc`; 11/11 tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.
+4. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
+5. **[Session 10: Mode Detection Fix — Phase 1 Complete](logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.md)** (2026-05-05) — Moved mode detection from `init()` to `enable()`; Cangjie and Zhuyin both confirmed working end-to-end.
 
 ---
 
@@ -122,4 +124,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 12 — Phase 6 complete; Phase 7 planned)
+**Last Updated:** 2026-05-05 (Session 14 — Phase 2 complete: Quick and Array)

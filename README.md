@@ -1,8 +1,8 @@
 # gcin-everywhere
 
-**Status:** Phase 1 — Spec
+**Status:** Phase 2 complete — Cangjie, Zhuyin, Quick, Array, full-width, phrase tables all working
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05
 **Goal:** Port gcin's Traditional Chinese input engine to modern platforms, starting with GNOME/Wayland via IBus.
 
 ---
@@ -55,14 +55,19 @@ gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are pa
 ## Implementation Phases
 
 ### Phase 1: GNOME/Wayland via IBus (IN PROGRESS)
-- Step 1: Stub layer — compile gcin core with X11/GTK globals stubbed out
-- Step 2: IBus skeleton — GObject subclass, component XML, engine registration
-- Step 3: Cangjie — gtab key routing, preedit, candidate display, commit
-- Step 4: Zhuyin — phonetic key routing, syllable buffer, commit
-- Step 5: Install, enable in GNOME Settings, end-to-end test
+- ✅ Step 1: Stub layer — compile gcin core with X11/GTK globals stubbed out
+- ✅ Step 2: IBus skeleton — GObject subclass, component XML, engine registration
+- ✅ Step 3: Cangjie — gtab key routing, preedit, candidate display, commit
+- ✅ Step 4: Zhuyin — phonetic key routing, syllable buffer, commit
+- ✅ Step 5: Install, enable in GNOME Settings, end-to-end test
+- ✅ Step 6: Full-width mode (Shift+Space)
+- ✅ Step 7: Alt+Shift / Ctrl phrase tables
 
-### Phase 2: Additional Input Methods (FUTURE)
-- Quick (速成), Array (行列), Dayi (大易), Bu-xie-mi (嘸蝦米)
+### Phase 2: Additional Input Methods (IN PROGRESS)
+- ✅ Quick (速成) — `feedkey_gtab_method(g_quick_inmd, ...)`; simplex.gtab
+- ✅ Array (行列) — `feedkey_gtab_method(g_array_inmd, ...)`; ar30.gtab
+- Dayi (大易) — skipped (dayi3.cin absent from gcin snapshot)
+- Bu-xie-mi (嘸蝦米) — future
 
 ### Phase 3: Cross-Platform (FUTURE)
 - Windows via Text Services Framework (TSF)
@@ -119,4 +124,4 @@ The agent (Claude) must actively maintain both **content and connections** in th
 
 ---
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05

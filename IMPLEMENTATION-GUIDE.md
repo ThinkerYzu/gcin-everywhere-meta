@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-05 (Session 4 — corrected Phase 1 Makefile; added Phase 2 Makefile + build notes)
+**Last Updated:** 2026-05-05 (Session 13 — Phase 7 complete; `watch_fopen` fix noted in Phase 7 steps)
 
 ---
 
@@ -19,6 +19,9 @@
 - [Phase 3: Cangjie Integration](#phase-3-cangjie-integration)
 - [Phase 4: Zhuyin Integration](#phase-4-zhuyin-integration)
 - [Phase 5: IBus Registration & Install](#phase-5-ibus-registration--install)
+- [Phase 6: Full-Width Character Mode](#phase-6-full-width-character-mode-cangjie--zhuyin-punctuation)
+- [Phase 7: Alt+Shift Phrase Table](#phase-7-altshift-phrase-table)
+- [Phase 8: Quick and Array Input Methods](#phase-8-quick-and-array-input-methods)
 - [gcin Source File Reference](#gcin-source-file-reference)
 
 ---
@@ -1204,4 +1207,130 @@ static void test_phrase_table(void) {
 
 ---
 
-**Last Updated:** 2026-05-05 (Phase 7: added Ctrl+key intercept for phrase-ctrl.table)
+## Phase 8: Quick and Array Input Methods
+
+**Goal:** Add Quick (速成) and Array (行列) IBus engines. Both are gtab-based and share the same `feedkey_gtab` code path as Cangjie — only the loaded `.gtab` table differs.
+
+### Adapter pattern: `feedkey_gtab_method()`
+
+All three gtab-based methods (Cangjie, Quick, Array) call `feedkey_gtab()`. The only per-method variable is `cur_inmd` — the currently active input method descriptor. A single shared helper switches `cur_inmd` and loads the table before dispatching:
+
+```c
+/* gcin-core/gcin_stubs.cpp */
+static int g_cangjie_inmd = -1;  /* set in gcin_core_init() via find_inmd("cj") */
+static int g_quick_inmd   = -1;  /* set via find_inmd("simplex") */
+static int g_array_inmd   = -1;  /* set via find_inmd("ar30") */
+
+static int feedkey_gtab_method(int inmd_idx, unsigned long keyval, int modifiers) {
+    cur_inmd = &inmd[inmd_idx];
+    init_gtab(inmd_idx);
+    return feedkey_gtab((KeySym)keyval, modifiers) ? 1 : 0;
+}
+
+int gcin_core_feedkey_quick(unsigned long keyval, int modifiers) {
+    return feedkey_gtab_method(g_quick_inmd, keyval, modifiers);
+}
+int gcin_core_feedkey_array(unsigned long keyval, int modifiers) {
+    return feedkey_gtab_method(g_array_inmd, keyval, modifiers);
+}
+```
+
+`find_inmd(name)` searches `gtab.list` (loaded during `gcin_core_init()`) for the named method and returns its index.
+
+### Mode enum
+
+`GcinEngine.mode` in `gcin_engine.c` maps engine names to integer constants:
+
+| mode | engine name | feedkey function |
+|------|-------------|-----------------|
+| 0 | `gcin-cangjie` | `gcin_core_feedkey_cangjie()` |
+| 1 | `gcin-zhuyin` | `gcin_core_feedkey_zhuyin()` |
+| 2 | `gcin-quick` | `gcin_core_feedkey_quick()` |
+| 3 | `gcin-array` | `gcin_core_feedkey_array()` |
+
+Mode is set in `gcin_engine_enable()` by suffix-matching the engine name:
+
+```c
+static void gcin_engine_enable(IBusEngine *iengine) {
+    const gchar *name = ibus_engine_get_name(iengine);
+    GcinEngine *e = (GcinEngine *)iengine;
+    if      (g_str_has_suffix(name, "zhuyin")) e->mode = 1;
+    else if (g_str_has_suffix(name, "quick"))  e->mode = 2;
+    else if (g_str_has_suffix(name, "array"))  e->mode = 3;
+    else                                        e->mode = 0;  /* cangjie default */
+}
+```
+
+### Preedit and candidates are shared
+
+All gtab-based engines (Cangjie, Quick, Array) use the same preedit and candidates functions:
+- Preedit: `gcin_core_get_preedit()` reads `gcin`'s `ggg` buffer via `get_DispInArea_str()`
+- Candidates: `gcin_core_get_candidates()` reads `seltab[]` directly
+
+The `update_ui()` function uses `mode != 1` (i.e., not Zhuyin) as the condition for the gtab path:
+
+```c
+if (e->mode == 1) {
+    /* Zhuyin preedit/candidates */
+} else {
+    /* gtab path — Cangjie, Quick, Array all identical here */
+    gcin_core_get_preedit(preedit, sizeof(preedit));
+    gcin_core_get_candidates(cands, sizeof(cands));
+    /* ... update IBus preedit and lookup table ... */
+}
+```
+
+### Data tables
+
+Add to the top-level `Makefile` `tables` target:
+
+```makefile
+NO_GTK_INIT=1 ./gcin2tab data/simplex.cin && cp data/simplex.gtab $(TABLES)/
+NO_GTK_INIT=1 ./gcin2tab data/ar30.cin    && cp data/ar30.gtab    $(TABLES)/
+```
+
+### Component XML entries
+
+```xml
+<engine>
+  <name>gcin-quick</name>
+  <language>zh_TW</language>
+  <license>GPL</license>
+  <longname>gcin Quick (速成)</longname>
+  <description>Quick Traditional Chinese input via gcin engine</description>
+  <rank>99</rank>
+  <symbol>速</symbol>
+  <layout>default</layout>
+</engine>
+<engine>
+  <name>gcin-array</name>
+  <language>zh_TW</language>
+  <license>GPL</license>
+  <longname>gcin Array (行列)</longname>
+  <description>Array Traditional Chinese input via gcin engine</description>
+  <rank>99</rank>
+  <symbol>列</symbol>
+  <layout>default</layout>
+</engine>
+```
+
+### Key behavioral notes
+
+- **Quick candidate order** — sorted by tsin use-count in the compiled binary, not by `.cin` file order. Unit tests for multi-match cases should use `EXPECT_COMMITTED_NONEMPTY` rather than asserting a specific character.
+- **Array `%endkey 1234567890`** — digits are combined endkey+selkey. After a full code, pressing a digit auto-commits the single match without needing to press space first.
+- **Dayi skipped** — `dayi3.cin` is absent from the gcin source snapshot; skip until a snapshot with it is available.
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `gcin-core/gcin_stubs.cpp` | Added `g_quick_inmd`, `g_array_inmd`; `feedkey_gtab_method()` helper; `gcin_core_feedkey_quick()`, `gcin_core_feedkey_array()` |
+| `gcin-core/gcin-core.h` | Added declarations for `gcin_core_feedkey_quick()` and `gcin_core_feedkey_array()` |
+| `ibus-engine/gcin_engine.c` | Extended mode enum; gtab catch-all in `update_ui()`; `switch(mode)` routing; Quick/Array detection in `enable()`; factory registration |
+| `ibus-engine/component/gcin.xml` | Added `gcin-quick` and `gcin-array` engine entries |
+| `Makefile` | Added `simplex.gtab` and `ar30.gtab` to `tables` target |
+| `gcin-core/test_feedkey.c` | Added 5 Quick/Array unit tests (20 total) |
+
+---
+
+**Last Updated:** 2026-05-05 (Session 14 — Phase 2: Quick and Array input methods)

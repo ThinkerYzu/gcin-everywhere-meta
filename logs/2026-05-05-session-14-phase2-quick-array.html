@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-05-05-session-14-phase2-quick-array – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#session-14-phase-2-quick-and-array-input-methods"
+id="toc-session-14-phase-2-quick-and-array-input-methods">Session 14:
+Phase 2 — Quick and Array Input Methods</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#summary" id="toc-summary">Summary</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a
+href="#step-1-gcin_core_feedkey_quick-and-gcin_core_feedkey_array-added"
+id="toc-step-1-gcin_core_feedkey_quick-and-gcin_core_feedkey_array-added">Step
+1 — <code>gcin_core_feedkey_quick()</code> and
+<code>gcin_core_feedkey_array()</code> added</a></li>
+<li><a href="#step-2-gcin-coregcin-core.h-updated"
+id="toc-step-2-gcin-coregcin-core.h-updated">Step 2 —
+<code>gcin-core/gcin-core.h</code> updated</a></li>
+<li><a href="#step-3-ibus-enginegcin_engine.c-extended"
+id="toc-step-3-ibus-enginegcin_engine.c-extended">Step 3 —
+<code>ibus-engine/gcin_engine.c</code> extended</a></li>
+<li><a href="#step-4-ibus-enginecomponentgcin.xml-updated"
+id="toc-step-4-ibus-enginecomponentgcin.xml-updated">Step 4 —
+<code>ibus-engine/component/gcin.xml</code> updated</a></li>
+<li><a href="#step-5-makefile-updated"
+id="toc-step-5-makefile-updated">Step 5 — <code>Makefile</code>
+updated</a></li>
+<li><a href="#step-6-unit-tests-added-to-gcin-coretest_feedkey.c"
+id="toc-step-6-unit-tests-added-to-gcin-coretest_feedkey.c">Step 6 —
+Unit tests added to <code>gcin-core/test_feedkey.c</code></a></li>
+</ul></li>
+<li><a href="#key-findings" id="toc-key-findings">Key Findings</a></li>
+<li><a href="#test-results" id="toc-test-results">Test Results</a></li>
+<li><a href="#files-changed" id="toc-files-changed">Files
+Changed</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="session-14-phase-2-quick-and-array-input-methods">Session 14:
+Phase 2 — Quick and Array Input Methods</h1>
+<p><strong>Date:</strong> 2026-05-05 <strong>Phase:</strong> Phase 2
+(Additional Input Methods) <strong>Status:</strong> Complete</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="../README.html">README</a> | <a
+href="../SPEC.html">SPEC</a> | <a href="../DESIGN.html">DESIGN</a> | <a
+href="../IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> | <a
+href="../HANDOFF.html">HANDOFF</a></p>
+<hr />
+<h2 id="summary">Summary</h2>
+<p>Implemented Phase 2: Quick (速成) and Array (行列) input methods.
+Both share the same <code>feedkey_gtab</code> code path as Cangjie —
+only the <code>.gtab</code> table differs. Added a
+<code>feedkey_gtab_method()</code> helper to switch
+<code>cur_inmd</code> before dispatching. 20/20 unit tests pass. Dayi
+(大易) was considered but skipped — <code>dayi3.cin</code> is not in the
+gcin source snapshot.</p>
+<hr />
+<h2 id="what-was-done">What Was Done</h2>
+<h3
+id="step-1-gcin_core_feedkey_quick-and-gcin_core_feedkey_array-added">Step
+1 — <code>gcin_core_feedkey_quick()</code> and
+<code>gcin_core_feedkey_array()</code> added</h3>
+<p>Added <code>g_quick_inmd</code> and <code>g_array_inmd</code> index
+variables to <code>gcin-core/gcin_stubs.cpp</code>. These are set during
+<code>gcin_core_init()</code> using <code>find_inmd("simplex")</code>
+and <code>find_inmd("ar30")</code> to locate the Quick and Array entries
+in <code>gtab.list</code>.</p>
+<p>Added a shared helper:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> feedkey_gtab_method<span class="op">(</span><span class="dt">int</span> inmd_idx<span class="op">,</span> <span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    cur_inmd <span class="op">=</span> <span class="op">&amp;</span>inmd<span class="op">[</span>inmd_idx<span class="op">];</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    init_gtab<span class="op">(</span>inmd_idx<span class="op">);</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab<span class="op">((</span>KeySym<span class="op">)</span>keyval<span class="op">,</span> modifiers<span class="op">)</span> <span class="op">?</span> <span class="dv">1</span> <span class="op">:</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Public API functions delegate to the helper:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_quick<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab_method<span class="op">(</span>g_quick_inmd<span class="op">,</span> keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_array<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab_method<span class="op">(</span>g_array_inmd<span class="op">,</span> keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-2-gcin-coregcin-core.h-updated">Step 2 —
+<code>gcin-core/gcin-core.h</code> updated</h3>
+<p>Added declarations:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_quick<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_array<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">);</span></span></code></pre></div>
+<h3 id="step-3-ibus-enginegcin_engine.c-extended">Step 3 —
+<code>ibus-engine/gcin_engine.c</code> extended</h3>
+<ul>
+<li><p><code>GcinEngine.mode</code> comment extended:
+<code>0=Cangjie, 1=Zhuyin, 2=Quick, 3=Array</code></p></li>
+<li><p><code>update_ui()</code>: changed <code>mode==0</code> Cangjie
+branch to an <code>else</code> catch-all (Cangjie, Quick, Array all use
+the same preedit/candidates functions — they all go through
+<code>feedkey_gtab</code>)</p></li>
+<li><p><code>process_key_event()</code>: changed ternary to
+<code>switch(mode)</code> routing:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">switch</span> <span class="op">(</span>e<span class="op">-&gt;</span>mode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="dv">0</span><span class="op">:</span> consumed <span class="op">=</span> gcin_core_feedkey_cangjie<span class="op">(</span>keyval<span class="op">,</span> modifiers<span class="op">);</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="dv">1</span><span class="op">:</span> consumed <span class="op">=</span> gcin_core_feedkey_zhuyin<span class="op">(</span>keyval<span class="op">,</span> modifiers<span class="op">);</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="dv">2</span><span class="op">:</span> consumed <span class="op">=</span> gcin_core_feedkey_quick<span class="op">(</span>keyval<span class="op">,</span> modifiers<span class="op">);</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">case</span> <span class="dv">3</span><span class="op">:</span> consumed <span class="op">=</span> gcin_core_feedkey_array<span class="op">(</span>keyval<span class="op">,</span> modifiers<span class="op">);</span> <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div></li>
+<li><p><code>gcin_engine_enable()</code>: added mode detection for Quick
+and Array:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode c"><code class="sourceCode c"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>g_str_has_suffix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;quick&quot;</span><span class="op">))</span> e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">2</span><span class="op">;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>g_str_has_suffix<span class="op">(</span>name<span class="op">,</span> <span class="st">&quot;array&quot;</span><span class="op">))</span> e<span class="op">-&gt;</span>mode <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span></code></pre></div></li>
+<li><p><code>main()</code>: added <code>ibus_factory_add_engine</code>
+for <code>gcin-quick</code> and <code>gcin-array</code></p></li>
+</ul>
+<h3 id="step-4-ibus-enginecomponentgcin.xml-updated">Step 4 —
+<code>ibus-engine/component/gcin.xml</code> updated</h3>
+<p>Added <code>&lt;engine&gt;</code> entries:</p>
+<ul>
+<li><code>gcin-quick</code> — longname “gcin Quick (速成)”, symbol
+速</li>
+<li><code>gcin-array</code> — longname “gcin Array (行列)”, symbol
+列</li>
+</ul>
+<h3 id="step-5-makefile-updated">Step 5 — <code>Makefile</code>
+updated</h3>
+<p>Added <code>simplex.gtab</code> and <code>ar30.gtab</code>
+compilation to the <code>tables</code> target:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode makefile"><code class="sourceCode makefile"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="dt">NO_GTK_INIT</span><span class="ch">=</span><span class="st">1 ./gcin2tab data/simplex.cin &amp;&amp; cp data/simplex.gtab </span><span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span><span class="st">/</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">NO_GTK_INIT</span><span class="ch">=</span><span class="st">1 ./gcin2tab data/ar30.cin    &amp;&amp; cp data/ar30.gtab    </span><span class="ch">$(</span><span class="dt">TABLES</span><span class="ch">)</span><span class="st">/</span></span></code></pre></div>
+<h3 id="step-6-unit-tests-added-to-gcin-coretest_feedkey.c">Step 6 —
+Unit tests added to <code>gcin-core/test_feedkey.c</code></h3>
+<p>Added 5 new tests:</p>
+<ul>
+<li><code>test_quick_single_char</code> — single-key commit via
+Quick</li>
+<li><code>test_quick_two_char</code> — two-key sequence via Quick</li>
+<li><code>test_quick_escape_clears</code> — Escape clears preedit</li>
+<li><code>test_array_three_key</code> — three-key Array input
+sequence</li>
+<li><code>test_array_escape_clears</code> — Escape clears preedit</li>
+</ul>
+<p>Quick multi-match tests use <code>EXPECT_COMMITTED_NONEMPTY</code>
+because candidates are sorted by tsin use-count in the compiled binary,
+not by <code>.cin</code> file order.</p>
+<hr />
+<h2 id="key-findings">Key Findings</h2>
+<ul>
+<li><strong>Quick and Array share <code>feedkey_gtab</code></strong> —
+the only difference from Cangjie is which <code>.gtab</code> table is
+loaded via <code>init_gtab(inmd_idx)</code>. Preedit and candidates use
+the same functions as Cangjie. No new UI integration was needed.</li>
+<li><strong>Quick candidate order is use-count sorted</strong> —
+candidates are sorted by tsin frequency data in the compiled binary, not
+by <code>.cin</code> file order. Tests for multi-match cases use
+<code>EXPECT_COMMITTED_NONEMPTY</code> rather than asserting a specific
+character.</li>
+<li><strong>Array <code>%endkey 1234567890</code></strong> — digits
+serve as combined endkey+selkey. Pressing a digit after a full code
+auto-commits the single match in one step (no space needed). Pressing
+space first triggers a different code path that also auto-commits single
+matches.</li>
+<li><strong>Dayi skipped</strong> — <code>dayi3.cin</code> is not
+present in the gcin source snapshot. Skipped for now.</li>
+</ul>
+<hr />
+<h2 id="test-results">Test Results</h2>
+<pre><code>20 passed, 0 failed, 0 skipped</code></pre>
+<p>All 15 pre-existing tests continue to pass; 5 new Quick/Array tests
+pass.</p>
+<hr />
+<h2 id="files-changed">Files Changed</h2>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Added <code>g_quick_inmd</code>, <code>g_array_inmd</code>;
+<code>feedkey_gtab_method()</code> helper;
+<code>gcin_core_feedkey_quick()</code>,
+<code>gcin_core_feedkey_array()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Added declarations for <code>gcin_core_feedkey_quick()</code> and
+<code>gcin_core_feedkey_array()</code></td>
+</tr>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Extended <code>mode</code> comment; <code>update_ui()</code> gtab
+catch-all; <code>switch(mode)</code> routing; Quick/Array mode detection
+in <code>enable()</code>; factory registration for
+<code>gcin-quick</code> and <code>gcin-array</code></td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/component/gcin.xml</code></td>
+<td>Added <code>gcin-quick</code> and <code>gcin-array</code> engine
+entries</td>
+</tr>
+<tr class="odd">
+<td><code>Makefile</code></td>
+<td>Added <code>simplex.gtab</code> and <code>ar30.gtab</code> to
+<code>tables</code> target</td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Added 5 Quick/Array tests</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
