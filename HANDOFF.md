@@ -15,16 +15,16 @@
 
 ## Current Status
 
-**Phase:** Design phase — architecture defined, ready for implementation guide
-**Progress:** SPEC.md approved (all open questions resolved); DESIGN.md complete
-**Next Milestone:** Draft IMPLEMENTATION-GUIDE.md, then begin porting
+**Phase:** Ready to code — all planning docs complete
+**Progress:** SPEC approved; DESIGN complete; IMPLEMENTATION-GUIDE drafted; source repo initialized
+**Next Milestone:** Phase 1 stub layer — compile gcin core files into ibus-engine-gcin, zero linker errors
 **Blockers:** None
 
 > **Phase checklist:**
 > - ✅ Spec drafted
 > - ✅ Spec finalized (open questions resolved)
 > - ✅ Design complete
-> - ⬜ Implementation guide ready
+> - ✅ Implementation guide ready
 > - ⬜ Prototype working
 > - ⬜ Tests passing
 > - ⬜ End-to-end demo
@@ -41,10 +41,11 @@
 
 ## Next Actions
 
-1. **Draft IMPLEMENTATION-GUIDE.md (NEXT)** — Build environment prereqs, planned file structure for `ibus-engine/`, step-by-step porting plan (stub layer → gtab integration → pho integration → IBus wiring → registration).
-2. **Clone gcin source** — `git clone https://github.com/pkg-ime/gcin` into working directory; audit which source files are needed for Cangjie and Zhuyin.
-3. **Build environment setup** — Verify build dependencies: `libibus-1.0-dev`, `libglib2.0-dev`, gcin's existing build deps.
-4. **Begin porting** — Follow IMPLEMENTATION-GUIDE.md phase steps.
+1. **Phase 1 — Stub layer (NEXT)** — Create `ibus-engine/gcin_stubs.cpp` with X11 global stubs and `send_text()` intercept. Write `ibus-engine/Makefile`. Compile gcin core files (see IMPLEMENTATION-GUIDE.md §gcin Source File Reference). Iterate until zero linker errors.
+2. **Phase 2 — IBus skeleton** — Write `gcin_engine.c` (IBus GObject subclass) and `component/gcin.xml`. Verify `ibus list-engine | grep gcin` shows both engines.
+3. **Phase 3 — Cangjie** — Wire up `gcin_adapter_init()` + gtab key routing in `process_key_event`. Test: type `di` → commit 大人.
+4. **Phase 4 — Zhuyin** — Wire up `pho_load()` + phonetic key routing. Test: type `ㄓㄨˋ` → commit 住.
+5. **Phase 5 — Install** — `make install`, enable in GNOME Settings, end-to-end test in gedit and a Qt6 app.
 
 **Deferred:**
 - Windows (TSF) and macOS (IMKit) ports — future phases after Phase 1 is working.
@@ -54,7 +55,7 @@
 
 ## Session Logs
 
-1. **Session 1: Project kickoff + design** (2026-05-04) — Defined project goals: port gcin engine + data tables as an IBus engine for GNOME/Wayland. Cangjie and Zhuyin Phase 1 priorities. Drafted and approved SPEC.md; drafted DESIGN.md with full architecture (adapter pattern, IBus GObject subclass, data flow for Cangjie and Zhuyin).
+1. **Session 1: Project kickoff + full planning** (2026-05-04) — Defined goals; approved SPEC.md; drafted DESIGN.md (adapter pattern, IBus GObject, Cangjie/Zhuyin data flows); drafted IMPLEMENTATION-GUIDE.md (5-phase plan, stub strategy, file reference); initialized both git repos (`proj_docs/gcin-everywhere/` and `sources/gcin-everywhere/` with gcin submodule).
 
 ---
 

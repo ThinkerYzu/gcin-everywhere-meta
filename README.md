@@ -42,16 +42,24 @@ See [HANDOFF.md](HANDOFF.md) for the full changelog, session history, and next a
 
 ## Core Concepts
 
-*(To be filled after DESIGN.md is complete.)*
+### Adapter pattern: gcin core stays untouched
+
+gcin's input logic (`gtab.cpp`, `pho.cpp`) is compiled directly into the IBus engine binary. A thin adapter layer (`gcin_stubs.cpp`, `gcin_adapter.cpp`) provides stub implementations of the X11/GTK globals gcin expects, and intercepts `send_text()` to route committed characters to IBus instead of X11 clients.
+
+### Table-based vs. phonetic engines
+
+gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are packed into a bitmask and binary-searched in a compiled `.gtab` file. **Zhuyin** is phonetic: keys accumulate an initial/medial/final/tone syllable buffer and look up matching characters in a phonetic index. Both paths eventually call `send_text()` to output the selected character.
 
 ---
 
 ## Implementation Phases
 
 ### Phase 1: GNOME/Wayland via IBus (IN PROGRESS)
-- Port gcin core engine and data tables
-- Implement IBus engine wrapper
-- Support Cangjie (倉頡) and Zhuyin (注音) input methods
+- Step 1: Stub layer — compile gcin core with X11/GTK globals stubbed out
+- Step 2: IBus skeleton — GObject subclass, component XML, engine registration
+- Step 3: Cangjie — gtab key routing, preedit, candidate display, commit
+- Step 4: Zhuyin — phonetic key routing, syllable buffer, commit
+- Step 5: Install, enable in GNOME Settings, end-to-end test
 
 ### Phase 2: Additional Input Methods (FUTURE)
 - Quick (速成), Array (行列), Dayi (大易), Bu-xie-mi (嘸蝦米)
