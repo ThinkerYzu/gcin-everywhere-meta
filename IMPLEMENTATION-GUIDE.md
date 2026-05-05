@@ -52,14 +52,7 @@ sources/gcin-everywhere/
 ├── gcin-core/               NEW — platform-independent static library
 │   ├── Makefile             builds libgcin-core.a
 │   ├── gcin-core.h          public API (used by all platform integrations)
-│   ├── gcin_stubs.cpp       extern globals + UI stubs + send_text callback
-│   └── compat/              fake X11/GTK headers (compile-time only, not installed)
-│       ├── gtk/gtk.h        GLib/GTK type stubs (gboolean, GHashTable, GtkWidget, ...)
-│       ├── gdk/gdkx.h       empty
-│       ├── X11/Xlib.h       X11 type stubs (Display, Window, KeySym, ...)
-│       ├── X11/keysym.h     XK_* key constant definitions
-│       ├── IMdkit.h         empty (included by gtab.cpp)
-│       └── Xi18n.h          empty (included by gtab.cpp)
+│   └── gcin_stubs.cpp       extern globals + UI stubs + send_text callback
 │
 └── ibus-engine/             IBus platform integration (links libgcin-core.a)
     ├── Makefile
@@ -103,25 +96,79 @@ Every gcin source file pulls in `gcin.h` (which includes `<gtk/gtk.h>`) and/or
    `gtk_widget_destroy`.
    → **MODIFY with one `#ifdef GCIN_CORE_BUILD` guard.**
 
-All other files that were previously marked MODIFY (`gtab.cpp`, `gtab-init.cpp`,
-`gtab-list.cpp`, `gtab-buf.cpp`, `pho.cpp`, `tsin.cpp`) contain only
-`extern GtkWidget *varname` declarations — no actual GTK/X11 function calls.
-These declarations are resolved by type stubs in the compat headers.
-→ **All become INCLUDE as-is.**
+All other files (`gtab.cpp`, `gtab-buf.cpp`, `pho.cpp`, `tsin.cpp`, etc.) contain only
+`extern GtkWidget *varname` declarations and use `KeySym`/`gboolean` as value types —
+no actual GTK/X11 function calls anywhere.
 
-### compat/ headers: type stubs only
+### Eliminating X11/GTK type dependencies: modify gcin.h and IC.h
 
-Because only two files have actual GTK/X11 function calls (one excluded, one guarded),
-the compat headers need **only type and constant definitions** — no function-call macros.
+**Why types like `GtkWidget`, `Display`, `KeySym` are needed:** `gcin.h` unconditionally
+includes `<gtk/gtk.h>` and `os-dep.h`, which on UNIX pulls in `<X11/Xlib.h>` and
+`<X11/keysym.h>`. Every compiled file includes `gcin.h`, so all types propagate.
 
-Required compat content:
-- `gtk/gtk.h` — GLib/GTK typedefs only: `gboolean`, `gint`, `gint64`, `guint`,
-  `guint64`, `gchar`, `guchar`, `glong`, `gulong`, `gpointer`, `GtkWidget` (as void),
-  `GdkWindow` (as void), `TRUE`, `FALSE`
-- `X11/Xlib.h` — type stubs only: `Display` (as void), `Window` (as unsigned long),
-  `KeySym` (as unsigned long), `KeyCode` (as unsigned int)
-- `X11/keysym.h` — `XK_*` key symbol constants and modifier masks
-- `gdk/gdkx.h`, `IMdkit.h`, `Xi18n.h` — empty files (just included, nothing used)
+**gcin already shows the pattern:** `os-dep.h`'s WIN32 path defines `Display` as `void`,
+`KeySym` as `unsigned int`, `Window` as `unsigned int` — no system headers at all. We
+add an identical `GCIN_CORE_BUILD` path.
+
+**No compat/ directory needed.** Instead, modify two gcin source files:
+
+**`gcin/gcin.h`** — guard platform includes and add inline typedefs:
+
+```c
+#ifdef GCIN_CORE_BUILD
+  /* Minimal types for core build — no GTK or X11 headers */
+  typedef int          gboolean;
+  typedef int          gint;
+  typedef long long    gint64;
+  typedef unsigned long long guint64;
+  typedef unsigned int guint;
+  typedef char         gchar;
+  typedef unsigned char guchar;
+  typedef unsigned int CARD32;
+  typedef unsigned long gulong;
+  typedef void*        gpointer;
+  typedef void         GtkWidget;
+  typedef void         GdkWindow;
+  typedef void         Display;
+  typedef unsigned long Window;
+  typedef unsigned long KeySym;
+  typedef unsigned int  KeyCode;
+  typedef struct { int x, y, width, height; } XRectangle;
+  typedef unsigned long Colormap;
+  typedef unsigned long Pixmap;
+  typedef unsigned long Cursor;
+  typedef char         unich_t;
+  #define TRUE  1
+  #define FALSE 0
+  #define _L(x) x
+  #define UNIX 1
+  /* GLib memory — used in core allocation paths */
+  #include <stdlib.h>
+  #include <string.h>
+  #define g_malloc(n)    malloc(n)
+  #define g_malloc0(n)   calloc(1,n)
+  #define g_free(p)      free(p)
+  #define g_strdup(s)    strdup(s)
+  #define g_new(t,n)     ((t*)malloc(sizeof(t)*(n)))
+  #define g_new0(t,n)    ((t*)calloc((n),sizeof(t)))
+  #define g_realloc(p,n) realloc(p,n)
+#else
+  #include "os-dep.h"
+  #include <gtk/gtk.h>
+  #if UNIX
+  #include "IMdkit.h"
+  #include "Xi18n.h"
+  #endif
+#endif
+```
+
+**`gcin/IC.h`** — the `#if UNIX` block defines `PreeditAttributes` and `StatusAttributes`
+using X11 types (`XRectangle`, `Colormap`, `Pixmap`, `Cursor`). With `GCIN_CORE_BUILD`,
+those types are defined as plain integers/structs above, so the block compiles cleanly.
+No change to IC.h needed — the inline type definitions in gcin.h cover it.
+
+**Result:** `libgcin-core.a` has zero dependency on GTK3, X11, or GLib at compile time
+or link time. Build requires only a C++ compiler and standard library.
 
 ### UI functions to stub in gcin_stubs.cpp
 
@@ -172,109 +219,101 @@ callback, single char.
 X11/GTK runtime dependencies. Platform integrations (IBus, Windows TSF, macOS IMKit)
 link against this library.
 
-### 1a. compat/ headers
+### 1a. Modify gcin/gcin.h
 
-These headers contain **type and constant definitions only** — no function-call macros
-needed. Every file we compile uses GtkWidget and friends as pointer types in `extern`
-declarations or function parameters, but never calls GTK/X11 functions directly
-(those are either excluded or guarded).
+Add a `GCIN_CORE_BUILD` guard at the top of `gcin/gcin.h`, before the existing
+`#include "os-dep.h"` and `#include <gtk/gtk.h>` lines. All type definitions go
+inline — no compat/ directory needed.
 
-`gcin-core/compat/gtk/gtk.h`:
-
-```c
-#pragma once
-#include <stdlib.h>
-#include <string.h>
-
-/* GLib scalar types */
-typedef int            gboolean;
-typedef int            gint;
-typedef long long      gint64;
-typedef unsigned long long guint64;
-typedef unsigned int   guint;
-typedef char           gchar;
-typedef unsigned char  guchar;
-typedef long           glong;
-typedef unsigned long  gulong;
-typedef void*          gpointer;
-#define TRUE  1
-#define FALSE 0
-#define G_GNUC_UNUSED __attribute__((unused))
-
-/* GLib/GTK opaque pointer types (used only as pointer types in extern decls) */
-typedef void GObject;
-typedef void GHashTable;
-typedef void GList;
-typedef void GtkWidget;
-typedef void GtkWindow;
-typedef void GtkLabel;
-typedef void GdkWindow;
-typedef void PangoContext;
-typedef void PangoFontDescription;
-
-/* GLib memory — gcin uses these in core allocation paths */
-#define g_malloc(n)      malloc(n)
-#define g_malloc0(n)     calloc(1, n)
-#define g_free(p)        free(p)
-#define g_strdup(s)      strdup(s)
-#define g_new(t,n)       ((t*)malloc(sizeof(t)*(n)))
-#define g_new0(t,n)      ((t*)calloc((n),sizeof(t)))
-#define g_realloc(p,n)   realloc(p,n)
-```
-
-`gcin-core/compat/X11/Xlib.h`:
+The `XK_*` constants and modifier masks also move into this block (they currently
+come from `<X11/keysym.h>` via `os-dep.h`):
 
 ```c
-#pragma once
-typedef void          Display;
-typedef unsigned long Window;
-typedef unsigned long KeySym;
-typedef unsigned int  KeyCode;
-#define None 0L
+/* Add at the top of gcin/gcin.h, before the existing includes */
+#ifdef GCIN_CORE_BUILD
+  /* Minimal types — no GTK, X11, or GLib headers required */
+  #include <stdlib.h>
+  #include <string.h>
+  typedef int           gboolean;
+  typedef int           gint;
+  typedef long long     gint64;
+  typedef unsigned long long guint64;
+  typedef unsigned int  guint;
+  typedef char          gchar;
+  typedef unsigned char guchar;
+  typedef unsigned int  CARD32;
+  typedef unsigned long gulong;
+  typedef void*         gpointer;
+  typedef void          GtkWidget;
+  typedef void          GdkWindow;
+  typedef void          Display;
+  typedef unsigned long Window;
+  typedef unsigned long KeySym;
+  typedef unsigned int  KeyCode;
+  typedef struct { int x, y, width, height; } XRectangle;
+  typedef unsigned long Colormap;
+  typedef unsigned long Pixmap;
+  typedef unsigned long Cursor;
+  typedef char          unich_t;
+  #define TRUE  1
+  #define FALSE 0
+  #define _L(x) x
+  #define UNIX  1
+  /* GLib memory aliases */
+  #define g_malloc(n)    malloc(n)
+  #define g_malloc0(n)   calloc(1, n)
+  #define g_free(p)      free(p)
+  #define g_strdup(s)    strdup(s)
+  #define g_new(t,n)     ((t*)malloc(sizeof(t)*(n)))
+  #define g_new0(t,n)    ((t*)calloc((n), sizeof(t)))
+  #define g_realloc(p,n) realloc(p, n)
+  /* XK_* key symbols and modifier masks */
+  #define XK_space      0x0020
+  #define XK_BackSpace  0xff08
+  #define XK_Tab        0xff09
+  #define XK_Return     0xff0d
+  #define XK_Escape     0xff1b
+  #define XK_Delete     0xffff
+  #define XK_Home       0xff50
+  #define XK_Left       0xff51
+  #define XK_Up         0xff52
+  #define XK_Right      0xff53
+  #define XK_Down       0xff54
+  #define XK_Page_Up    0xff55
+  #define XK_Page_Down  0xff56
+  #define XK_End        0xff57
+  #define XK_Caps_Lock  0xffe5
+  #define XK_Shift_L    0xffe1
+  #define XK_Shift_R    0xffe2
+  #define XK_Control_L  0xffe3
+  #define XK_Control_R  0xffe4
+  #define ShiftMask     (1<<0)
+  #define LockMask      (1<<1)
+  #define ControlMask   (1<<2)
+  #define Mod1Mask      (1<<3)
+  #define Mod2Mask      (1<<4)
+  #define Mod3Mask      (1<<5)
+  #define Mod4Mask      (1<<6)
+  #define Mod5Mask      (1<<7)
+#else
+  #include "os-dep.h"
+  #include <gtk/gtk.h>
+  #if UNIX
+  #include "IMdkit.h"
+  #include "Xi18n.h"
+  #endif
+#endif
+/* existing gcin.h content continues unchanged below */
 ```
 
-`gcin-core/compat/X11/keysym.h` — `XK_*` constants and modifier masks:
-
-```c
-#pragma once
-#define XK_space        0x0020
-#define XK_BackSpace    0xff08
-#define XK_Tab          0xff09
-#define XK_Return       0xff0d
-#define XK_Escape       0xff1b
-#define XK_Delete       0xffff
-#define XK_Home         0xff50
-#define XK_Left         0xff51
-#define XK_Up           0xff52
-#define XK_Right        0xff53
-#define XK_Down         0xff54
-#define XK_Page_Up      0xff55
-#define XK_Page_Down    0xff56
-#define XK_End          0xff57
-#define XK_Caps_Lock    0xffe5
-#define XK_Shift_L      0xffe1
-#define XK_Shift_R      0xffe2
-#define XK_Control_L    0xffe3
-#define XK_Control_R    0xffe4
-#define ShiftMask       (1<<0)
-#define LockMask        (1<<1)
-#define ControlMask     (1<<2)
-#define Mod1Mask        (1<<3)
-#define Mod2Mask        (1<<4)
-#define Mod3Mask        (1<<5)
-#define Mod4Mask        (1<<6)
-#define Mod5Mask        (1<<7)
-```
-
-`gcin-core/compat/gdk/gdkx.h`, `gcin-core/compat/IMdkit.h`,
-`gcin-core/compat/Xi18n.h` — empty files (included by gcin headers but nothing
-used from them).
+IC.h's `#if UNIX` block (PreeditAttributes, StatusAttributes) uses `XRectangle`,
+`Colormap`, `Pixmap`, `Cursor` — all defined above, so IC.h requires no changes.
 
 ### 1b. Modification to gcin/util.cpp
 
 Add `#ifndef GCIN_CORE_BUILD` guard around the GTK dialog block in `p_err()`.
 The function already calls `p_err_no_alert()` for stderr output; in core build
-mode, skip the dialog and return after that.
+mode, skip the dialog.
 
 ```diff
  void p_err(const char *fmt, ...) {
@@ -289,7 +328,14 @@ mode, skip the dialog and return after that.
  }
 ```
 
-Apply the same guard to the second `p_err` variant at line ~371 if present.
+Apply the same guard to the second `p_err` variant at line ~371.
+
+**Summary of all gcin source modifications:**
+
+| File | Change |
+|------|--------|
+| `gcin/gcin.h` | Add `GCIN_CORE_BUILD` block with inline typedefs before existing includes |
+| `gcin/util.cpp` | Guard GTK dialog calls in `p_err()` with `#ifndef GCIN_CORE_BUILD` |
 
 ### 1c. gcin_stubs.cpp
 
@@ -450,12 +496,11 @@ void gcin_core_reset(void);
 
 ```makefile
 GCIN     := ../gcin
-COMPAT   := compat
 
-# compat/ must come before system includes to shadow gtk/gtk.h, X11/Xlib.h, etc.
+# No compat/ needed — GCIN_CORE_BUILD guard in gcin.h handles all type definitions
 CXXFLAGS := -std=c++11 -g -O2 \
             -DGCIN_CORE_BUILD -DHAVE_CONFIG_H \
-            -I$(COMPAT) -I$(GCIN) -I$(GCIN)/IMdkit
+            -I$(GCIN) -I$(GCIN)/IMdkit
 
 GCIN_SRCS := \
     $(GCIN)/gtab.cpp         \

@@ -41,7 +41,7 @@
 
 ## Next Actions
 
-1. **Phase 1 — libgcin-core.a (NEXT)** — Create `gcin-core/` directory. Write compat headers (`compat/gtk/gtk.h`, `compat/X11/Xlib.h`, `compat/X11/keysym.h`, and empty stubs for `gdk/gdkx.h`, `IMdkit.h`, `Xi18n.h`). Write `gcin_stubs.cpp` (all extern globals + UI stubs + `send_text` callback). Modify `gcin/util.cpp` (one `#ifdef GCIN_CORE_BUILD` guard in `p_err()`). Write `Makefile`. Build until `libgcin-core.a` links with zero errors.
+1. **Phase 1 — libgcin-core.a (NEXT)** — Modify `gcin/gcin.h` (add `GCIN_CORE_BUILD` block with inline type definitions — no GTK/X11 headers needed). Modify `gcin/util.cpp` (one `#ifndef GCIN_CORE_BUILD` guard in `p_err()`). Create `gcin-core/` with `gcin_stubs.cpp` (extern globals + UI stubs + `send_text` callback + `case_inverse`/`current_time` re-implementations), `gcin-core.h` (public API), and `Makefile`. Build until `libgcin-core.a` links with zero errors. No compat/ directory needed.
 2. **Phase 2 — IBus skeleton** — Create `ibus-engine/gcin_engine.c` (IBus GObject, passes all keys through), `component/gcin.xml`, and `ibus-engine/Makefile` (links libgcin-core.a). Verify `ibus list-engine | grep gcin` shows both engines.
 3. **Phase 3 — Cangjie** — Wire `gcin_core_feedkey_cangjie()` → `feedkey_gtab()`. Expose preedit via `get_DispInArea_str()` and candidates via `disp_gtab_sel()` stub. Test: type `di` → commit 大人.
 4. **Phase 4 — Zhuyin** — Wire `gcin_core_feedkey_zhuyin()` → `feedkey_pho()`. Expose preedit from `poo.typ_pho[]` via `phokey_to_str()`. Test: type `vu4` → commit 住.
