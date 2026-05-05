@@ -179,27 +179,41 @@ API that wraps `feed_phrase()` from `phrase.cpp` (already compiled into libgcin-
 
 **How gcin does it:**
 
-In `eve.cpp` (line 1227), before any input-method dispatch:
+In `eve.cpp`, before any input-method dispatch, two separate intercepts both call
+`feed_phrase()`:
+
 ```c
+/* eve.cpp:1227 — Alt+Shift → phrase.table */
 if ((kev_state & (Mod1Mask|ShiftMask)) == (Mod1Mask|ShiftMask))
     return feed_phrase(keysym, kev_state);
+
+/* eve.cpp:1293 — Ctrl (alone) → phrase-ctrl.table */
+if (kev_state & ControlMask)
+    if (feed_phrase(keysym, kev_state)) return TRUE;
 ```
 
-`feed_phrase()` is in `phrase.cpp` (compiled). It loads `phrase.table` and
-`phrase-ctrl.table` from the data directory at runtime and maps keyvals to strings.
+`feed_phrase()` is in `phrase.cpp` (compiled). It internally routes to `tran`
+(phrase.table) or `tran_ctrl` (phrase-ctrl.table) based on `ControlMask`.
 With our build (phrase buffer off, `current_method_type()` returns 0), it calls
 `send_text(str)` directly — the same path as all other committed text.
+If the key is not in the table, `feed_phrase()` returns FALSE and the key passes through.
 
-**The phrase table** (`data/phrase.table`) provides the mappings. Key examples:
+**`phrase.table`** (Alt+Shift):
 ```
 Alt+Shift+i  →  、       Alt+Shift+h  →  「      Alt+Shift+j  →  」
 Alt+Shift+o  →  。       Alt+Shift+f  →  『      Alt+Shift+g  →  』
 Alt+Shift+,  →  ，       Alt+Shift+[  →  【      Alt+Shift+]  →  】
 Alt+Shift+.  →  ‧       Alt+Shift+;  →  ；      Alt+Shift+k  →  §
-Alt+Shift+m  →  ─       Alt+Shift+l  →  │
+Alt+Shift+m  →  ─       Alt+Shift+l  →  │       (+ box drawing, etc.)
 ```
 
-The table is user-editable — power users can customize their own mappings.
+**`phrase-ctrl.table`** (Ctrl):
+```
+Ctrl+,  →  ，    Ctrl+.  →  。    Ctrl+'  →  、
+Ctrl+;  →  ；    Ctrl+/  →  ？    Ctrl+[  →  「    Ctrl+]  →  」
+```
+
+Both tables are user-editable.
 
 **Why a wrapper instead of calling feed_phrase() directly from gcin_engine.c:**
 `feed_phrase()` is declared in `phrase.cpp` with C++ linkage; the engine is C.

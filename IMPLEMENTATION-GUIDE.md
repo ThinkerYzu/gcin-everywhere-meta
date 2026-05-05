@@ -1132,22 +1132,30 @@ int gcin_core_feed_phrase(unsigned long keyval, int modifiers) {
 }
 ```
 
-### Step 3 — Intercept Alt+Shift in `gcin_engine.c`
+### Step 3 — Intercept Alt+Shift and Ctrl in `gcin_engine.c`
 
-Add before the feedkey routing in `gcin_engine_process_key_event()`, after the
-Shift+Space check:
+Add two intercepts before the feedkey routing in `gcin_engine_process_key_event()`,
+after the Shift+Space check. Both call `gcin_core_feed_phrase()` — `feed_phrase()`
+routes internally to the right table based on `ControlMask`.
 
 ```c
-/* Alt+Shift: phrase table lookup (phrase.table), same as gcin's eve.cpp:1227 */
+/* Alt+Shift: phrase.table lookup — same as gcin's eve.cpp:1227 */
 if ((modifiers & (IBUS_MOD1_MASK|IBUS_SHIFT_MASK)) == (IBUS_MOD1_MASK|IBUS_SHIFT_MASK)) {
     gcin_core_set_commit_cb(on_commit, iengine);
     return gcin_core_feed_phrase(keyval, Mod1Mask|ShiftMask) ? TRUE : FALSE;
 }
+
+/* Ctrl (without Alt): phrase-ctrl.table lookup — same as gcin's eve.cpp:1293.
+   Returns FALSE (not consumed) if key not in table, so app shortcuts pass through. */
+if ((modifiers & IBUS_CONTROL_MASK) && !(modifiers & IBUS_MOD1_MASK)) {
+    gcin_core_set_commit_cb(on_commit, iengine);
+    if (gcin_core_feed_phrase(keyval, ControlMask)) return TRUE;
+}
 ```
 
-Note: IBus modifier constants (`IBUS_MOD1_MASK`, `IBUS_SHIFT_MASK`) must be used
-in the engine; `Mod1Mask`/`ShiftMask` (X11 values) are passed to `feed_phrase()`
-since that's what the library expects.
+Note: IBus modifier constants (`IBUS_MOD1_MASK` etc.) are used for the IBus check;
+X11 values (`Mod1Mask`, `ControlMask`) are passed to `feed_phrase()` since that is
+what the library expects internally.
 
 ### Step 4 — Install phrase table files
 
@@ -1161,16 +1169,26 @@ cp $(GCIN)/data/phrase-ctrl.table $(TABLES)/
 ### Step 5 — Tests
 
 ```c
-static void test_alt_shift_phrase(void) {
-    /* Alt+Shift+i → 、  (from phrase.table: "i  、") */
+static void test_phrase_table(void) {
+    /* Alt+Shift+i → 、  (phrase.table: "i  、") */
     reset();
     gcin_core_feed_phrase('i', Mod1Mask|ShiftMask);
     EXPECT_COMMITTED("、", "alt+shift+i commits 、");
 
-    /* Alt+Shift+o → 。 */
+    /* Alt+Shift+o → 。 (phrase.table: "o  。") */
     reset();
     gcin_core_feed_phrase('o', Mod1Mask|ShiftMask);
     EXPECT_COMMITTED("。", "alt+shift+o commits 。");
+
+    /* Ctrl+, → ， (phrase-ctrl.table: ",  ，") */
+    reset();
+    gcin_core_feed_phrase(',', ControlMask);
+    EXPECT_COMMITTED("，", "ctrl+, commits ，");
+
+    /* Ctrl+' → 、 (phrase-ctrl.table: "'  、") */
+    reset();
+    gcin_core_feed_phrase('\'', ControlMask);
+    EXPECT_COMMITTED("、", "ctrl+' commits 、");
 }
 ```
 
@@ -1186,4 +1204,4 @@ static void test_alt_shift_phrase(void) {
 
 ---
 
-**Last Updated:** 2026-05-05 (added Phase 7: Alt+Shift phrase table)
+**Last Updated:** 2026-05-05 (Phase 7: added Ctrl+key intercept for phrase-ctrl.table)
