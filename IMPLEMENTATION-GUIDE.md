@@ -239,23 +239,38 @@ Provide empty/no-op bodies in `gcin_stubs.cpp`:
 
 **From excluded UI files (win-*.cpp, win0/1.cpp, etc.):**
 
-Void stubs: `show_win_gtab`, `hide_win_gtab`, `show_win_pho`, `hide_win_pho`,
+Only stub functions that are **declared but not defined** in compiled files.
+Functions defined in gtab.cpp, pho.cpp, or tsin.cpp must NOT be stubbed —
+they're already compiled in and their bodies call other stubs harmlessly.
+
+Void stubs (declared in compiled files, defined only in excluded UI files):
+`show_win_gtab`, `hide_win_gtab`, `show_win_pho`, `hide_win_pho`,
 `hide_win_kbm`, `hide_win0`, `hide_row2_if_necessary`, `minimize_win_gtab`,
 `minimize_win_pho`, `disp_gtab`, `disp_gbuf`, `disp_gtab_sel`, `disp_gtab_pre_sel`,
-`disp_selection0`, `disp_pho`, `disp_pho_sel`, `disp_label_edit`, `disp_char`,
-`ClrIn`, `ClrSelArea`, `ClrPhoSelArea`, `clear_after_put`,
+`disp_pho`, `disp_pho_sel`, `disp_label_edit`, `disp_char`,
 `clear_gtab_input_error_color`, `set_gtab_input_error_color`,
-`set_key_codes_label`, `set_page_label`, `clr_in_area_pho`, `clr_tsin_cursor`,
+`set_key_codes_label`, `set_page_label`, `clr_tsin_cursor`,
 `disp_tray_icon`, `save_CS_current_to_temp`, `show_tsin_stat`,
-`recreate_win1_if_nessary`, `start_gtab_pho_query`, `close_gtab_pho_win`,
-`set_gtab_target_displayed`, `pho_play`, `gtab_scan_pre_select`, `hide_gtab_pre_sel`,
+`recreate_win1_if_nessary`, `start_gtab_pho_query`,
+`pho_play`, `gtab_scan_pre_select`, `hide_gtab_pre_sel`,
 `create_win_save_phrase`
 
-Boolean stubs (return FALSE): `full_char_proc`, `shift_char_proc`,
-`pre_punctuation`, `pre_punctuation_hsu`, `is_gtab_query_mode`, `use_tsin_sel_win`,
-`same_query_show_pho_win`, `gcin_edit_display_ap_only`
+Boolean stubs (return FALSE):
+`full_char_proc`, `shift_char_proc`, `pre_punctuation`, `pre_punctuation_hsu`,
+`gcin_edit_display_ap_only`
 
 Other: `send_gcin_message` (void)
+
+**Do NOT stub** — defined in compiled files, would cause duplicate symbol errors:
+
+| Function | Defined in |
+|----------|-----------|
+| `ClrIn`, `ClrSelArea`, `clear_after_put` | `gtab.cpp` |
+| `disp_selection0`, `close_gtab_pho_win` | `gtab.cpp` |
+| `is_gtab_query_mode`, `use_tsin_sel_win` | `gtab.cpp` |
+| `same_query_show_pho_win`, `set_gtab_target_displayed` | `gtab.cpp` |
+| `clr_in_area_pho`, `ClrPhoSelArea`, `clrin_pho` | `pho.cpp` |
+| `drawcursor` | `tsin.cpp` |
 
 ### Output interception: send_text and send_utf8_ch
 
