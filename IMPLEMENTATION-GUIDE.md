@@ -1100,4 +1100,90 @@ static void test_cangjie_full_width(void) {
 
 ---
 
-**Last Updated:** 2026-05-05 (Phase 6 finalized: copy convention documented; comments specified)
+## Phase 7: Alt+Shift Phrase Table
+
+**Goal:** Alt+Shift+`<key>` inserts Chinese punctuation and special characters from
+`phrase.table`, exactly as gcin does.
+
+See [Design Decision 7](DESIGN.md#7-altshift-phrase-table-intercept-in-engine-delegate-to-feed_phrase)
+for rationale.
+
+### Step 1 — Add `gcin_core_feed_phrase()` to `gcin-core.h`
+
+```c
+/* Feed an Alt+Shift key to the phrase table (phrase.table).
+   keyval: IBus/X11 key symbol. modifiers: IBus/X11 modifier bitmask.
+   Returns 1 if a phrase was found and committed, 0 otherwise. */
+int gcin_core_feed_phrase(unsigned long keyval, int modifiers);
+```
+
+### Step 2 — Implement in `gcin_stubs.cpp`
+
+`feed_phrase()` is already compiled from `phrase.cpp`. Just expose it via the
+public API. No copy needed — this function has no X11/GTK dependencies.
+
+```c
+/* Wraps feed_phrase() from phrase.cpp (compiled). Provides extern "C" bridge
+   and keeps gcin_engine.c isolated from libgcin-core internals. */
+extern gboolean feed_phrase(KeySym ksym, int state);
+
+int gcin_core_feed_phrase(unsigned long keyval, int modifiers) {
+    return feed_phrase((KeySym)keyval, modifiers) ? 1 : 0;
+}
+```
+
+### Step 3 — Intercept Alt+Shift in `gcin_engine.c`
+
+Add before the feedkey routing in `gcin_engine_process_key_event()`, after the
+Shift+Space check:
+
+```c
+/* Alt+Shift: phrase table lookup (phrase.table), same as gcin's eve.cpp:1227 */
+if ((modifiers & (IBUS_MOD1_MASK|IBUS_SHIFT_MASK)) == (IBUS_MOD1_MASK|IBUS_SHIFT_MASK)) {
+    gcin_core_set_commit_cb(on_commit, iengine);
+    return gcin_core_feed_phrase(keyval, Mod1Mask|ShiftMask) ? TRUE : FALSE;
+}
+```
+
+Note: IBus modifier constants (`IBUS_MOD1_MASK`, `IBUS_SHIFT_MASK`) must be used
+in the engine; `Mod1Mask`/`ShiftMask` (X11 values) are passed to `feed_phrase()`
+since that's what the library expects.
+
+### Step 4 — Install phrase table files
+
+Add to the top-level `Makefile` `tables` target:
+
+```makefile
+cp $(GCIN)/data/phrase.table      $(TABLES)/
+cp $(GCIN)/data/phrase-ctrl.table $(TABLES)/
+```
+
+### Step 5 — Tests
+
+```c
+static void test_alt_shift_phrase(void) {
+    /* Alt+Shift+i → 、  (from phrase.table: "i  、") */
+    reset();
+    gcin_core_feed_phrase('i', Mod1Mask|ShiftMask);
+    EXPECT_COMMITTED("、", "alt+shift+i commits 、");
+
+    /* Alt+Shift+o → 。 */
+    reset();
+    gcin_core_feed_phrase('o', Mod1Mask|ShiftMask);
+    EXPECT_COMMITTED("。", "alt+shift+o commits 。");
+}
+```
+
+### Files changed
+
+| File | Change |
+|------|--------|
+| `gcin-core/gcin-core.h` | Add `gcin_core_feed_phrase()` |
+| `gcin-core/gcin_stubs.cpp` | Implement `gcin_core_feed_phrase()` |
+| `gcin-core/test_feedkey.c` | Add `test_alt_shift_phrase()` |
+| `ibus-engine/gcin_engine.c` | Intercept Alt+Shift before feedkey routing |
+| `Makefile` (top-level) | Copy `phrase.table` and `phrase-ctrl.table` to `$(TABLES)/` |
+
+---
+
+**Last Updated:** 2026-05-05 (added Phase 7: Alt+Shift phrase table)

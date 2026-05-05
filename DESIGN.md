@@ -171,6 +171,44 @@ gboolean full_char_proc(KeySym keysym) {
 
 **Scope:** This applies to both Cangjie and Zhuyin (both call `full_char_proc()` when `b_half_full_char` is set in their respective feedkey functions). It is the correct, complete solution — not a partial punctuation-only workaround.
 
+### 7. Alt+Shift phrase table: intercept in engine, delegate to feed_phrase()
+
+**Decision:** Intercept `Alt+Shift+<key>` in `gcin_engine_process_key_event()` before
+routing to feedkey functions, and call a new `gcin_core_feed_phrase(keyval, modifiers)`
+API that wraps `feed_phrase()` from `phrase.cpp` (already compiled into libgcin-core.a).
+
+**How gcin does it:**
+
+In `eve.cpp` (line 1227), before any input-method dispatch:
+```c
+if ((kev_state & (Mod1Mask|ShiftMask)) == (Mod1Mask|ShiftMask))
+    return feed_phrase(keysym, kev_state);
+```
+
+`feed_phrase()` is in `phrase.cpp` (compiled). It loads `phrase.table` and
+`phrase-ctrl.table` from the data directory at runtime and maps keyvals to strings.
+With our build (phrase buffer off, `current_method_type()` returns 0), it calls
+`send_text(str)` directly — the same path as all other committed text.
+
+**The phrase table** (`data/phrase.table`) provides the mappings. Key examples:
+```
+Alt+Shift+i  →  、       Alt+Shift+h  →  「      Alt+Shift+j  →  」
+Alt+Shift+o  →  。       Alt+Shift+f  →  『      Alt+Shift+g  →  』
+Alt+Shift+,  →  ，       Alt+Shift+[  →  【      Alt+Shift+]  →  】
+Alt+Shift+.  →  ‧       Alt+Shift+;  →  ；      Alt+Shift+k  →  §
+Alt+Shift+m  →  ─       Alt+Shift+l  →  │
+```
+
+The table is user-editable — power users can customize their own mappings.
+
+**Why a wrapper instead of calling feed_phrase() directly from gcin_engine.c:**
+`feed_phrase()` is declared in `phrase.cpp` with C++ linkage; the engine is C.
+`gcin_core_feed_phrase()` in `gcin_stubs.cpp` provides the `extern "C"` bridge and
+keeps the engine layer isolated from libgcin-core internals.
+
+**Data files:** `phrase.table` and `phrase-ctrl.table` must be added to the install
+target so `feed_phrase()` can find them at runtime alongside the other table files.
+
 ---
 
 ## Data Model
@@ -257,4 +295,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-05-05 (added decision 6: Cangjie punctuation interception)
+**Last Updated:** 2026-05-05 (added decision 7: Alt+Shift phrase table)
