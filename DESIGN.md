@@ -128,29 +128,48 @@
 
 **Rationale:** Simpler, integrates naturally with GNOME's IBus UI. Can revisit with a custom window in a later phase if the look and feel matters.
 
-### 6. Cangjie punctuation: intercept before feedkey_gtab, not inside gcin
+### 6. Full-width character mode: un-stub full_char_proc, match gcin exactly
 
-**Decision:** Chinese punctuation for Cangjie is handled in `gcin_core_feedkey_cangjie()` by a lookup table that fires the commit callback directly, before the key reaches `feedkey_gtab()`.
+**Decision:** Implement `half_char_to_full_char()` and `full_char_proc()` in `gcin_stubs.cpp` (removing the FALSE stubs), and handle Shift+Space in `gcin_engine.c` to toggle `current_CS->b_half_full_char`. This matches gcin's own mechanism exactly.
 
-**Background:** In gcin's original Cangjie flow, `feedkey_gtab` has no punctuation interception. Chinese punctuation is delivered via `full_char_proc()` (in excluded `eve.cpp`) which activates only when the user manually toggles a full-width character mode (`b_half_full_char`). For Zhuyin, `feedkey_pho` calls `pre_punctuation()` (in `tsin.cpp`, compiled) — but `pre_punctuation` routes through `add_to_tsin_buf()` for non-PHO methods rather than calling `send_text()` directly, because our `current_method_type()` stub returns 0.
+**How gcin does it:**
 
-**Decision detail:** When `ggg.ci == 0` (no Cangjie composition in progress) and the keyval matches a shifted punctuation key, `gcin_core_feedkey_cangjie()` fires the commit callback with the Chinese punctuation character and returns 1 (consumed). The mapping reuses gcin's existing `pre_punctuation()` table:
+gcin uses a full-width character mode toggled by Shift+Space. When active (`b_half_full_char == 1`), `feedkey_gtab()` routes every key through `full_char_proc()` before any table lookup. `full_char_proc()` calls `half_char_to_full_char()` which indexes into `fullchar[]` — a complete ASCII→full-width mapping table already compiled in `fullchar.cpp`.
 
-| Key (shifted) | Keyval | Chinese |
-|--------------|--------|---------|
-| Shift+, | `<` | ， |
-| Shift+. | `>` | 。 |
-| Shift+/ | `?` | ？ |
-| Shift+; | `:` | ： |
-| Shift+' | `"` | ； |
-| Shift+[ | `{` | 「 |
-| Shift+] | `}` | 」 |
-| Shift+1 | `!` | ！ |
-| Shift+- | `_` | —— |
+The `fullchar[]` table covers ALL printable ASCII (space through `~`):
+- Letters → ａ-ｚ, Ａ-Ｚ
+- Digits → ０-９
+- Punctuation → ，。！？：；「」…etc.
 
-**Why not reuse `pre_punctuation()` directly?** `pre_punctuation_sub()` branches on `current_method_type() == method_type_PHO`. Since our `current_method_type()` stub returns 0, the else-branch routes to `add_to_tsin_buf()` + `flush_tsin_buffer()` — the phrase buffer path. Intercepting in `gcin_core_feedkey_cangjie()` with a direct `send_text()` call is simpler and avoids that complexity.
+`feedkey_gtab()` already calls `full_char_proc()` at every key-handling branch when `b_half_full_char == 1` — the wiring is already in gcin. We only need to un-stub the two functions and wire the toggle.
 
-**When NOT to intercept:** If `ggg.ci > 0` (a Cangjie key sequence is in progress), the punctuation key is passed to `feedkey_gtab()` unchanged — it may be a valid component key or trigger candidate display.
+**Why our original stub broke it:** `full_char_proc()` was stubbed to return `FALSE` because it's in excluded `eve.cpp`. `half_char_to_full_char()` was stubbed to return `NULL` (also in excluded `gcin.cpp`). Both have zero GTK/X11 dependencies — they only use `fullchar[]` and `send_text()`.
+
+**Implementation:**
+
+```c
+/* in gcin_stubs.cpp — replace the NULL stub */
+char *half_char_to_full_char(KeySym xkey) {
+    extern unich_t *fullchar[];
+    if (xkey < ' ' || xkey > 127) return NULL;
+    return fullchar[xkey - ' '];
+}
+
+/* in gcin_stubs.cpp — replace the FALSE stub */
+gboolean full_char_proc(KeySym keysym) {
+    char *s = half_char_to_full_char(keysym);
+    if (!s) return 0;
+    char tt[CH_SZ + 1];
+    utf8cpy(tt, s);
+    /* For our use: not TSIN mode, phrase buffer off → send_text() */
+    send_text(tt);
+    return 1;
+}
+```
+
+**Toggle in gcin_engine.c:** Shift+Space (`keyval == XK_space && modifiers & ShiftMask`) flips `current_CS->b_half_full_char` and resets gcin state.
+
+**Scope:** This applies to both Cangjie and Zhuyin (both call `full_char_proc()` when `b_half_full_char` is set in their respective feedkey functions). It is the correct, complete solution — not a partial punctuation-only workaround.
 
 ---
 

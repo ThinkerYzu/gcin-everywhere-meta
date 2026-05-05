@@ -967,81 +967,119 @@ ibus restart
 
 ---
 
-## Phase 6: Cangjie Punctuation Support
+## Phase 6: Full-Width Character Mode (Cangjie + Zhuyin Punctuation)
 
-**Goal:** Shifted punctuation keys (e.g., Shift+, → ，) commit Chinese punctuation
-when no Cangjie composition is in progress.
+**Goal:** Shift+Space toggles full-width mode. In full-width mode, all printable ASCII
+keys (letters, digits, punctuation) are converted to their full-width Unicode equivalents
+via gcin's own `fullchar[]` table and `full_char_proc()` — exactly as gcin does it.
 
-See [Design Decision 6](DESIGN.md#6-cangjie-punctuation-intercept-before-feedkey_gtab-not-inside-gcin)
-for rationale and the full key mapping.
+See [Design Decision 6](DESIGN.md#6-full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly)
+for the full rationale.
 
-### Implementation
+### Step 1 — Un-stub `half_char_to_full_char()` in `gcin_stubs.cpp`
 
-**1. Add a static lookup table and helper in `gcin-core/gcin_stubs.cpp`:**
+Replace the current NULL stub with the real implementation (identical to `gcin.cpp`).
+`fullchar[]` is already compiled from `fullchar.cpp` — just reference it:
 
 ```c
-/* Maps ASCII keyval → Chinese punctuation UTF-8 string.
-   Applied only when ggg.ci == 0 (no composition in progress). */
-static const struct { unsigned long key; const char *punc; } cangjie_punc[] = {
-    { '<',  "，" }, { '>',  "。" }, { '?',  "？" },
-    { ':',  "：" }, { '"',  "；" }, { '{',  "「" },
-    { '}',  "」" }, { '!',  "！" }, { '_',  "——" },
-};
-
-static int feedkey_cangjie_punctuation(unsigned long keyval) {
-    if (ggg.ci != 0) return 0;   /* composition in progress — don't intercept */
-    for (int i = 0; i < (int)(sizeof cangjie_punc / sizeof *cangjie_punc); i++) {
-        if (cangjie_punc[i].key == keyval) {
-            send_text((char *)cangjie_punc[i].punc);
-            return 1;
-        }
-    }
-    return 0;
+/* Remove old stub: char *half_char_to_full_char(KeySym xkey) { return NULL; } */
+char *half_char_to_full_char(KeySym xkey) {
+    extern unich_t *fullchar[];
+    if (xkey < ' ' || xkey > 127) return NULL;
+    return fullchar[xkey - ' '];
 }
 ```
 
-**2. Call the helper at the top of `gcin_core_feedkey_cangjie()`:**
+### Step 2 — Un-stub `full_char_proc()` in `gcin_stubs.cpp`
+
+Replace the current FALSE stub. For our use case (phrase buffer disabled, not TSIN
+mode), the flow always reaches `send_text()`:
 
 ```c
-int gcin_core_feedkey_cangjie(unsigned long keyval, int modifiers) {
-    if (g_cangjie_inmd >= 0 && current_CS->in_method != g_cangjie_inmd) {
-        current_CS->in_method = g_cangjie_inmd;
-        init_gtab(g_cangjie_inmd);
-    }
-    if (feedkey_cangjie_punctuation(keyval)) return 1;
-    return feedkey_gtab((KeySym)keyval, modifiers);
+/* Remove old stub: gboolean full_char_proc(KeySym k) { return FALSE; } */
+gboolean full_char_proc(KeySym keysym) {
+    char *s = half_char_to_full_char(keysym);
+    if (!s) return 0;
+    char tt[CH_SZ + 1];
+    utf8cpy(tt, s);
+    send_text(tt);
+    return 1;
 }
 ```
 
-No changes needed in `gcin_engine.c` or `gcin-core.h` — this is entirely internal
-to the Cangjie feedkey path.
+Note: the original `full_char_proc` has branches for TSIN mode and phrase buffer mode.
+Both are inactive in our build (phrase buffer disabled, `current_method_type()` returns
+0), so the simplified version is equivalent.
 
-### Test
+### Step 3 — Handle Shift+Space in `gcin_engine.c`
 
-Add to `gcin-core/test_feedkey.c`:
+Add a toggle at the top of `gcin_engine_process_key_event()`, before routing to
+`gcin_core_feedkey_cangjie/zhuyin()`:
 
 ```c
-static void test_cangjie_punctuation(void) {
-    /* Shift+, sends '<' keyval (0x3c) → should commit ， */
+/* Shift+Space: toggle full-width character mode */
+if (keyval == XK_space && (modifiers & ShiftMask)) {
+    current_CS->b_half_full_char = !current_CS->b_half_full_char;
+    gcin_core_reset();
+    ibus_engine_hide_preedit_text(iengine);
+    ibus_engine_hide_lookup_table(iengine);
+    return TRUE;
+}
+```
+
+`current_CS` is a global in `gcin_stubs.cpp` — `gcin_engine.c` needs to access it.
+Add `gcin_core_get_half_full_mode()` / `gcin_core_set_half_full_mode()` to the public
+API, or expose `current_CS->b_half_full_char` via a simpler accessor.
+
+Simplest approach — add to `gcin-core.h`:
+
+```c
+/* Toggle full-width character mode (Shift+Space). Returns new state. */
+int gcin_core_toggle_full_width(void);
+int gcin_core_get_full_width(void);
+```
+
+Implement in `gcin_stubs.cpp`:
+
+```c
+int gcin_core_toggle_full_width(void) {
+    current_CS->b_half_full_char = !current_CS->b_half_full_char;
+    return current_CS->b_half_full_char;
+}
+int gcin_core_get_full_width(void) {
+    return current_CS->b_half_full_char;
+}
+```
+
+### Step 4 — Tests
+
+```c
+static void test_full_width_toggle(void) {
     reset();
-    gcin_core_feedkey_cangjie('<', ShiftMask);
-    EXPECT_COMMITTED("，", "cangjie: shift+, commits ，");
+    /* default: half-width mode — comma passes through */
+    gcin_core_feedkey_cangjie(',', 0);
+    EXPECT_COMMITTED(",", "cangjie: comma in half-width mode passes through");
 
-    /* Mid-composition: punctuation key should NOT be intercepted */
+    /* toggle to full-width */
     reset();
-    gcin_core_feedkey_cangjie('k', 0);  /* start composition */
-    gcin_core_feedkey_cangjie('<', ShiftMask);
-    EXPECT_NOTHING_COMMITTED("cangjie: shift+, during composition not intercepted");
+    gcin_core_toggle_full_width();
+    gcin_core_feedkey_cangjie(',', 0);
+    EXPECT_COMMITTED("，", "cangjie: comma in full-width mode commits ，");
+
+    /* toggle back */
+    gcin_core_toggle_full_width();
 }
 ```
 
-### Scope note
+### Files changed
 
-This only addresses Cangjie. Zhuyin punctuation goes through `pre_punctuation()` in
-`tsin.cpp` (already compiled), but `pre_punctuation_sub()` takes a non-PHO code path
-because our `current_method_type()` stub returns 0. Fixing Zhuyin punctuation would
-require either updating the stub or using the same interception approach — deferred.
+| File | Change |
+|------|--------|
+| `gcin-core/gcin_stubs.cpp` | Un-stub `half_char_to_full_char()` and `full_char_proc()`; add `gcin_core_toggle_full_width()` / `gcin_core_get_full_width()` |
+| `gcin-core/gcin-core.h` | Add `gcin_core_toggle_full_width()` and `gcin_core_get_full_width()` |
+| `gcin-core/test_feedkey.c` | Add full-width mode tests |
+| `ibus-engine/gcin_engine.c` | Handle Shift+Space → `gcin_core_toggle_full_width()` |
 
 ---
 
-**Last Updated:** 2026-05-05 (added Phase 6: Cangjie punctuation support)
+**Last Updated:** 2026-05-05 (Phase 6 revised: full-width mode matching gcin's mechanism)

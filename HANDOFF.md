@@ -76,7 +76,7 @@
 
 ## Next Actions
 
-1. **Phase 6 — Cangjie punctuation (NEXT)** — Add `feedkey_cangjie_punctuation()` helper in `gcin_stubs.cpp`; call it at top of `gcin_core_feedkey_cangjie()` when `ggg.ci == 0`. Add 2 unit tests. See [IMPLEMENTATION-GUIDE.md Phase 6](IMPLEMENTATION-GUIDE.md#phase-6-cangjie-punctuation-support) for the full plan.
+1. **Phase 6 — Full-width character mode (NEXT)** — Un-stub `half_char_to_full_char()` and `full_char_proc()` in `gcin_stubs.cpp`; add `gcin_core_toggle_full_width()` API; handle Shift+Space in `gcin_engine.c`. Matches gcin's own mechanism exactly. See [IMPLEMENTATION-GUIDE.md Phase 6](IMPLEMENTATION-GUIDE.md#phase-6-full-width-character-mode-cangjie--zhuyin-punctuation) for the full plan.
 2. **Phase 2 — Additional input methods** — Quick (速成), Array (行列), Dayi (大易). Same adapter pattern as Cangjie; each gets its own `<engine>` in gcin.xml and a mode constant.
 
 **Deferred:**
@@ -116,4 +116,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Plan added: Phase 6 Cangjie punctuation; design decision 6 in DESIGN.md)
+**Last Updated:** 2026-05-05 (Phase 6 plan revised: full-width mode via gcin's fullchar[]+full_char_proc() mechanism)
