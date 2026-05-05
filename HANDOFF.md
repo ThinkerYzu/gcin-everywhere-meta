@@ -37,6 +37,8 @@
 - `ibus-engine/ibus-engine-gcin` (520KB ELF) — links against libgcin-core.a + libibus-1.0
 - `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie + gcin-zhuyin)
 - `process_key_event` passes all keys through (returns FALSE); engine scaffold is wired up
+- **Tests:** `gcin-core/test_feedkey.c` — 6 unit tests (Cangjie + Zhuyin feedkey); `make test` skips cleanly until data tables compiled
+- **Tests:** `ibus-engine/test-registration.sh` — Phase 2 registration check; 5/7 checks pass now, 2 need tables/sudo
 
 ### Key Design Decisions
 
@@ -55,7 +57,7 @@
 
 ## Next Actions
 
-1. **Compile data tables + install (NEXT)** — From a gcin build dir, run `cintotab data/cj.cin cj.gtab` and `phoconv data/pho.tab2.src pho.tab`, install to `/usr/share/gcin/`. Copy `component/gcin.xml` to `/usr/share/ibus/component/`. Run `./ibus-engine-gcin &` and verify `ibus list-engine | grep gcin` shows both engines.
+1. **Compile data tables + install (NEXT)** — From a gcin build dir, run `cintotab data/cj.cin cj.gtab` and `phoconv data/pho.tab2.src pho.tab`, install to `/usr/share/gcin/`. Then run `./test-registration.sh` (handles XML install + ibus restart + verification). Run `GCIN_TABLE_DIR=/usr/share/gcin make test` to confirm unit tests pass.
 2. **Phase 3 — Cangjie** — Wire `gcin_core_feedkey_cangjie()` → `feedkey_gtab()`. Expose preedit via `get_DispInArea_str()` and candidates via `disp_gtab_sel()` stub. Test: type `di` → commit 大人.
 3. **Phase 4 — Zhuyin** — Wire `gcin_core_feedkey_zhuyin()` → `feedkey_pho()`. Expose preedit from `poo.typ_pho[]` via `phokey_to_str()`. Test: type `vu4` → commit 住.
 4. **Phase 5 — Install** — Compile data tables, `make install`, enable in GNOME Settings, end-to-end test in gedit and a Qt6 app.
@@ -92,4 +94,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 4)
+**Last Updated:** 2026-05-05 (Session 4 addendum — test infrastructure)
