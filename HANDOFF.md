@@ -15,9 +15,9 @@
 
 ## Current Status
 
-**Phase:** Phase 1 complete — Cangjie and Zhuyin working end-to-end in GNOME
-**Progress:** Both engines install, autostart via systemd, and accept input correctly in GNOME; 9/9 unit tests pass
-**Next Milestone:** Phase 2 — additional input methods (Quick/速成, Array/行列)
+**Phase:** Phase 6 complete — full-width character mode working
+**Progress:** Shift+Space toggles full-width mode; all ASCII converts via `fullchar[]`; 11/11 unit tests pass; Phase 7 (Alt+Shift + Ctrl phrase tables) designed and ready to implement
+**Next Milestone:** Phase 7 — `gcin_core_feed_phrase()` wrapper + engine intercepts + phrase table install
 **Blockers:** None
 
 > **Phase checklist:**
@@ -33,6 +33,7 @@
 > - ✅ Phase 4 — Zhuyin preedit and candidates API
 > - ✅ Phase 5 — Local install (`make install`), systemd autostart, GNOME switching works
 > - ✅ Phase 1 complete — Cangjie and Zhuyin confirmed working end-to-end
+> - ✅ Phase 6 — full-width mode (Shift+Space), `fullchar[]`, `full_char_proc()`
 
 ### What We Have
 
@@ -65,6 +66,10 @@
 - **Table tools built without GTK2** — `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` compile with `GCIN_CORE_BUILD + libgcin-core.a + gtk_init() stub`. GTK2 not required.
 - **Candidates read from `seltab[]` directly** — not parsed from `disp_gtab_sel` HTML string; `seltab` defined in `gtab-init.cpp`, declared extern in `gcin_stubs.cpp`
 - **Commit callback re-registered per keypress** — `gcin_core_set_commit_cb(on_commit, iengine)` called in `process_key_event` to always target the active engine instance
+- **`IBUS_space` not `XK_space` in IBus engine** — `XK_space` is undefined in `gcin_engine.c`; use IBus constants (`IBUS_space`, `IBUS_SHIFT_MASK`) for key checks in the engine layer
+- **Half-width mode: non-component keys not consumed** — `feedkey_gtab` returns 0 for keys like `,`; IBus passes them to the app. Only full-width mode routes them through `send_text()` via `full_char_proc()`
+- **`feed_phrase()` already compiled** — `phrase.cpp` is in GCIN_SRCS with no X11/GTK deps; just needs an `extern` declaration wrapper in `gcin_stubs.cpp`, no copy
+- **`cj.gtab` `zx__` codes** — `、`=`zxac`, `…`=`zxal`, `—`=`zxay` etc. already work; Cangjie users can type these directly
 - **Zhuyin candidates from `ch_pho[]` not `disp_pho_sel` string** — `poo.start_idx + poo.cpg` gives page start; `poo.maxi` gives count; both set before `disp_pho_sel()` returns, so reading after `feedkey_pho()` is safe
 - **ㄨ is implicit after ㄓ/ㄔ/ㄕ in Daqian** — pressing `u` after `j` does not change `poo.typ_pho[]`'s phokey representation; the tone press is what grows the preedit
 - **Engine mode detected in `enable()` not `init()`** — GObject properties are not set when `_init()` runs; `ibus_engine_get_name()` returns NULL there. Mode is set in `gcin_engine_enable()` which fires on each engine switch when the name is valid.
@@ -87,7 +92,8 @@
 
 ## Session Logs
 
-1. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
+1. **[Session 12: Phase 6 — Full-Width Mode; Phase 7 Planned](logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.md)** (2026-05-05) — Implemented Shift+Space full-width toggle; copied `half_char_to_full_char`+`full_char_proc`; 11/11 tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.
+2. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
 2. **[Session 10: Mode Detection Fix — Phase 1 Complete](logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.md)** (2026-05-05) — Moved mode detection from `init()` to `enable()`; Cangjie and Zhuyin both confirmed working end-to-end.
 2. **[Session 9: Phase 5 — Local Install and Systemd Autostart](logs/2026-05-05-session-09-install-and-autostart.md)** (2026-05-05) — `make install` deploys to `~/.local/`; fixed 3 bugs (setenv, init ordering, GNOME spawn); systemd user service auto-starts engine; GNOME switching works.
 2. **[Session 8: Phase 4 — Zhuyin Preedit and Candidates](logs/2026-05-05-session-08-zhuyin-phase4.md)** (2026-05-05) — Added gcin_core_get_preedit_zhuyin/get_candidates_zhuyin API; wired update_ui() to branch on Cangjie vs Zhuyin mode; mode detected from IBus engine name; 3 new Zhuyin unit tests (9/9 pass).
@@ -116,4 +122,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Phase 7 plan added: Alt+Shift phrase table via feed_phrase())
+**Last Updated:** 2026-05-05 (Session 12 — Phase 6 complete; Phase 7 planned)
