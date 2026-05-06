@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-05-05-session-15-phase2-cj5 – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#session-15-phase-2-cj5-倉頡五代-input-method"
+id="toc-session-15-phase-2-cj5-倉頡五代-input-method">Session 15: Phase
+2 — CJ5 (倉頡五代) Input Method</a>
+<ul>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a href="#cj5-engine-added" id="toc-cj5-engine-added">CJ5 engine
+added</a></li>
+<li><a href="#tests" id="toc-tests">Tests</a></li>
+</ul></li>
+<li><a href="#key-findings" id="toc-key-findings">Key Findings</a></li>
+<li><a href="#decisions-made" id="toc-decisions-made">Decisions
+Made</a></li>
+<li><a href="#status-at-end-of-session"
+id="toc-status-at-end-of-session">Status at End of Session</a></li>
+<li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="session-15-phase-2-cj5-倉頡五代-input-method">Session 15: Phase
+2 — CJ5 (倉頡五代) Input Method</h1>
+<p><strong>Date:</strong> 2026-05-05 <strong>Phase:</strong> Phase 2
+(additional input methods) <strong>Branch:</strong> master</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Add CJ5 (倉頡五代) as a fifth IBus engine, following the same
+<code>feedkey_gtab_method()</code> pattern as Quick and Array</li>
+</ul>
+<h2 id="what-was-done">What Was Done</h2>
+<h3 id="cj5-engine-added">CJ5 engine added</h3>
+<p>Buxiemi (嘸蝦米) — the originally planned next method — is absent
+from the gcin snapshot (<code>noseeing.gtab</code> not in
+<code>data/</code>). CJ5 (<code>cj5.cin</code>) is available and is
+widely used among Traditional Chinese speakers (many prefer CJ5 over CJ3
+for its larger character coverage: 74,944 characters vs 13,209 in
+CJ3).</p>
+<p>All changes follow the established <code>feedkey_gtab_method()</code>
+adapter pattern:</p>
+<ol type="1">
+<li><strong><code>gcin-core/gcin-core.h</code></strong> — declared
+<code>gcin_core_feedkey_cj5()</code></li>
+<li><strong><code>gcin-core/gcin_stubs.cpp</code></strong> — added
+<code>g_cj5_inmd</code>; <code>find_inmd("cj5")</code> in
+<code>gcin_core_init()</code>; <code>gcin_core_feedkey_cj5()</code>
+delegates to <code>feedkey_gtab_method(g_cj5_inmd, ...)</code></li>
+<li><strong><code>ibus-engine/gcin_engine.c</code></strong> — mode 4;
+<code>g_str_has_suffix(name, "cj5")</code> in <code>enable()</code>;
+<code>case 4</code> in <code>process_key_event</code> switch;
+<code>ibus_factory_add_engine("gcin-cj5", ...)</code></li>
+<li><strong><code>ibus-engine/component/gcin.xml</code></strong> — added
+<code>&lt;engine&gt;</code> entry for <code>gcin-cj5</code> (symbol:
+五)</li>
+<li><strong><code>gcin-core/test_feedkey.c</code></strong> — 3 CJ5
+tests: single char (k→大), two char (ab→明), escape clears</li>
+<li><strong><code>Makefile</code></strong> —
+<code>gcin2tab data/cj5.cin</code> → <code>cj5.gtab</code> in the
+<code>tables</code> target</li>
+</ol>
+<h3 id="tests">Tests</h3>
+<p>All 23 tests pass (20 from Session 14 + 3 new CJ5 tests).
+<code>make test</code> output:</p>
+<pre><code>CJ5 (倉頡五代):
+  PASS  cj5: k+space+1 commits 大
+  PASS  cj5: ab+space+1 commits 明
+  PASS  cj5: escape after partial input does not commit
+
+23 passed, 0 failed, 0 skipped</code></pre>
+<h2 id="key-findings">Key Findings</h2>
+<ul>
+<li><strong><code>find_inmd("cj5")</code> is safe alongside
+<code>find_inmd("cj")</code></strong> — gtab.list lists
+<code>cj.gtab</code> (倉頡) before <code>cj5.gtab</code> (倉五), so
+<code>find_inmd("cj")</code> returns the CJ3 index and
+<code>find_inmd("cj5")</code> correctly skips it
+(strstr(“cj.gtab”,“cj5”) = NULL).</li>
+<li><strong>CJ5 has 74,944 characters</strong> vs 13,209 in CJ3 —
+compiled table is significantly larger but the same code path handles it
+transparently.</li>
+<li><strong>Buxiemi absent</strong> — <code>noseeing.gtab</code> not in
+gcin snapshot. No <code>.cin</code> source either.</li>
+</ul>
+<h2 id="decisions-made">Decisions Made</h2>
+<ul>
+<li><strong>CJ5 mode = 4</strong> — extends the existing mode enum;
+suffix “cj5” detected before the catch-all cangjie default in
+<code>enable()</code>.</li>
+<li><strong>Symbol = 五</strong> — single-character IBus symbol; matches
+gcin’s 倉五 label visually.</li>
+</ul>
+<h2 id="status-at-end-of-session">Status at End of Session</h2>
+<ul>
+<li>5 IBus engines: gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array,
+gcin-cj5</li>
+<li>23/23 unit tests pass</li>
+<li><code>make test</code> and <code>make install</code> are the
+complete workflow</li>
+<li>No blockers</li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>Phase 2 is now feature-complete for the available gcin snapshot
+(Buxiemi absent, Dayi absent)</li>
+<li><strong>Phase 3: Windows TSF port</strong> — platform layer for
+Windows using Text Services Framework; <code>libgcin-core.a</code> links
+as-is, only the platform integration layer changes</li>
+</ul>
+<hr />
+<p><strong>Files Changed:</strong></p>
+<ul>
+<li><code>gcin-core/gcin-core.h</code> — added
+<code>gcin_core_feedkey_cj5()</code> declaration</li>
+<li><code>gcin-core/gcin_stubs.cpp</code> — added
+<code>g_cj5_inmd</code>, init in <code>gcin_core_init()</code>,
+<code>gcin_core_feedkey_cj5()</code> implementation</li>
+<li><code>ibus-engine/gcin_engine.c</code> — mode 4, enable detection,
+switch case, factory registration</li>
+<li><code>ibus-engine/component/gcin.xml</code> — added
+<code>gcin-cj5</code> engine entry</li>
+<li><code>gcin-core/test_feedkey.c</code> — 3 CJ5 unit tests +
+file-presence guard in main()</li>
+<li><code>Makefile</code> — <code>cj5.gtab</code> in tables target</li>
+</ul>
+</body>
+</html>

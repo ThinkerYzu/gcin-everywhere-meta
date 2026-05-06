@@ -15,8 +15,8 @@
 
 ## Current Status
 
-**Phase:** Phase 2 complete — CJ5, Quick, Array all added; 5 IBus engines total
-**Progress:** `gcin_core_feedkey_cj5/quick/array()` via shared `feedkey_gtab_method()`; 5 IBus engines (Cangjie, Zhuyin, Quick, Array, CJ5); 23/23 unit tests pass
+**Phase:** Phase 2 complete — 6 IBus engines total
+**Progress:** 6 engines (Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc) via `feedkey_gtab_method()`; 25/25 unit tests pass
 **Next Milestone:** Phase 3 — Windows TSF port
 **Blockers:** None
 
@@ -37,17 +37,18 @@
 > - ✅ Phase 7 — Alt+Shift phrase.table + Ctrl phrase-ctrl.table; `gcin_core_feed_phrase()`
 > - ✅ Phase 2 (additional engines) — Quick (速成) and Array (行列) via `feedkey_gtab_method()`
 > - ✅ Phase 2 (CJ5) — CJ5 (倉頡五代) via `feedkey_gtab_method()`; 23/23 tests pass
+> - ✅ Phase 2 (SimplexPunc) — 標點簡易 via `feedkey_gtab_method()`; 25/25 tests pass
 
 ### What We Have
 
 - `gcin-core/libgcin-core.a` — 26 source files compiled with `-DGCIN_CORE_BUILD -DUSE_TSIN=1`
 - `ibus-engine/ibus-engine-gcin` — links against libgcin-core.a + libibus-1.0
-- `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array, gcin-cj5)
-- `process_key_event` routes via `switch(mode)` to `gcin_core_feedkey_cangjie/zhuyin/quick/array/cj5()`; preedit and candidates wired to IBus APIs
+- `ibus-engine/component/gcin.xml` — IBus component descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array, gcin-cj5, gcin-simplex-punc)
+- `process_key_event` routes via `switch(mode)` to `gcin_core_feedkey_cangjie/zhuyin/quick/array/cj5/simplex_punc()`; preedit and candidates wired to IBus APIs
 - **Cangjie working end-to-end** — `ko` → preedit shows 大, candidates appear, select commits 大人
 - **Zhuyin preedit/candidates wired** — `gcin_core_get_preedit_zhuyin()` / `gcin_core_get_candidates_zhuyin()` implemented; engine detects mode from IBus engine name
-- **Quick, Array, and CJ5 added** — share `feedkey_gtab` path via `feedkey_gtab_method(inmd_idx, ...)`; same preedit/candidates functions as Cangjie
-- **Tests:** `gcin-core/test_feedkey.c` — 23 unit tests pass; `make test` skips cleanly without tables
+- **Quick, Array, CJ5, SimplexPunc added** — share `feedkey_gtab` path via `feedkey_gtab_method(inmd_idx, ...)`; same preedit/candidates functions as Cangjie
+- **Tests:** `gcin-core/test_feedkey.c` — 25 unit tests pass; `make test` skips cleanly without tables
 - **Tests:** `ibus-engine/test-registration.sh` — registration check; auto-detects `/tmp/gcin-tables`
 - **Table tools built** (not committed): `gcin2tab`, `phoa2d`, `tsa2d32`, `kbmcv` — built with GCIN_CORE_BUILD + libgcin-core.a
 
@@ -87,6 +88,7 @@
 - **Array `%endkey 1234567890` means digits are combined endkey+selkey** — after a full code, pressing a digit auto-commits the single match in one step without needing space first; pressing space triggers a different but equivalent code path
 - **`find_inmd("cj5")` is safe alongside `find_inmd("cj")`** — `strstr("cj.gtab","cj5")` = NULL, so the CJ3 entry is never confused with CJ5; gtab.list lists them in order: cj.gtab before cj5.gtab
 - **CJ5 has 74,944 characters** vs 13,209 in CJ3 — larger table, same code path
+- **`find_inmd("simplex-punc")` is unambiguous** — `strstr("simplex.gtab","simplex-punc")` = NULL; suffix match `"simplex-punc"` in `enable()` is checked before the cangjie catch-all
 
 ---
 
@@ -106,11 +108,12 @@
 
 ## Session Logs
 
-1. **[Session 15: Phase 2 — CJ5 (倉頡五代)](logs/2026-05-05-session-15-phase2-cj5.md)** (2026-05-05) — Added CJ5 engine via `feedkey_gtab_method()`; 5 IBus engines; 23/23 tests pass.
+1. **[Session 16: Phase 2 — Simplex+Punc (標點簡易)](logs/2026-05-05-session-16-simplex-punc.md)** (2026-05-05) — Added gcin-simplex-punc engine; 6 IBus engines; 25/25 tests pass.
+2. **[Session 15: Phase 2 — CJ5 (倉頡五代)](logs/2026-05-05-session-15-phase2-cj5.md)** (2026-05-05) — Added CJ5 engine via `feedkey_gtab_method()`; 5 IBus engines; 23/23 tests pass.
 2. **[Session 14: Phase 2 — Quick and Array Input Methods](logs/2026-05-05-session-14-phase2-quick-array.md)** (2026-05-05) — Added Quick (速成) and Array (行列) engines via shared `feedkey_gtab_method()`; 4 IBus engines; 20/20 tests pass.
 3. **[Session 13: Phase 7 — Alt+Shift / Ctrl Phrase Tables](logs/2026-05-05-session-13-phase7-phrase-tables.md)** (2026-05-05) — `gcin_core_feed_phrase()` wraps `feed_phrase()`; Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed `watch_fopen` stub to prepend TableDir; 15/15 tests pass.
 4. **[Session 12: Phase 6 — Full-Width Mode; Phase 7 Planned](logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.md)** (2026-05-05) — Implemented Shift+Space full-width toggle; copied `half_char_to_full_char`+`full_char_proc`; 11/11 tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.
-5. **[Session 11: GitHub Setup and Top-Level Makefile](logs/2026-05-05-session-11-github-and-makefile.md)** (2026-05-05) — Forked gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level Makefile handles full pipeline; `make test && make install` is the complete workflow.
+5. **[Session 13: Phase 7 — Alt+Shift / Ctrl Phrase Tables](logs/2026-05-05-session-13-phase7-phrase-tables.md)** (2026-05-05) — `gcin_core_feed_phrase()` wraps `feed_phrase()`; Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed `watch_fopen` stub to prepend TableDir; 15/15 tests pass.
 
 ---
 
@@ -131,4 +134,4 @@
 
 **Source Repo:** `sources/gcin-everywhere/` — initialized with gcin submodule at `gcin/`, new engine code goes in `ibus-engine/`
 
-**Last Updated:** 2026-05-05 (Session 15 — Phase 2 complete: CJ5 added; 5 engines total)
+**Last Updated:** 2026-05-05 (Session 16 — Phase 2 complete: SimplexPunc added; 6 engines total)
