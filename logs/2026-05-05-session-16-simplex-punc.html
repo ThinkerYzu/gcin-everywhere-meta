@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-05-05-session-16-simplex-punc – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#session-16-phase-2-simplexpunc-標點簡易"
+id="toc-session-16-phase-2-simplexpunc-標點簡易">Session 16: Phase 2 —
+Simplex+Punc (標點簡易)</a>
+<ul>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a href="#tests" id="toc-tests">Tests</a></li>
+</ul></li>
+<li><a href="#key-findings" id="toc-key-findings">Key Findings</a></li>
+<li><a href="#status-at-end-of-session"
+id="toc-status-at-end-of-session">Status at End of Session</a></li>
+<li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="session-16-phase-2-simplexpunc-標點簡易">Session 16: Phase 2 —
+Simplex+Punc (標點簡易)</h1>
+<p><strong>Date:</strong> 2026-05-05 <strong>Phase:</strong> Phase 2
+(additional input methods) <strong>Branch:</strong> master</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Add Simplex+Punctuation (標點簡易) as a sixth IBus engine</li>
+</ul>
+<h2 id="what-was-done">What Was Done</h2>
+<p>Added <code>gcin-simplex-punc</code> following the established
+<code>feedkey_gtab_method()</code> pattern.
+<code>simplex-punc.cin</code> is in the gcin snapshot; it extends
+simplex (速成) with punctuation keys as endkeys (<code>%endkey</code>
+includes <code>`\,'[]/.-;,./1234567890-()~!:</code>).</p>
+<p>Changes:</p>
+<ol type="1">
+<li><strong><code>gcin-core/gcin-core.h</code></strong> — declared
+<code>gcin_core_feedkey_simplex_punc()</code></li>
+<li><strong><code>gcin-core/gcin_stubs.cpp</code></strong> — added
+<code>g_simplex_punc_inmd</code>; <code>find_inmd("simplex-punc")</code>
+in <code>gcin_core_init()</code>;
+<code>gcin_core_feedkey_simplex_punc()</code> delegates to
+<code>feedkey_gtab_method()</code></li>
+<li><strong><code>ibus-engine/gcin_engine.c</code></strong> — mode 5;
+<code>g_str_has_suffix(name, "simplex-punc")</code> in
+<code>enable()</code>; <code>case 5</code> in switch; factory
+registration</li>
+<li><strong><code>ibus-engine/component/gcin.xml</code></strong> — added
+<code>gcin-simplex-punc</code> entry (symbol: 標)</li>
+<li><strong><code>gcin-core/test_feedkey.c</code></strong> — 2 tests:
+single char (k→大), escape clears</li>
+<li><strong><code>Makefile</code></strong> —
+<code>gcin2tab data/simplex-punc.cin</code> →
+<code>simplex-punc.gtab</code> in tables target</li>
+</ol>
+<h3 id="tests">Tests</h3>
+<pre><code>Simplex+Punc (標點簡易):
+  PASS  simplex-punc: k+space+1 commits 大
+  PASS  simplex-punc: escape after partial input does not commit
+
+25 passed, 0 failed, 0 skipped</code></pre>
+<h2 id="key-findings">Key Findings</h2>
+<ul>
+<li><strong><code>simplex-punc.cin</code> has 17,535 characters</strong>
+(vs 17,457 in plain simplex) — the extra entries are punctuation
+mappings</li>
+<li><strong><code>%space_style 4</code></strong> =
+<code>GTAB_space_auto_first_nofull_sel</code> — same behavior as
+Cangjie: space shows candidates, digit selects</li>
+<li><strong><code>find_inmd("simplex-punc")</code> is
+unambiguous</strong> —
+<code>strstr("simplex.gtab", "simplex-punc")</code> = NULL, so it never
+matches the plain simplex entry</li>
+</ul>
+<h2 id="status-at-end-of-session">Status at End of Session</h2>
+<ul>
+<li>6 IBus engines: gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array,
+gcin-cj5, gcin-simplex-punc</li>
+<li>25/25 unit tests pass</li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li>Phase 2 is complete for the available gcin snapshot</li>
+<li><strong>Phase 3: Windows TSF port</strong></li>
+</ul>
+<hr />
+<p><strong>Files Changed:</strong></p>
+<ul>
+<li><code>gcin-core/gcin-core.h</code> — added
+<code>gcin_core_feedkey_simplex_punc()</code> declaration</li>
+<li><code>gcin-core/gcin_stubs.cpp</code> —
+<code>g_simplex_punc_inmd</code>, init, implementation</li>
+<li><code>ibus-engine/gcin_engine.c</code> — mode 5, enable detection,
+switch case, factory</li>
+<li><code>ibus-engine/component/gcin.xml</code> — added
+<code>gcin-simplex-punc</code> engine entry</li>
+<li><code>gcin-core/test_feedkey.c</code> — 2 simplex-punc tests</li>
+<li><code>Makefile</code> — <code>simplex-punc.gtab</code> in tables
+target</li>
+</ul>
+</body>
+</html>

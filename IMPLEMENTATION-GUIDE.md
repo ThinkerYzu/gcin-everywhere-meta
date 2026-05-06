@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-05 (Session 13 — Phase 7 complete; `watch_fopen` fix noted in Phase 7 steps)
+**Last Updated:** 2026-05-05 (Session 16 — Phase 9: CJ5 and SimplexPunc engines added)
 
 ---
 
@@ -22,6 +22,7 @@
 - [Phase 6: Full-Width Character Mode](#phase-6-full-width-character-mode-cangjie--zhuyin-punctuation)
 - [Phase 7: Alt+Shift Phrase Table](#phase-7-altshift-phrase-table)
 - [Phase 8: Quick and Array Input Methods](#phase-8-quick-and-array-input-methods)
+- [Phase 9: Additional gtab Engines (CJ5, SimplexPunc)](#phase-9-additional-gtab-engines-cj5-simplexpunc)
 - [gcin Source File Reference](#gcin-source-file-reference)
 
 ---
@@ -1333,4 +1334,59 @@ NO_GTK_INIT=1 ./gcin2tab data/ar30.cin    && cp data/ar30.gtab    $(TABLES)/
 
 ---
 
-**Last Updated:** 2026-05-05 (Session 14 — Phase 2: Quick and Array input methods)
+## Phase 9: Additional gtab Engines (CJ5, SimplexPunc)
+
+**Goal:** Add CJ5 (倉頡五代) and Simplex+Punctuation (標點簡易) as further IBus engines. Both follow the same `feedkey_gtab_method()` pattern established in Phase 8.
+
+### Pattern: one new engine = five small changes
+
+For any additional gtab-based engine, repeat this checklist:
+
+1. **`gcin-core/gcin_stubs.cpp`** — add `static int g_<name>_inmd = -1;`; call `find_inmd("<gtab-stem>")` in `gcin_core_init()`; add `gcin_core_feedkey_<name>()` delegating to `feedkey_gtab_method()`.
+2. **`gcin-core/gcin-core.h`** — declare `gcin_core_feedkey_<name>()`.
+3. **`ibus-engine/gcin_engine.c`** — increment mode enum comment; add `case N` in `switch(e->mode)`; add `g_str_has_suffix(name, "<engine-suffix>")` in `gcin_engine_enable()`; register `"gcin-<name>"` in `main()`.
+4. **`ibus-engine/component/gcin.xml`** — add `<engine>` block.
+5. **`gcin-core/test_feedkey.c`** — add file-presence check for `<name>.gtab`; add 2–3 tests; wire into `main()`.
+6. **`Makefile`** — add `gcin2tab data/<name>.cin` + `cp` to `tables` target.
+
+### CJ5 (倉頡五代)
+
+`find_inmd("cj5")` is unambiguous: `strstr("cj.gtab", "cj5")` = NULL, so the Cangjie (CJ3) entry is never matched. CJ5 has 74,944 characters vs 13,209 in CJ3 — same code path, larger table.
+
+```c
+/* gcin_stubs.cpp */
+static int g_cj5_inmd = -1;
+/* in gcin_core_init(): */
+g_cj5_inmd = find_inmd("cj5");
+
+int gcin_core_feedkey_cj5(unsigned long keyval, int modifiers) {
+    return feedkey_gtab_method(g_cj5_inmd, keyval, modifiers);
+}
+```
+
+Engine name suffix: `"cj5"` → mode 4. Symbol: 五.
+
+### SimplexPunc (標點簡易)
+
+`simplex-punc.cin` extends simplex with punctuation as endkeys (`%endkey` includes `` `\,'[]/.-;,./1234567890-()~!: ``). `%space_style 4` = `GTAB_space_auto_first_nofull_sel` — same candidate-display behavior as Cangjie.
+
+`find_inmd("simplex-punc")` is unambiguous: `strstr("simplex.gtab", "simplex-punc")` = NULL.
+
+Engine name suffix: `"simplex-punc"` → mode 5. Symbol: 標.
+
+**Important:** In `gcin_engine_enable()`, `"simplex-punc"` must be checked **before** the cangjie catch-all `else`, not after `"quick"` — the suffix `"simplex-punc"` does not overlap with any existing suffix, but order matters for future additions.
+
+### Files changed (Sessions 15–16)
+
+| File | Change |
+|------|--------|
+| `gcin-core/gcin_stubs.cpp` | Added `g_cj5_inmd`, `g_simplex_punc_inmd`; feedkey functions |
+| `gcin-core/gcin-core.h` | Declared `gcin_core_feedkey_cj5()`, `gcin_core_feedkey_simplex_punc()` |
+| `ibus-engine/gcin_engine.c` | Modes 4 (CJ5) and 5 (SimplexPunc); enable detection; factory registration |
+| `ibus-engine/component/gcin.xml` | Added `gcin-cj5` and `gcin-simplex-punc` engine entries |
+| `Makefile` | Added `cj5.gtab` and `simplex-punc.gtab` to tables target |
+| `gcin-core/test_feedkey.c` | Added 5 tests (3 CJ5 + 2 SimplexPunc); 25 total |
+
+---
+
+**Last Updated:** 2026-05-05 (Session 16 — Phase 9: CJ5 and SimplexPunc engines)

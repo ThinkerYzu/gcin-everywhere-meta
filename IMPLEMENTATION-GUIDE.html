@@ -263,14 +263,29 @@ behavioral notes</a></li>
 <li><a href="#files-changed-2" id="toc-files-changed-2">Files
 changed</a></li>
 </ul></li>
+<li><a href="#phase-9-additional-gtab-engines-cj5-simplexpunc"
+id="toc-phase-9-additional-gtab-engines-cj5-simplexpunc">Phase 9:
+Additional gtab Engines (CJ5, SimplexPunc)</a>
+<ul>
+<li><a href="#pattern-one-new-engine-five-small-changes"
+id="toc-pattern-one-new-engine-five-small-changes">Pattern: one new
+engine = five small changes</a></li>
+<li><a href="#cj5-倉頡五代" id="toc-cj5-倉頡五代">CJ5
+(倉頡五代)</a></li>
+<li><a href="#simplexpunc-標點簡易"
+id="toc-simplexpunc-標點簡易">SimplexPunc (標點簡易)</a></li>
+<li><a href="#files-changed-sessions-1516"
+id="toc-files-changed-sessions-1516">Files changed (Sessions
+15–16)</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
 <h1 id="implementation-guide-gcin-everywhere">Implementation Guide:
 gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-05-05 (Session 13 — Phase
-7 complete; <code>watch_fopen</code> fix noted in Phase 7 steps)</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-05-05 (Session 16 — Phase
+9: CJ5 and SimplexPunc engines added)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -299,6 +314,8 @@ href="#phase-6-full-width-character-mode-cangjie--zhuyin-punctuation">Phase
 Table</a></li>
 <li><a href="#phase-8-quick-and-array-input-methods">Phase 8: Quick and
 Array Input Methods</a></li>
+<li><a href="#phase-9-additional-gtab-engines-cj5-simplexpunc">Phase 9:
+Additional gtab Engines (CJ5, SimplexPunc)</a></li>
 <li><a href="#gcin-source-file-reference">gcin Source File
 Reference</a></li>
 </ul>
@@ -2088,7 +2105,113 @@ entries</td>
 </tbody>
 </table>
 <hr />
-<p><strong>Last Updated:</strong> 2026-05-05 (Session 14 — Phase 2:
-Quick and Array input methods)</p>
+<h2 id="phase-9-additional-gtab-engines-cj5-simplexpunc">Phase 9:
+Additional gtab Engines (CJ5, SimplexPunc)</h2>
+<p><strong>Goal:</strong> Add CJ5 (倉頡五代) and Simplex+Punctuation
+(標點簡易) as further IBus engines. Both follow the same
+<code>feedkey_gtab_method()</code> pattern established in Phase 8.</p>
+<h3 id="pattern-one-new-engine-five-small-changes">Pattern: one new
+engine = five small changes</h3>
+<p>For any additional gtab-based engine, repeat this checklist:</p>
+<ol type="1">
+<li><strong><code>gcin-core/gcin_stubs.cpp</code></strong> — add
+<code>static int g_&lt;name&gt;_inmd = -1;</code>; call
+<code>find_inmd("&lt;gtab-stem&gt;")</code> in
+<code>gcin_core_init()</code>; add
+<code>gcin_core_feedkey_&lt;name&gt;()</code> delegating to
+<code>feedkey_gtab_method()</code>.</li>
+<li><strong><code>gcin-core/gcin-core.h</code></strong> — declare
+<code>gcin_core_feedkey_&lt;name&gt;()</code>.</li>
+<li><strong><code>ibus-engine/gcin_engine.c</code></strong> — increment
+mode enum comment; add <code>case N</code> in
+<code>switch(e-&gt;mode)</code>; add
+<code>g_str_has_suffix(name, "&lt;engine-suffix&gt;")</code> in
+<code>gcin_engine_enable()</code>; register
+<code>"gcin-&lt;name&gt;"</code> in <code>main()</code>.</li>
+<li><strong><code>ibus-engine/component/gcin.xml</code></strong> — add
+<code>&lt;engine&gt;</code> block.</li>
+<li><strong><code>gcin-core/test_feedkey.c</code></strong> — add
+file-presence check for <code>&lt;name&gt;.gtab</code>; add 2–3 tests;
+wire into <code>main()</code>.</li>
+<li><strong><code>Makefile</code></strong> — add
+<code>gcin2tab data/&lt;name&gt;.cin</code> + <code>cp</code> to
+<code>tables</code> target.</li>
+</ol>
+<h3 id="cj5-倉頡五代">CJ5 (倉頡五代)</h3>
+<p><code>find_inmd("cj5")</code> is unambiguous:
+<code>strstr("cj.gtab", "cj5")</code> = NULL, so the Cangjie (CJ3) entry
+is never matched. CJ5 has 74,944 characters vs 13,209 in CJ3 — same code
+path, larger table.</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* gcin_stubs.cpp */</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">int</span> g_cj5_inmd <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="co">/* in gcin_core_init(): */</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>g_cj5_inmd <span class="op">=</span> find_inmd<span class="op">(</span><span class="st">&quot;cj5&quot;</span><span class="op">);</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> gcin_core_feedkey_cj5<span class="op">(</span><span class="dt">unsigned</span> <span class="dt">long</span> keyval<span class="op">,</span> <span class="dt">int</span> modifiers<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feedkey_gtab_method<span class="op">(</span>g_cj5_inmd<span class="op">,</span> keyval<span class="op">,</span> modifiers<span class="op">);</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Engine name suffix: <code>"cj5"</code> → mode 4. Symbol: 五.</p>
+<h3 id="simplexpunc-標點簡易">SimplexPunc (標點簡易)</h3>
+<p><code>simplex-punc.cin</code> extends simplex with punctuation as
+endkeys (<code>%endkey</code> includes
+<code>`\,'[]/.-;,./1234567890-()~!:</code>). <code>%space_style 4</code>
+= <code>GTAB_space_auto_first_nofull_sel</code> — same candidate-display
+behavior as Cangjie.</p>
+<p><code>find_inmd("simplex-punc")</code> is unambiguous:
+<code>strstr("simplex.gtab", "simplex-punc")</code> = NULL.</p>
+<p>Engine name suffix: <code>"simplex-punc"</code> → mode 5. Symbol:
+標.</p>
+<p><strong>Important:</strong> In <code>gcin_engine_enable()</code>,
+<code>"simplex-punc"</code> must be checked <strong>before</strong> the
+cangjie catch-all <code>else</code>, not after <code>"quick"</code> —
+the suffix <code>"simplex-punc"</code> does not overlap with any
+existing suffix, but order matters for future additions.</p>
+<h3 id="files-changed-sessions-1516">Files changed (Sessions 15–16)</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin-core/gcin_stubs.cpp</code></td>
+<td>Added <code>g_cj5_inmd</code>, <code>g_simplex_punc_inmd</code>;
+feedkey functions</td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/gcin-core.h</code></td>
+<td>Declared <code>gcin_core_feedkey_cj5()</code>,
+<code>gcin_core_feedkey_simplex_punc()</code></td>
+</tr>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td>Modes 4 (CJ5) and 5 (SimplexPunc); enable detection; factory
+registration</td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/component/gcin.xml</code></td>
+<td>Added <code>gcin-cj5</code> and <code>gcin-simplex-punc</code>
+engine entries</td>
+</tr>
+<tr class="odd">
+<td><code>Makefile</code></td>
+<td>Added <code>cj5.gtab</code> and <code>simplex-punc.gtab</code> to
+tables target</td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Added 5 tests (3 CJ5 + 2 SimplexPunc); 25 total</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Last Updated:</strong> 2026-05-05 (Session 16 — Phase 9: CJ5
+and SimplexPunc engines)</p>
 </body>
 </html>
