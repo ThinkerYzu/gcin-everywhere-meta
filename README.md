@@ -1,8 +1,8 @@
 # gcin-everywhere
 
-**Status:** Phase 2 complete — Cangjie, Zhuyin, Quick, Array, full-width, phrase tables all working
+**Status:** Phase 10 complete — 7 IBus engines incl. unified gcin-everywhere (Ctrl+Alt+digit switcher); Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-06-21
 **Goal:** Port gcin's Traditional Chinese input engine to modern platforms, starting with GNOME/Wayland via IBus.
 
 ---
@@ -68,6 +68,7 @@ gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are pa
 - ✅ Array (行列) — `feedkey_gtab_method(g_array_inmd, ...)`; ar30.gtab
 - Dayi (大易) — skipped (dayi3.cin absent from gcin snapshot)
 - Bu-xie-mi (嘸蝦米) — future
+- ✅ Unified switcher — `gcin-everywhere` engine: `Ctrl+Alt+digit` switches method in place (mirrors gcin's native hotkeys); panel property shows the live method
 
 ### Phase 3: Cross-Platform (FUTURE)
 - Windows via Text Services Framework (TSF)
@@ -124,4 +125,4 @@ The agent (Claude) must actively maintain both **content and connections** in th
 
 ---
 
-**Last Updated:** 2026-05-05
+**Last Updated:** 2026-06-21

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>DESIGN – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#design-gcin-everywhere"
+id="toc-design-gcin-everywhere">Design: gcin-everywhere</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#design-philosophy" id="toc-design-philosophy">Design
+Philosophy</a></li>
+<li><a href="#architecture-overview"
+id="toc-architecture-overview">Architecture Overview</a>
+<ul>
+<li><a href="#component-roles" id="toc-component-roles">Component
+Roles</a></li>
+</ul></li>
+<li><a href="#key-design-decisions" id="toc-key-design-decisions">Key
+Design Decisions</a>
+<ul>
+<li><a
+href="#build-a-platform-independent-static-library-libgcin-core.a"
+id="toc-build-a-platform-independent-static-library-libgcin-core.a">1.
+Build a platform-independent static library (libgcin-core.a)</a></li>
+<li><a
+href="#eliminate-gtkx11-type-dependencies-via-gcin_core_build-in-gcin.h"
+id="toc-eliminate-gtkx11-type-dependencies-via-gcin_core_build-in-gcin.h">2.
+Eliminate GTK/X11 type dependencies via GCIN_CORE_BUILD in
+gcin.h</a></li>
+<li><a href="#one-binary-two-engines-registered-via-ibus-component-xml"
+id="toc-one-binary-two-engines-registered-via-ibus-component-xml">3. One
+binary, two engines registered via IBus component XML</a></li>
+<li><a
+href="#data-tables-compiled-by-gcins-existing-build-loaded-at-runtime"
+id="toc-data-tables-compiled-by-gcins-existing-build-loaded-at-runtime">4.
+Data tables compiled by gcin’s existing build, loaded at
+runtime</a></li>
+<li><a href="#ibus-built-in-candidate-window"
+id="toc-ibus-built-in-candidate-window">5. IBus built-in candidate
+window</a></li>
+<li><a
+href="#full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly"
+id="toc-full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly">6.
+Full-width character mode: un-stub full_char_proc, match gcin
+exactly</a></li>
+<li><a
+href="#altshift-phrase-table-intercept-in-engine-delegate-to-feed_phrase"
+id="toc-altshift-phrase-table-intercept-in-engine-delegate-to-feed_phrase">7.
+Alt+Shift phrase table: intercept in engine, delegate to
+feed_phrase()</a></li>
+<li><a
+href="#unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-place"
+id="toc-unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-place">8.
+Unified switcher engine (<code>gcin-everywhere</code>): Ctrl+Alt+digit
+switches mode in place</a></li>
+</ul></li>
+<li><a href="#data-model" id="toc-data-model">Data Model</a>
+<ul>
+<li><a href="#cangjie-table-based-input-flow"
+id="toc-cangjie-table-based-input-flow">Cangjie (table-based) input
+flow</a></li>
+<li><a href="#zhuyin-phonetic-input-flow"
+id="toc-zhuyin-phonetic-input-flow">Zhuyin (phonetic) input
+flow</a></li>
+<li><a href="#ibus-engine-state-per-engine-instance"
+id="toc-ibus-engine-state-per-engine-instance">IBus Engine State (per
+engine instance)</a></li>
+</ul></li>
+<li><a href="#ibus-engine-interface" id="toc-ibus-engine-interface">IBus
+Engine Interface</a>
+<ul>
+<li><a href="#key-routing-logic-in-engine_process_key_event"
+id="toc-key-routing-logic-in-engine_process_key_event">Key routing logic
+in <code>engine_process_key_event</code></a></li>
+</ul></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="design-gcin-everywhere">Design: gcin-everywhere</h1>
+<p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
+2026-05-04 <strong>Last Updated:</strong> 2026-05-04</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
+href="SPEC.html">SPEC</a> | <a href="DESIGN.html">DESIGN</a> <em>(you are
+here)</em> | <a href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a>
+| <a href="HANDOFF.html">HANDOFF</a></p>
+<p><strong>This Document:</strong></p>
+<ul>
+<li><a href="#design-philosophy">Design Philosophy</a></li>
+<li><a href="#architecture-overview">Architecture Overview</a></li>
+<li><a href="#key-design-decisions">Key Design Decisions</a></li>
+<li><a href="#data-model">Data Model</a></li>
+<li><a href="#ibus-engine-interface">IBus Engine Interface</a></li>
+</ul>
+<hr />
+<h2 id="design-philosophy">Design Philosophy</h2>
+<ol type="1">
+<li><strong>Minimize gcin changes.</strong> The gcin core is mature and
+correct. Only two source files are modified: <code>gcin.h</code> (add
+<code>GCIN_CORE_BUILD</code> type block) and <code>util.cpp</code>
+(guard one GTK dialog call).</li>
+<li><strong>Clean platform boundary.</strong> Platform dependencies are
+isolated in <code>gcin_stubs.cpp</code>. The gcin core files compile
+as-is against the type definitions in <code>gcin.h</code>.</li>
+<li><strong>Static library for portability.</strong> Core engine and
+tables are packaged as <code>libgcin-core.a</code> — platform
+integrations (IBus, future Windows TSF, macOS IMKit) link against
+it.</li>
+<li><strong>IBus built-in UI.</strong> Candidate display is delegated
+entirely to IBus — no custom windowing code needed.</li>
+<li><strong>Small scope.</strong> Phase 1 ships one working thing:
+Cangjie and Zhuyin on GNOME/Wayland. No feature creep.</li>
+</ol>
+<hr />
+<h2 id="architecture-overview">Architecture Overview</h2>
+<pre><code>┌─────────────────────────────────────────────────────┐
+│              GNOME / Wayland Applications            │
+│           (GTK4, Qt6, any IBus-aware app)            │
+└──────────────────────┬──────────────────────────────┘
+                       │ Wayland text-input protocol
+┌──────────────────────▼──────────────────────────────┐
+│                  ibus-daemon                         │
+│         (GNOME&#39;s input method coordinator)           │
+└──────────────────────┬──────────────────────────────┘
+                       │ D-Bus (IBus engine protocol)
+┌──────────────────────▼──────────────────────────────┐
+│   ibus-engine-gcin  (ibus-engine/)                   │
+│   gcin_engine.c — IBus GObject                       │
+│   - process_key_event()                              │
+│   - enable() / disable() / reset()                   │
+└──────────────────────┬──────────────────────────────┘
+                       │ links against
+┌──────────────────────▼──────────────────────────────┐
+│   libgcin-core.a  (gcin-core/)                       │
+│                                                      │
+│   gcin_stubs.cpp — public API + stubs                │
+│   - gcin_core_init() / feedkey_cangjie/zhuyin()      │
+│   - send_text() → GcinCommitCb callback              │
+│   - extern globals (dpy=NULL, gwin0=NULL, ...)       │
+│   - UI function stubs (show_win_gtab etc.)           │
+│                       │                              │
+│   gcin/ source (compiled in, modified minimally)     │
+│   ┌─────────────────┐  ┌──────────────────────────┐ │
+│   │ gtab.cpp + buf  │  │ pho.cpp + pho-util etc.  │ │
+│   │ feedkey_gtab()  │  │ feedkey_pho()            │ │
+│   └────────┬────────┘  └──────────┬───────────────┘ │
+│            └──────────┬───────────┘                  │
+│   ┌──────────────────▼──────────────────────────┐   │
+│   │  gcin Data Tables (loaded at runtime)        │   │
+│   │  cj.gtab  pho.tab  tsin                      │   │
+│   └──────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────┘</code></pre>
+<h3 id="component-roles">Component Roles</h3>
+<table>
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 32%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>Source</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ibus-engine-gcin</code> binary</td>
+<td>New (<code>ibus-engine/</code>)</td>
+<td>Process launched by ibus-daemon</td>
+</tr>
+<tr class="even">
+<td><code>gcin_engine.c</code></td>
+<td>New</td>
+<td>IBus GObject: handles IBus protocol, calls gcin-core API</td>
+</tr>
+<tr class="odd">
+<td><code>libgcin-core.a</code></td>
+<td>New (<code>gcin-core/</code>)</td>
+<td>Platform-independent static library</td>
+</tr>
+<tr class="even">
+<td><code>gcin_stubs.cpp</code></td>
+<td>New</td>
+<td>Public API, extern globals, UI stubs, send_text callback</td>
+</tr>
+<tr class="odd">
+<td><code>gcin/gcin.h</code></td>
+<td>Modified (4 files total)</td>
+<td>GCIN_CORE_BUILD type block (6 types only) + guards on unused
+declarations</td>
+</tr>
+<tr class="even">
+<td><code>gcin/IC.h</code></td>
+<td>Modified</td>
+<td>Guard <code>PreeditAttributes</code>/<code>StatusAttributes</code>
+(XIM-only, unused by core)</td>
+</tr>
+<tr class="odd">
+<td><code>gcin/util.cpp</code></td>
+<td>Modified</td>
+<td>Guard GTK dialog calls in <code>p_err()</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin/gcin-conf.cpp</code></td>
+<td>Modified</td>
+<td>Guard <code>get_gcin_atom()</code> which calls
+<code>XInternAtom</code></td>
+</tr>
+<tr class="odd">
+<td><code>gtab.cpp</code> + <code>gtab-buf.cpp</code> + related</td>
+<td>gcin (as-is)</td>
+<td>Cangjie: <code>feedkey_gtab()</code>, key buffer, table lookup</td>
+</tr>
+<tr class="even">
+<td><code>pho.cpp</code> + related</td>
+<td>gcin (as-is)</td>
+<td>Zhuyin: <code>feedkey_pho()</code>, phonetic lookup</td>
+</tr>
+<tr class="odd">
+<td><code>data/cj.gtab</code></td>
+<td>gcin (built)</td>
+<td>Compiled Cangjie character table</td>
+</tr>
+<tr class="even">
+<td><code>data/pho.tab</code></td>
+<td>gcin (built)</td>
+<td>Compiled Zhuyin phonetic table</td>
+</tr>
+<tr class="odd">
+<td><code>data/tsin</code></td>
+<td>gcin (built)</td>
+<td>Word frequency database</td>
+</tr>
+<tr class="even">
+<td><code>gcin.xml</code></td>
+<td>New</td>
+<td>IBus component registration file</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-design-decisions">Key Design Decisions</h2>
+<h3 id="build-a-platform-independent-static-library-libgcin-core.a">1.
+Build a platform-independent static library (libgcin-core.a)</h3>
+<p><strong>Decision:</strong> Compile selected gcin source files into
+<code>libgcin-core.a</code>. Platform integrations (IBus, future Windows
+TSF, macOS IMKit) link against it. The library has zero GTK/X11 runtime
+dependency.</p>
+<p><strong>Rationale:</strong> A static library creates a clean boundary
+between the platform-independent input logic and each platform’s
+integration layer. It also enables future ports without touching the
+gcin core again.</p>
+<p><strong>Files compiled in:</strong> <code>gtab.cpp</code>,
+<code>gtab-buf.cpp</code>, <code>pho.cpp</code>, and ~15 other gcin
+files. Excluded: <code>gcin.cpp</code> (main), all UI/window files, XIM
+server, <code>gcin-common.cpp</code> (GTK calls; its two useful
+functions re-implemented in <code>gcin_stubs.cpp</code>).</p>
+<h3
+id="eliminate-gtkx11-type-dependencies-via-gcin_core_build-in-gcin.h">2.
+Eliminate GTK/X11 type dependencies via GCIN_CORE_BUILD in gcin.h</h3>
+<p><strong>Decision:</strong> Add a <code>#ifdef GCIN_CORE_BUILD</code>
+block to <code>gcin/gcin.h</code> that defines all needed types
+(<code>gboolean</code>, <code>GtkWidget</code>, <code>Display</code>,
+<code>KeySym</code>, etc.) as plain C types inline — no system headers.
+Guard the GTK dialog calls in <code>gcin/util.cpp</code> with
+<code>#ifndef GCIN_CORE_BUILD</code>.</p>
+<p><strong>Rationale:</strong> Source audit confirmed that only
+<code>gcin-common.cpp</code> and <code>util.cpp</code> make actual
+GTK/X11 function calls. All other files use these types only as pointer
+declarations or function parameter types — trivially satisfied by simple
+typedefs. gcin’s own WIN32 path in <code>os-dep.h</code> already does
+exactly this. No fake/shadow headers needed.</p>
+<p><strong>Result:</strong> Four gcin source files modified total.
+<code>libgcin-core.a</code> requires only a C++ compiler and the
+standard library.</p>
+<h3 id="one-binary-two-engines-registered-via-ibus-component-xml">3. One
+binary, two engines registered via IBus component XML</h3>
+<p><strong>Decision:</strong> A single <code>ibus-engine-gcin</code>
+binary hosts both Cangjie and Zhuyin engines. The IBus component XML
+declares both as separate engine entries. The binary starts the correct
+engine based on the engine name passed by ibus-daemon.</p>
+<p><strong>Rationale:</strong> Simpler deployment and shared
+initialization cost for gcin data tables. IBus supports multiple engines
+per component.</p>
+<h3
+id="data-tables-compiled-by-gcins-existing-build-loaded-at-runtime">4.
+Data tables compiled by gcin’s existing build, loaded at runtime</h3>
+<p><strong>Decision:</strong> The <code>.cin</code> and
+<code>.tab2.src</code> source files are compiled to binary format by
+gcin’s existing tools (<code>cintotab</code>, <code>phoconv</code>) as
+part of the build. The IBus engine loads them at runtime from a fixed
+install path (e.g., <code>/usr/share/gcin/</code>).</p>
+<p><strong>Rationale:</strong> The table compiler is already correct and
+battle-tested. Reusing it avoids re-implementing the binary format.
+Runtime loading matches how gcin already works.</p>
+<h3 id="ibus-built-in-candidate-window">5. IBus built-in candidate
+window</h3>
+<p><strong>Decision:</strong> Use
+<code>ibus_engine_update_lookup_table()</code> with IBus’s built-in
+candidate window. No custom candidate UI.</p>
+<p><strong>Rationale:</strong> Simpler, integrates naturally with
+GNOME’s IBus UI. Can revisit with a custom window in a later phase if
+the look and feel matters.</p>
+<h3
+id="full-width-character-mode-un-stub-full_char_proc-match-gcin-exactly">6.
+Full-width character mode: un-stub full_char_proc, match gcin
+exactly</h3>
+<p><strong>Decision:</strong> Implement
+<code>half_char_to_full_char()</code> and <code>full_char_proc()</code>
+in <code>gcin_stubs.cpp</code> (removing the FALSE stubs), and handle
+Shift+Space in <code>gcin_engine.c</code> to toggle
+<code>current_CS-&gt;b_half_full_char</code>. This matches gcin’s own
+mechanism exactly.</p>
+<p><strong>How gcin does it:</strong></p>
+<p>gcin uses a full-width character mode toggled by Shift+Space. When
+active (<code>b_half_full_char == 1</code>), <code>feedkey_gtab()</code>
+routes every key through <code>full_char_proc()</code> before any table
+lookup. <code>full_char_proc()</code> calls
+<code>half_char_to_full_char()</code> which indexes into
+<code>fullchar[]</code> — a complete ASCII→full-width mapping table
+already compiled in <code>fullchar.cpp</code>.</p>
+<p>The <code>fullchar[]</code> table covers ALL printable ASCII (space
+through <code>~</code>):</p>
+<ul>
+<li>Letters → ａ-ｚ, Ａ-Ｚ</li>
+<li>Digits → ０-９</li>
+<li>Punctuation → ，。！？：；「」…etc.</li>
+</ul>
+<p><code>feedkey_gtab()</code> already calls
+<code>full_char_proc()</code> at every key-handling branch when
+<code>b_half_full_char == 1</code> — the wiring is already in gcin. We
+only need to un-stub the two functions and wire the toggle.</p>
+<p><strong>Why our original stub broke it:</strong>
+<code>full_char_proc()</code> was stubbed to return <code>FALSE</code>
+because it’s in excluded <code>eve.cpp</code>.
+<code>half_char_to_full_char()</code> was stubbed to return
+<code>NULL</code> (also in excluded <code>gcin.cpp</code>). Both have
+zero GTK/X11 dependencies — they only use <code>fullchar[]</code> and
+<code>send_text()</code>.</p>
+<p><strong>Implementation:</strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* in gcin_stubs.cpp — replace the NULL stub */</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>half_char_to_full_char<span class="op">(</span>KeySym xkey<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">extern</span> unich_t <span class="op">*</span>fullchar<span class="op">[];</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>xkey <span class="op">&lt;</span> <span class="ch">&#39; &#39;</span> <span class="op">||</span> xkey <span class="op">&gt;</span> <span class="dv">127</span><span class="op">)</span> <span class="cf">return</span> NULL<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fullchar<span class="op">[</span>xkey <span class="op">-</span> <span class="ch">&#39; &#39;</span><span class="op">];</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">/* in gcin_stubs.cpp — replace the FALSE stub */</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>gboolean full_char_proc<span class="op">(</span>KeySym keysym<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> <span class="op">*</span>s <span class="op">=</span> half_char_to_full_char<span class="op">(</span>keysym<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>s<span class="op">)</span> <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">char</span> tt<span class="op">[</span>CH_SZ <span class="op">+</span> <span class="dv">1</span><span class="op">];</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    utf8cpy<span class="op">(</span>tt<span class="op">,</span> s<span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">/* For our use: not TSIN mode, phrase buffer off → send_text() */</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    send_text<span class="op">(</span>tt<span class="op">);</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Toggle in gcin_engine.c:</strong> Shift+Space
+(<code>keyval == XK_space &amp;&amp; modifiers &amp; ShiftMask</code>)
+flips <code>current_CS-&gt;b_half_full_char</code> and resets gcin
+state.</p>
+<p><strong>Scope:</strong> This applies to both Cangjie and Zhuyin (both
+call <code>full_char_proc()</code> when <code>b_half_full_char</code> is
+set in their respective feedkey functions). It is the correct, complete
+solution — not a partial punctuation-only workaround.</p>
+<h3
+id="altshift-phrase-table-intercept-in-engine-delegate-to-feed_phrase">7.
+Alt+Shift phrase table: intercept in engine, delegate to
+feed_phrase()</h3>
+<p><strong>Decision:</strong> Intercept
+<code>Alt+Shift+&lt;key&gt;</code> in
+<code>gcin_engine_process_key_event()</code> before routing to feedkey
+functions, and call a new
+<code>gcin_core_feed_phrase(keyval, modifiers)</code> API that wraps
+<code>feed_phrase()</code> from <code>phrase.cpp</code> (already
+compiled into libgcin-core.a).</p>
+<p><strong>How gcin does it:</strong></p>
+<p>In <code>eve.cpp</code>, before any input-method dispatch, two
+separate intercepts both call <code>feed_phrase()</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* eve.cpp:1227 — Alt+Shift → phrase.table */</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>kev_state <span class="op">&amp;</span> <span class="op">(</span>Mod1Mask<span class="op">|</span>ShiftMask<span class="op">))</span> <span class="op">==</span> <span class="op">(</span>Mod1Mask<span class="op">|</span>ShiftMask<span class="op">))</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> feed_phrase<span class="op">(</span>keysym<span class="op">,</span> kev_state<span class="op">);</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">/* eve.cpp:1293 — Ctrl (alone) → phrase-ctrl.table */</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>kev_state <span class="op">&amp;</span> ControlMask<span class="op">)</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>feed_phrase<span class="op">(</span>keysym<span class="op">,</span> kev_state<span class="op">))</span> <span class="cf">return</span> TRUE<span class="op">;</span></span></code></pre></div>
+<p><code>feed_phrase()</code> is in <code>phrase.cpp</code> (compiled).
+It internally routes to <code>tran</code> (phrase.table) or
+<code>tran_ctrl</code> (phrase-ctrl.table) based on
+<code>ControlMask</code>. With our build (phrase buffer off,
+<code>current_method_type()</code> returns 0), it calls
+<code>send_text(str)</code> directly — the same path as all other
+committed text. If the key is not in the table,
+<code>feed_phrase()</code> returns FALSE and the key passes through.</p>
+<p><strong><code>phrase.table</code></strong> (Alt+Shift):</p>
+<pre><code>Alt+Shift+i  →  、       Alt+Shift+h  →  「      Alt+Shift+j  →  」
+Alt+Shift+o  →  。       Alt+Shift+f  →  『      Alt+Shift+g  →  』
+Alt+Shift+,  →  ，       Alt+Shift+[  →  【      Alt+Shift+]  →  】
+Alt+Shift+.  →  ‧       Alt+Shift+;  →  ；      Alt+Shift+k  →  §
+Alt+Shift+m  →  ─       Alt+Shift+l  →  │       (+ box drawing, etc.)</code></pre>
+<p><strong><code>phrase-ctrl.table</code></strong> (Ctrl):</p>
+<pre><code>Ctrl+,  →  ，    Ctrl+.  →  。    Ctrl+&#39;  →  、
+Ctrl+;  →  ；    Ctrl+/  →  ？    Ctrl+[  →  「    Ctrl+]  →  」</code></pre>
+<p>Both tables are user-editable.</p>
+<p><strong>Why a wrapper instead of calling feed_phrase() directly from
+gcin_engine.c:</strong> <code>feed_phrase()</code> is declared in
+<code>phrase.cpp</code> with C++ linkage; the engine is C.
+<code>gcin_core_feed_phrase()</code> in <code>gcin_stubs.cpp</code>
+provides the <code>extern "C"</code> bridge and keeps the engine layer
+isolated from libgcin-core internals.</p>
+<p><strong>Data files:</strong> <code>phrase.table</code> and
+<code>phrase-ctrl.table</code> must be added to the install target so
+<code>feed_phrase()</code> can find them at runtime alongside the other
+table files.</p>
+<h3
+id="unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-place">8.
+Unified switcher engine (<code>gcin-everywhere</code>): Ctrl+Alt+digit
+switches mode in place</h3>
+<p><strong>Decision:</strong> Add a 7th IBus engine,
+<code>gcin-everywhere</code>, that is <strong>not</strong> bound to a
+single input method. Inside it, <code>Ctrl+Alt+&lt;digit&gt;</code>
+switches the active method in place, mirroring gcin’s native hotkeys.
+The six single-method engines are unchanged; the switching code is gated
+so it only runs for <code>gcin-everywhere</code>.</p>
+<p><strong>How gcin does it:</strong></p>
+<p>In <code>eve.cpp:1240</code>, when Ctrl+Alt is held, gcin maps the
+keysym to an input-method index and switches the active method
+in-process:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/* eve.cpp:1240 */</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">((</span>kev_state <span class="op">&amp;</span> ControlMask<span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="op">(</span>kev_state <span class="op">&amp;</span> <span class="op">(</span>Mod1Mask<span class="op">|</span>Mod5Mask<span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> kidx <span class="op">=</span> gcin_switch_keys_lookup<span class="op">(</span>keysym<span class="op">);</span>   <span class="co">// scan inmd[] for matching key_ch</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>kidx <span class="op">&lt;</span> <span class="dv">0</span><span class="op">)</span> <span class="cf">return</span> FALSE<span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    current_CS<span class="op">-&gt;</span>im_state <span class="op">=</span> GCIN_STATE_CHINESE<span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    init_in_method<span class="op">(</span>kidx<span class="op">);</span>                          <span class="co">// switch cur_inmd / gtab in place</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> TRUE<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>gcin_switch_keys_lookup()</code>
+(<code>gtab-list.cpp:156</code>) scans <code>inmd[]</code> for the entry
+whose <code>key_ch</code> (2nd column of <code>gtab.list</code>) equals
+the pressed digit. This is purely <em>intra-process</em> state — exactly
+what our engine already does per keypress via
+<code>feedkey_gtab_method()</code> (sets
+<code>current_CS-&gt;in_method</code> + <code>init_gtab()</code>).</p>
+<p><strong>Why this maps cleanly onto our architecture:</strong>
+<code>gcin_engine.c</code> already has a mutable <code>e-&gt;mode</code>
+field and a <code>switch(e-&gt;mode)</code> dispatch in
+<code>process_key_event()</code>. The single- method engines fix
+<code>e-&gt;mode</code> once in <code>enable()</code> from the
+engine-name suffix. The unified engine just makes
+<code>e-&gt;mode</code> <strong>mutable at runtime</strong>: a
+Ctrl+Alt+digit handler maps the digit to a mode and updates
+<code>e-&gt;mode</code>. No core changes are needed — the per-mode
+feedkey functions
+(<code>gcin_core_feedkey_cangjie/zhuyin/quick/array/cj5/simplex_punc</code>)
+already perform the <code>init_gtab()</code>/<code>in_method</code>
+switch on their first call after a mode change.</p>
+<p><strong>Digit → mode mapping</strong> (follows gcin’s
+<code>gtab.list</code> <code>key_ch</code> where defined; 4/5 are
+extensions since gcin assigns Quick and SimplexPunc <code>-</code>, not
+a digit):</p>
+<table>
+<thead>
+<tr class="header">
+<th>Hotkey</th>
+<th>gcin <code>key_ch</code></th>
+<th><code>e-&gt;mode</code></th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Ctrl+Alt+1</code></td>
+<td><code>1</code></td>
+<td>0</td>
+<td>倉頡 Cangjie</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+2</code></td>
+<td><code>2</code></td>
+<td>4</td>
+<td>倉五 CJ5</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+3</code></td>
+<td><code>3</code></td>
+<td>1</td>
+<td>注音 Zhuyin</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+4</code></td>
+<td>(ext.)</td>
+<td>2</td>
+<td>速成 Quick</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+5</code></td>
+<td>(ext.)</td>
+<td>5</td>
+<td>標點簡易 SimplexPunc</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+8</code></td>
+<td><code>8</code></td>
+<td>3</td>
+<td>行列 Array</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Handler placement:</strong> the Ctrl+Alt+digit check must run
+<strong>first</strong> in <code>process_key_event()</code> — before the
+existing “Ctrl (without Alt) → phrase-ctrl.table” intercept (which
+requires <code>!(modifiers &amp; MOD1)</code> and so won’t fire on
+Ctrl+Alt anyway) and before the feedkey dispatch. On a recognized digit:
+reset composition state, update <code>e-&gt;mode</code>, update the
+panel property (below), and return <code>TRUE</code> (consume). An
+unrecognized digit/key under Ctrl+Alt returns <code>FALSE</code> to pass
+through to the app.</p>
+<p><strong>Gating to the unified engine:</strong>
+<code>gcin_engine_enable()</code> sets
+<code>e-&gt;allow_switch = TRUE</code> only when the engine name ends
+with <code>everywhere</code> (and starts that engine in Cangjie = mode
+0); for the six single-method engines <code>allow_switch</code> stays
+<code>FALSE</code> so Ctrl+Alt+digit falls through to the app as
+before.</p>
+<p><strong>Visual feedback — IBus property:</strong> the unified engine
+registers a single <code>IBusProperty</code> (type
+<code>PROP_TYPE_NORMAL</code>) in
+<code>gcin_engine_constructed</code>/<code>enable</code> via
+<code>ibus_engine_register_properties()</code>. On each switch,
+<code>ibus_engine_update_property()</code> updates the property’s
+<strong>symbol</strong> and <strong>label</strong> to the active method
+(全→倉/注/速/列/五/標), so the GNOME panel shows which method is live.
+The single-method engines do not register this property.</p>
+<p><strong>Why a 7th engine rather than replacing the six:</strong> the
+dedicated engines remain useful for users who want a fixed method and an
+accurate panel label; <code>gcin-everywhere</code> is an additive
+convenience that reproduces gcin’s all-in-one switching UX.</p>
+<p><strong>English toggle — <code>Ctrl+Space</code> (gcin-native
+<code>gcin_im_toggle</code>):</strong> within
+<code>gcin-everywhere</code>, <code>Ctrl+Space</code> flips the engine’s
+<code>chinese_mode</code> flag between Chinese input and English
+passthrough. In English mode <code>process_key_event()</code> returns
+FALSE for every key (the app receives raw keystrokes); the active method
+(<code>e-&gt;mode</code>) is untouched, so toggling back resumes it. The
+panel property shows 英 in English mode. The handler is placed
+<strong>before</strong> the <code>if (!chinese_mode) return FALSE</code>
+early-return so it can also turn Chinese back on. The single-method
+engines do not toggle — they return FALSE for <code>Ctrl+Space</code> so
+desktop source-switching still works there.</p>
+<p><strong>Why this needs desktop config, not just code:</strong> on
+GNOME/Wayland, mutter checks its own keyboard shortcuts <em>before</em>
+forwarding a key to the IBus engine. If any desktop shortcut binds plain
+<code>Ctrl+Space</code> (GNOME’s <code>switch-input-source</code> /
+<code>switch-input-source-backward</code>, or IBus’s legacy
+<code>general.hotkey.trigger</code>), the key never reaches the engine
+and the toggle can’t fire. Those bindings must be cleared (or moved to
+<code>Shift+Ctrl+Space</code> / <code>Super+Space</code>) so plain
+<code>Ctrl+Space</code> reaches the engine. Symmetric two-press behavior
+when switching desktop input sources is the tell-tale of a double-bound
+<code>Ctrl+Space</code>. See <a
+href="HANDOFF.html#key-design-decisions">HANDOFF key design
+decisions</a>.</p>
+<hr />
+<h2 id="data-model">Data Model</h2>
+<h3 id="cangjie-table-based-input-flow">Cangjie (table-based) input
+flow</h3>
+<pre><code>Key sequence (e.g., &quot;dm&quot; for 大木)
+    ↓
+gtab key buffer (accumulates up to MAX_GTAB_KEYS keys)
+    ↓
+Binary search in INMD.items[] (sorted ITEM array from cj.gtab)
+    ↓
+Candidate list: array of Unicode characters
+    ↓
+IBus lookup table → user selects → commit UTF-8 character</code></pre>
+<p><strong>Key structure:</strong> <code>ITEM</code> — maps a packed key
+bitmask to a Unicode codepoint. <strong>Table metadata:</strong>
+<code>TableHead</code> — describes the input method (name, max key
+length, selection keys). <strong>Runtime state:</strong>
+<code>INMD</code> — loaded table + current key buffer + candidate
+array.</p>
+<h3 id="zhuyin-phonetic-input-flow">Zhuyin (phonetic) input flow</h3>
+<pre><code>Phonetic key (e.g., ㄓ ㄨ ˋ for &quot;住&quot;)
+    ↓
+Phonetic buffer: initial + medial + final + tone
+    ↓
+Lookup in pho.tab (phonetic → Unicode codepoint list)
+    ↓
+Candidate list (filtered by tsin word frequency if phrase mode)
+    ↓
+IBus lookup table → user selects → commit UTF-8 character(s)</code></pre>
+<p><strong>Key structure:</strong> <code>pho_item</code> — maps a
+phonetic code (initial/medial/final/tone packed) to a Unicode codepoint.
+<strong>Keyboard layout:</strong> Configurable (Standard/Hsu/IBM/etc.) —
+stored in <code>.kbmsrc</code> / compiled keyboard map.</p>
+<h3 id="ibus-engine-state-per-engine-instance">IBus Engine State (per
+engine instance)</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">typedef</span> <span class="kw">struct</span> <span class="op">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    IBusEngine parent<span class="op">;</span>          <span class="co">// must be first</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    INMD      <span class="op">*</span>inmd<span class="op">;</span>            <span class="co">// gcin input method descriptor (Cangjie) or NULL</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    pho_state  pho<span class="op">;</span>             <span class="co">// gcin phonetic state (Zhuyin) or zeroed</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    IBusLookupTable <span class="op">*</span>table<span class="op">;</span>     <span class="co">// candidate table (reused across key events)</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    engine_mode_t mode<span class="op">;</span>         <span class="co">// CANGJIE or ZHUYIN</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span>        input_mode<span class="op">;</span>      <span class="co">// Chinese vs. English passthrough</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> GcinEngine<span class="op">;</span></span></code></pre></div>
+<hr />
+<h2 id="ibus-engine-interface">IBus Engine Interface</h2>
+<p>The IBus engine implements these virtual methods by subclassing
+<code>IBusEngine</code>:</p>
+<table>
+<colgroup>
+<col style="width: 32%" />
+<col style="width: 36%" />
+<col style="width: 32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Trigger</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>engine_enable</code></td>
+<td>User selects this input source</td>
+<td>Load data tables, initialize gcin state</td>
+</tr>
+<tr class="even">
+<td><code>engine_disable</code></td>
+<td>User switches away</td>
+<td>Reset gcin state, clear preedit</td>
+</tr>
+<tr class="odd">
+<td><code>engine_process_key_event</code></td>
+<td>Every keypress in a focused app</td>
+<td>Route key to gcin; update preedit + candidates; commit on
+confirmation</td>
+</tr>
+<tr class="even">
+<td><code>engine_candidate_clicked</code></td>
+<td>User clicks a candidate</td>
+<td>Commit the clicked character</td>
+</tr>
+<tr class="odd">
+<td><code>engine_property_activate</code></td>
+<td>User changes a property</td>
+<td>Switch between Chinese/English mode</td>
+</tr>
+<tr class="even">
+<td><code>engine_reset</code></td>
+<td>Focus lost or ESC</td>
+<td>Clear preedit and candidate state</td>
+</tr>
+<tr class="odd">
+<td><code>engine_focus_out</code></td>
+<td>App loses focus</td>
+<td>Same as reset</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-routing-logic-in-engine_process_key_event">Key routing logic
+in <code>engine_process_key_event</code></h3>
+<pre><code>if key is modifier-only → return FALSE (pass through)
+if in English passthrough mode → return FALSE
+if mode == CANGJIE:
+    forward to gtab key handler
+    if output ready → commit via ibus_engine_commit_text()
+    update preedit via ibus_engine_update_preedit_text()
+    update candidates via ibus_engine_update_lookup_table()
+if mode == ZHUYIN:
+    forward to pho key handler
+    same update sequence
+return TRUE (key consumed)</code></pre>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-21 (added decision 8: unified
+gcin-everywhere switcher engine)</p>
+</body>
+</html>

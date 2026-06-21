@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-06-21 (added FR8: unified `gcin-everywhere` switcher engine)
 **Status:** Approved
 
 ---
@@ -69,6 +69,21 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
 5. **Preedit / composition display** — Show in-progress input (preedit string) in the input field while composing.
 6. **Character commitment** — Commit the selected Traditional Chinese character(s) to the application on confirmation.
 7. **Input method switching** — User can switch between Cangjie and Zhuyin (and other supported methods) via IBus/GNOME.
+8. **Unified switcher engine (`gcin-everywhere`)** — A single IBus engine that lets the user switch between all supported input methods *in place* via `Ctrl+Alt+<digit>`, mirroring gcin's native hotkeys. The digit→method mapping follows gcin's `gtab.list` `key_ch` column where defined, extended for methods gcin leaves unnumbered:
+
+   | Hotkey | Method |
+   |--------|--------|
+   | `Ctrl+Alt+1` | 倉頡 Cangjie |
+   | `Ctrl+Alt+2` | 倉五 CJ5 |
+   | `Ctrl+Alt+3` | 注音 Zhuyin |
+   | `Ctrl+Alt+4` | 速成 Quick (extension — gcin uses `-`) |
+   | `Ctrl+Alt+5` | 標點簡易 SimplexPunc (extension — gcin uses `-`) |
+   | `Ctrl+Alt+8` | 行列 Array |
+
+   - The switch persists for the session until changed again; the engine starts in Cangjie.
+   - `Ctrl+Alt+<digit>` switching is active **only** in the `gcin-everywhere` engine. The six single-method engines (`gcin-cangjie`, …) remain fixed to their method so the IBus panel label stays accurate.
+   - The IBus panel reflects the active method via an engine property (symbol updates 全→倉/注/…).
+9. **English toggle (`Ctrl+Space`)** — within `gcin-everywhere`, `Ctrl+Space` toggles between Chinese input and English passthrough in place — the gcin-native `gcin_im_toggle` behavior. The previously selected method is preserved, so toggling back resumes it. The panel symbol shows 英 while in English. This is an in-engine toggle (not a desktop input-source switch), so it requires that no desktop shortcut grab plain `Ctrl+Space` (see DESIGN §8).
 
 ### Non-Functional Requirements
 
@@ -95,6 +110,7 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
 3. **GTK4 and Qt6 compatibility** — Input works correctly in at least one GTK4 app and one Qt6 app.
 4. **IBus registration** — Engine appears in GNOME Settings → Keyboard → Input Sources and can be selected without manual D-Bus manipulation.
 5. **No crashes** — Engine runs stably for a 30-minute typing session without crashing or hanging.
+6. **Unified switching works** — With the `gcin-everywhere` engine active, `Ctrl+Alt+1/2/3/4/5/8` switches the active method in place; subsequent keystrokes use the newly selected method and the panel symbol updates accordingly.
 
 ---
 
@@ -111,4 +127,4 @@ All open questions resolved.
 
 ---
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-06-21 (added FR8: unified `gcin-everywhere` switcher engine)

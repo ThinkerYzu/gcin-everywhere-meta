@@ -82,11 +82,13 @@ Package</a></li>
 </ul>
 </nav>
 <h1 id="gcin-everywhere">gcin-everywhere</h1>
-<p><strong>Status:</strong> Phase 2 complete — Cangjie, Zhuyin, Quick,
-Array, full-width, phrase tables all working <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-05-05
-<strong>Goal:</strong> Port gcin’s Traditional Chinese input engine to
-modern platforms, starting with GNOME/Wayland via IBus.</p>
+<p><strong>Status:</strong> Phase 10 complete — 7 IBus engines
+incl. unified gcin-everywhere (Ctrl+Alt+digit switcher); Cangjie,
+Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all
+working <strong>Created:</strong> 2026-05-04 <strong>Last
+Updated:</strong> 2026-06-21 <strong>Goal:</strong> Port gcin’s
+Traditional Chinese input engine to modern platforms, starting with
+GNOME/Wayland via IBus.</p>
 <hr />
 <h2 id="project-documentation">Project Documentation</h2>
 <h3 id="core-documentation">Core Documentation</h3>
@@ -181,6 +183,9 @@ Additional Input Methods (IN PROGRESS)</h3>
 <code>feedkey_gtab_method(g_array_inmd, ...)</code>; ar30.gtab</li>
 <li>Dayi (大易) — skipped (dayi3.cin absent from gcin snapshot)</li>
 <li>Bu-xie-mi (嘸蝦米) — future</li>
+<li>✅ Unified switcher — <code>gcin-everywhere</code> engine:
+<code>Ctrl+Alt+digit</code> switches method in place (mirrors gcin’s
+native hotkeys); panel property shows the live method</li>
 </ul>
 <h3 id="phase-3-cross-platform-future">Phase 3: Cross-Platform
 (FUTURE)</h3>
@@ -249,6 +254,6 @@ the task and push forward without asking questions.</p>
 this and implement the next phase without asking clarifying
 questions?”</p>
 <hr />
-<p><strong>Last Updated:</strong> 2026-05-05</p>
+<p><strong>Last Updated:</strong> 2026-06-21</p>
 </body>
 </html>

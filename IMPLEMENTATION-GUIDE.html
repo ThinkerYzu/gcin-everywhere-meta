@@ -278,14 +278,34 @@ id="toc-simplexpunc-標點簡易">SimplexPunc (標點簡易)</a></li>
 id="toc-files-changed-sessions-1516">Files changed (Sessions
 15–16)</a></li>
 </ul></li>
+<li><a href="#phase-10-unified-switcher-engine-gcin-everywhere"
+id="toc-phase-10-unified-switcher-engine-gcin-everywhere">Phase 10:
+Unified Switcher Engine (gcin-everywhere)</a>
+<ul>
+<li><a href="#why-this-needs-no-gcin-core-changes"
+id="toc-why-this-needs-no-gcin-core-changes">Why this needs no gcin-core
+changes</a></li>
+<li><a href="#digit-mode-mapping-digit_to_mode-in-gcin_engine.c"
+id="toc-digit-mode-mapping-digit_to_mode-in-gcin_engine.c">Digit → mode
+mapping (<code>digit_to_mode()</code> in
+<code>gcin_engine.c</code>)</a></li>
+<li><a href="#the-five-changes" id="toc-the-five-changes">The five
+changes</a></li>
+<li><a href="#english-toggle-ctrlspace-gcin-native"
+id="toc-english-toggle-ctrlspace-gcin-native">English toggle —
+Ctrl+Space (gcin-native)</a></li>
+<li><a href="#tests" id="toc-tests">Tests</a></li>
+<li><a href="#files-changed-session-17"
+id="toc-files-changed-session-17">Files changed (Session 17)</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
 <h1 id="implementation-guide-gcin-everywhere">Implementation Guide:
 gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-05-05 (Session 16 — Phase
-9: CJ5 and SimplexPunc engines added)</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase
+10: unified gcin-everywhere switcher engine)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -316,6 +336,8 @@ Table</a></li>
 Array Input Methods</a></li>
 <li><a href="#phase-9-additional-gtab-engines-cj5-simplexpunc">Phase 9:
 Additional gtab Engines (CJ5, SimplexPunc)</a></li>
+<li><a href="#phase-10-unified-switcher-engine-gcin-everywhere">Phase
+10: Unified Switcher Engine (gcin-everywhere)</a></li>
 <li><a href="#gcin-source-file-reference">gcin Source File
 Reference</a></li>
 </ul>
@@ -2211,7 +2233,196 @@ tables target</td>
 </tbody>
 </table>
 <hr />
-<p><strong>Last Updated:</strong> 2026-05-05 (Session 16 — Phase 9: CJ5
-and SimplexPunc engines)</p>
+<h2 id="phase-10-unified-switcher-engine-gcin-everywhere">Phase 10:
+Unified Switcher Engine (gcin-everywhere)</h2>
+<p><strong>Goal:</strong> Add a 7th IBus engine,
+<code>gcin-everywhere</code>, that switches input method in place via
+<code>Ctrl+Alt+&lt;digit&gt;</code> — reproducing gcin’s native hotkeys
+(<code>eve.cpp:1240</code>). The six single-method engines are
+unchanged; switching is gated to this engine only. See <a
+href="DESIGN.html#8-unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-place">DESIGN.md
+§8</a>.</p>
+<h3 id="why-this-needs-no-gcin-core-changes">Why this needs no gcin-core
+changes</h3>
+<p>The core already switches methods per-keypress: each
+<code>gcin_core_feedkey_&lt;method&gt;()</code> sets
+<code>current_CS-&gt;in_method</code> + calls <code>init_gtab()</code>
+on its first call after a mode change. The engine’s
+<code>switch(e-&gt;mode)</code> dispatch already routes to the right
+one. The unified engine only makes <code>e-&gt;mode</code>
+<strong>mutable at runtime</strong> instead of fixed in
+<code>enable()</code>. All Phase 10 changes are in the IBus layer
+(<code>gcin_engine.c</code>, <code>gcin.xml</code>).</p>
+<h3 id="digit-mode-mapping-digit_to_mode-in-gcin_engine.c">Digit → mode
+mapping (<code>digit_to_mode()</code> in
+<code>gcin_engine.c</code>)</h3>
+<p>Follows gcin’s <code>gtab.list</code> <code>key_ch</code> column
+where defined (1/2/3/8); 4/5 extend it for Quick and SimplexPunc, which
+gcin leaves on <code>-</code>:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Hotkey</th>
+<th><code>e-&gt;mode</code></th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Ctrl+Alt+1</code></td>
+<td>0</td>
+<td>倉頡 Cangjie</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+2</code></td>
+<td>4</td>
+<td>倉五 CJ5</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+3</code></td>
+<td>1</td>
+<td>注音 Zhuyin</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+4</code></td>
+<td>2</td>
+<td>速成 Quick</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+5</code></td>
+<td>5</td>
+<td>標點簡易 SimplexPunc</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+8</code></td>
+<td>3</td>
+<td>行列 Array</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-five-changes">The five changes</h3>
+<ol type="1">
+<li><p><strong>Struct fields</strong> —
+<code>gboolean allow_switch; IBusProperty *prop; IBusPropList *props;</code>.</p></li>
+<li><p><strong><code>process_key_event()</code></strong> — at the very
+top (before the Shift+Space / phrase intercepts), if
+<code>allow_switch</code> and <code>(CONTROL|MOD1)</code> are both held,
+map the digit via <code>digit_to_mode()</code>. On a hit:
+<code>gcin_core_reset()</code>, hide preedit + lookup, set
+<code>e-&gt;mode</code>, <code>update_property()</code>, return TRUE.
+Unassigned digit / other key → return FALSE so the app still receives
+it.</p></li>
+<li><p><strong><code>gcin_engine_enable()</code></strong> — if the
+engine name ends in <code>everywhere</code>, set
+<code>allow_switch = TRUE</code>, <code>mode = 0</code> (Cangjie),
+<code>ensure_property()</code>,
+<code>ibus_engine_register_properties()</code>,
+<code>update_property()</code>. Single-method engines are
+unchanged.</p></li>
+<li><p><strong>Panel property</strong> — <code>ensure_property()</code>
+builds one <code>IBusProperty</code> (<code>PROP_TYPE_NORMAL</code>);
+<code>update_property()</code> pushes the active method’s glyph
+(<code>mode_symbol()</code>: 倉/注/速/列/五/標) via
+<code>ibus_property_set_symbol/_label</code> +
+<code>ibus_engine_update_property</code>. Re-registered on
+<code>focus_in</code> (IBus clears panel props across focus changes). We
+keep our own ref on both prop and prop-list so the pointer stays valid
+for later updates.</p></li>
+<li><p><strong>Registration</strong> —
+<code>ibus_factory_add_engine(factory, "gcin-everywhere", …)</code> in
+<code>main()</code>; <code>&lt;engine&gt;</code> block in
+<code>gcin.xml</code> (symbol 全).</p></li>
+</ol>
+<h3 id="english-toggle-ctrlspace-gcin-native">English toggle —
+Ctrl+Space (gcin-native)</h3>
+<p>Within <code>gcin-everywhere</code>, <code>Ctrl+Space</code> toggles
+<code>e-&gt;chinese_mode</code> between Chinese input and English
+passthrough — the gcin-native <code>gcin_im_toggle</code>.
+Implementation in <code>process_key_event()</code>:</p>
+<ul>
+<li><p>The <code>Ctrl+Space</code> handler (keyval
+<code>IBUS_space</code>, modifiers masked to exactly
+<code>IBUS_CONTROL_MASK</code>) is placed <strong>before</strong>
+<code>if (!e-&gt;chinese_mode) return FALSE</code> so it can also turn
+Chinese back on. It flips <code>chinese_mode</code>, resets composition,
+updates the panel property, and returns TRUE. Single-method engines
+(<code>!allow_switch</code>) return FALSE here so the desktop still
+handles <code>Ctrl+Space</code>.</p></li>
+<li><p><code>update_property()</code> shows 英 when
+<code>!chinese_mode</code>, else
+<code>mode_symbol(e-&gt;mode)</code>.</p></li>
+<li><p><code>Ctrl+Alt+&lt;digit&gt;</code> now also sets
+<code>chinese_mode = TRUE</code> (selecting a method implies
+Chinese).</p></li>
+</ul>
+<p><strong>Required desktop config (not code):</strong> GNOME/mutter
+intercepts keyboard shortcuts before the IBus engine, so plain
+<code>Ctrl+Space</code> must not be bound at the desktop level or the
+engine never sees it:</p>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode sh"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Move desktop source-switching off plain Ctrl+Space, and drop IBus&#39;s legacy trigger.</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gsettings</span> set org.gnome.desktop.wm.keybindings switch-input-source <span class="st">&quot;[&#39;&lt;Shift&gt;&lt;Control&gt;space&#39;]&quot;</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gsettings</span> set org.gnome.desktop.wm.keybindings switch-input-source-backward <span class="st">&quot;[]&quot;</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gsettings</span> set org.freedesktop.ibus.general.hotkey trigger <span class="dt">\</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;[&#39;Zenkaku_Hankaku&#39;, &#39;Alt+Kanji&#39;, &#39;Alt+grave&#39;, &#39;Hangul&#39;, &#39;Alt+Release+Alt_R&#39;]&quot;</span></span></code></pre></div>
+<p><code>wm.keybindings</code> changes apply live; the IBus
+<code>trigger</code> change needs a logout/in (GNOME caches IBus hotkeys
+at session start). A symmetric “two presses to switch” symptom is the
+classic sign that plain <code>Ctrl+Space</code> is still
+double-bound.</p>
+<h3 id="tests">Tests</h3>
+<p><code>test_feedkey.c</code> gains a “Method switching” section (2
+tests, 4 assertions) that reproduces the engine’s switch sequence at the
+core level — <code>reset()</code> then route to a different method —
+guarding against stale <code>init_gtab</code>/<code>in_method</code>
+state across a switch. <strong>29 tests total</strong>
+(<code>GCIN_TABLE_DIR=../tables ./test_feedkey</code>). The engine-layer
+Ctrl+Alt+digit handler itself is verified manually (no IBus in the unit
+harness).</p>
+<h3 id="files-changed-session-17">Files changed (Session 17)</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td><code>allow_switch</code>/property fields;
+<code>mode_symbol()</code>, <code>digit_to_mode()</code>,
+<code>ensure_property()</code>, <code>update_property()</code>
+(incl. 英); Ctrl+Alt+digit handler; <strong>Ctrl+Space English
+toggle</strong>; <code>everywhere</code> detection in
+<code>enable()</code>; <code>focus_in</code> re-register; factory
+registration</td>
+</tr>
+<tr class="even">
+<td><code>ibus-engine/component/gcin.xml</code></td>
+<td>Added <code>gcin-everywhere</code> engine entry (symbol 全)</td>
+</tr>
+<tr class="odd">
+<td><code>ibus-engine/Makefile</code></td>
+<td>Install component to system dir
+(<code>/usr/share/ibus/component</code>) via sudo;
+<code>ibus write-cache</code>/<code>restart</code></td>
+</tr>
+<tr class="even">
+<td><code>gcin-core/test_feedkey.c</code></td>
+<td>Added 2 switch tests (4 assertions); 29 total</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> No <code>Makefile</code> or
+<code>gcin-core</code> change — the unified engine reuses the existing
+tables and core feedkey functions.</p>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase 10:
+unified gcin-everywhere switcher engine)</p>
 </body>
 </html>

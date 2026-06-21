@@ -223,6 +223,96 @@ keeps the engine layer isolated from libgcin-core internals.
 **Data files:** `phrase.table` and `phrase-ctrl.table` must be added to the install
 target so `feed_phrase()` can find them at runtime alongside the other table files.
 
+### 8. Unified switcher engine (`gcin-everywhere`): Ctrl+Alt+digit switches mode in place
+
+**Decision:** Add a 7th IBus engine, `gcin-everywhere`, that is **not** bound to a
+single input method. Inside it, `Ctrl+Alt+<digit>` switches the active method in place,
+mirroring gcin's native hotkeys. The six single-method engines are unchanged; the
+switching code is gated so it only runs for `gcin-everywhere`.
+
+**How gcin does it:**
+
+In `eve.cpp:1240`, when Ctrl+Alt is held, gcin maps the keysym to an input-method
+index and switches the active method in-process:
+
+```c
+/* eve.cpp:1240 */
+if ((kev_state & ControlMask) && (kev_state & (Mod1Mask|Mod5Mask))) {
+    ...
+    int kidx = gcin_switch_keys_lookup(keysym);   // scan inmd[] for matching key_ch
+    if (kidx < 0) return FALSE;
+    current_CS->im_state = GCIN_STATE_CHINESE;
+    init_in_method(kidx);                          // switch cur_inmd / gtab in place
+    return TRUE;
+}
+```
+
+`gcin_switch_keys_lookup()` (`gtab-list.cpp:156`) scans `inmd[]` for the entry whose
+`key_ch` (2nd column of `gtab.list`) equals the pressed digit. This is purely
+*intra-process* state — exactly what our engine already does per keypress via
+`feedkey_gtab_method()` (sets `current_CS->in_method` + `init_gtab()`).
+
+**Why this maps cleanly onto our architecture:** `gcin_engine.c` already has a mutable
+`e->mode` field and a `switch(e->mode)` dispatch in `process_key_event()`. The single-
+method engines fix `e->mode` once in `enable()` from the engine-name suffix. The unified
+engine just makes `e->mode` **mutable at runtime**: a Ctrl+Alt+digit handler maps the
+digit to a mode and updates `e->mode`. No core changes are needed — the per-mode feedkey
+functions (`gcin_core_feedkey_cangjie/zhuyin/quick/array/cj5/simplex_punc`) already
+perform the `init_gtab()`/`in_method` switch on their first call after a mode change.
+
+**Digit → mode mapping** (follows gcin's `gtab.list` `key_ch` where defined; 4/5 are
+extensions since gcin assigns Quick and SimplexPunc `-`, not a digit):
+
+| Hotkey | gcin `key_ch` | `e->mode` | Method |
+|--------|---------------|-----------|--------|
+| `Ctrl+Alt+1` | `1` | 0 | 倉頡 Cangjie |
+| `Ctrl+Alt+2` | `2` | 4 | 倉五 CJ5 |
+| `Ctrl+Alt+3` | `3` | 1 | 注音 Zhuyin |
+| `Ctrl+Alt+4` | (ext.) | 2 | 速成 Quick |
+| `Ctrl+Alt+5` | (ext.) | 5 | 標點簡易 SimplexPunc |
+| `Ctrl+Alt+8` | `8` | 3 | 行列 Array |
+
+**Handler placement:** the Ctrl+Alt+digit check must run **first** in
+`process_key_event()` — before the existing "Ctrl (without Alt) → phrase-ctrl.table"
+intercept (which requires `!(modifiers & MOD1)` and so won't fire on Ctrl+Alt anyway)
+and before the feedkey dispatch. On a recognized digit: reset composition state, update
+`e->mode`, update the panel property (below), and return `TRUE` (consume). An
+unrecognized digit/key under Ctrl+Alt returns `FALSE` to pass through to the app.
+
+**Gating to the unified engine:** `gcin_engine_enable()` sets `e->allow_switch = TRUE`
+only when the engine name ends with `everywhere` (and starts that engine in Cangjie =
+mode 0); for the six single-method engines `allow_switch` stays `FALSE` so Ctrl+Alt+digit
+falls through to the app as before.
+
+**Visual feedback — IBus property:** the unified engine registers a single
+`IBusProperty` (type `PROP_TYPE_NORMAL`) in `gcin_engine_constructed`/`enable` via
+`ibus_engine_register_properties()`. On each switch, `ibus_engine_update_property()`
+updates the property's **symbol** and **label** to the active method (全→倉/注/速/列/五/標),
+so the GNOME panel shows which method is live. The single-method engines do not register
+this property.
+
+**Why a 7th engine rather than replacing the six:** the dedicated engines remain useful
+for users who want a fixed method and an accurate panel label; `gcin-everywhere` is an
+additive convenience that reproduces gcin's all-in-one switching UX.
+
+**English toggle — `Ctrl+Space` (gcin-native `gcin_im_toggle`):** within
+`gcin-everywhere`, `Ctrl+Space` flips the engine's `chinese_mode` flag between Chinese
+input and English passthrough. In English mode `process_key_event()` returns FALSE for
+every key (the app receives raw keystrokes); the active method (`e->mode`) is untouched,
+so toggling back resumes it. The panel property shows 英 in English mode. The handler is
+placed **before** the `if (!chinese_mode) return FALSE` early-return so it can also turn
+Chinese back on. The single-method engines do not toggle — they return FALSE for
+`Ctrl+Space` so desktop source-switching still works there.
+
+**Why this needs desktop config, not just code:** on GNOME/Wayland, mutter checks its
+own keyboard shortcuts *before* forwarding a key to the IBus engine. If any desktop
+shortcut binds plain `Ctrl+Space` (GNOME's `switch-input-source` /
+`switch-input-source-backward`, or IBus's legacy `general.hotkey.trigger`), the key
+never reaches the engine and the toggle can't fire. Those bindings must be cleared (or
+moved to `Shift+Ctrl+Space` / `Super+Space`) so plain `Ctrl+Space` reaches the engine.
+Symmetric two-press behavior when switching desktop input sources is the tell-tale of a
+double-bound `Ctrl+Space`. See [HANDOFF key design decisions](HANDOFF.md#key-design-decisions).
+
 ---
 
 ## Data Model
@@ -309,4 +399,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-05-05 (added decision 7: Alt+Shift phrase table)
+**Last Updated:** 2026-06-21 (added decision 8: unified gcin-everywhere switcher engine)

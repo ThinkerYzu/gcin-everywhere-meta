@@ -57,12 +57,12 @@ Status</a> | <a href="#next-actions">Next Actions</a> | <a
 href="#session-logs">Session Logs</a></p>
 <hr />
 <h2 id="current-status">Current Status</h2>
-<p><strong>Phase:</strong> Phase 2 complete — Quick (速成) and Array
-(行列) input methods working <strong>Progress:</strong>
-<code>gcin_core_feedkey_quick/array()</code> via shared
-<code>feedkey_gtab_method()</code>; 4 IBus engines (Cangjie, Zhuyin,
-Quick, Array); 20/20 unit tests pass <strong>Next Milestone:</strong>
-Phase 2 continued — Buxiemi (嘸蝦米) or Windows TSF port
+<p><strong>Phase:</strong> Phase 10 complete — unified gcin-everywhere
+switcher engine (7 IBus engines total) <strong>Progress:</strong> 6
+single-method engines (Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc)
++ <code>gcin-everywhere</code> unified switcher (Ctrl+Alt+digit); 29/29
+unit tests pass <strong>Next Milestone:</strong> Manual end-to-end test
+of gcin-everywhere under ibus-daemon, then Phase 3 — Windows TSF port
 <strong>Blockers:</strong> None</p>
 <blockquote>
 <p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
@@ -80,7 +80,12 @@ and candidates API - ✅ Phase 5 — Local install
 <code>full_char_proc()</code> - ✅ Phase 7 — Alt+Shift phrase.table +
 Ctrl phrase-ctrl.table; <code>gcin_core_feed_phrase()</code> - ✅ Phase
 2 (additional engines) — Quick (速成) and Array (行列) via
-<code>feedkey_gtab_method()</code></p>
+<code>feedkey_gtab_method()</code> - ✅ Phase 2 (CJ5) — CJ5 (倉頡五代)
+via <code>feedkey_gtab_method()</code>; 23/23 tests pass - ✅ Phase 2
+(SimplexPunc) — 標點簡易 via <code>feedkey_gtab_method()</code>; 25/25
+tests pass - ✅ Phase 10 — unified <code>gcin-everywhere</code> engine:
+Ctrl+Alt+digit switches method in place; panel property; 29/29 tests
+pass</p>
 </blockquote>
 <h3 id="what-we-have">What We Have</h3>
 <ul>
@@ -89,21 +94,29 @@ with <code>-DGCIN_CORE_BUILD -DUSE_TSIN=1</code></li>
 <li><code>ibus-engine/ibus-engine-gcin</code> — links against
 libgcin-core.a + libibus-1.0</li>
 <li><code>ibus-engine/component/gcin.xml</code> — IBus component
-descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array)</li>
+descriptor (gcin-cangjie, gcin-zhuyin, gcin-quick, gcin-array, gcin-cj5,
+gcin-simplex-punc, <strong>gcin-everywhere</strong>)</li>
 <li><code>process_key_event</code> routes via <code>switch(mode)</code>
-to <code>gcin_core_feedkey_cangjie/zhuyin/quick/array()</code>; preedit
-and candidates wired to IBus APIs</li>
+to
+<code>gcin_core_feedkey_cangjie/zhuyin/quick/array/cj5/simplex_punc()</code>;
+preedit and candidates wired to IBus APIs</li>
+<li><strong>gcin-everywhere unified engine</strong> —
+<code>Ctrl+Alt+digit</code> switches <code>e-&gt;mode</code> in place
+(1=倉頡 2=倉五 3=注音 4=速成 5=標點簡易 8=行列); <code>Ctrl+Space</code>
+toggles Chinese ↔︎ English passthrough (panel shows 英); panel
+<code>IBusProperty</code> shows the live method; switching gated to this
+engine only</li>
 <li><strong>Cangjie working end-to-end</strong> — <code>ko</code> →
 preedit shows 大, candidates appear, select commits 大人</li>
 <li><strong>Zhuyin preedit/candidates wired</strong> —
 <code>gcin_core_get_preedit_zhuyin()</code> /
 <code>gcin_core_get_candidates_zhuyin()</code> implemented; engine
 detects mode from IBus engine name</li>
-<li><strong>Quick and Array added</strong> — share
+<li><strong>Quick, Array, CJ5, SimplexPunc added</strong> — share
 <code>feedkey_gtab</code> path via
 <code>feedkey_gtab_method(inmd_idx, ...)</code>; same preedit/candidates
 functions as Cangjie</li>
-<li><strong>Tests:</strong> <code>gcin-core/test_feedkey.c</code> — 20
+<li><strong>Tests:</strong> <code>gcin-core/test_feedkey.c</code> — 25
 unit tests pass; <code>make test</code> skips cleanly without
 tables</li>
 <li><strong>Tests:</strong>
@@ -182,6 +195,26 @@ engine</strong> — <code>XK_space</code> is undefined in
 <code>feedkey_gtab</code> returns 0 for keys like <code>,</code>; IBus
 passes them to the app. Only full-width mode routes them through
 <code>send_text()</code> via <code>full_char_proc()</code></li>
+<li><strong>Ctrl+Space = English toggle inside gcin-everywhere;
+pass-through elsewhere</strong> (Session 17) — in the unified engine,
+<code>Ctrl+Space</code> toggles <code>chinese_mode</code> (Chinese ↔︎
+English passthrough, gcin-native <code>gcin_im_toggle</code>);
+<code>e-&gt;mode</code> is preserved so toggling back resumes the last
+method; panel shows 英. The handler sits <strong>before</strong> the
+<code>if (!chinese_mode) return FALSE</code> early-return so it can
+re-enable Chinese. Single-method engines return FALSE for Ctrl+Space
+(desktop handles it).</li>
+<li><strong>Plain Ctrl+Space must be free at the desktop level</strong>
+(Session 17) — GNOME/mutter checks its shortcuts before forwarding keys
+to the IBus engine, so the in-engine toggle only fires if nothing else
+binds plain <code>Ctrl+Space</code>. Clear all three:
+<code>gsettings set org.gnome.desktop.wm.keybindings switch-input-source "['&lt;Shift&gt;&lt;Control&gt;space']"</code>,
+<code>... switch-input-source-backward "[]"</code>, and remove
+<code>Control+space</code> from
+<code>org.freedesktop.ibus.general.hotkey trigger</code>. A
+<strong>symmetric two-press</strong> to switch input source is the
+tell-tale of a double-bound Ctrl+Space. <code>wm.keybindings</code>
+apply live; the IBus <code>trigger</code> change needs logout/in.</li>
 <li><strong><code>feed_phrase()</code> already compiled</strong> —
 <code>phrase.cpp</code> is in GCIN_SRCS with no X11/GTK deps; just needs
 an <code>extern</code> declaration wrapper in
@@ -222,10 +255,28 @@ setting <code>TableDir</code>; otherwise pho_load takes the “copy to
 loop; if called after <code>ibus_bus_request_name</code>, IBus daemon
 times out waiting for “CreateEngine” response</li>
 <li><strong>GNOME Shell doesn’t auto-spawn user-local IBus
-engines</strong> — <code>~/.local/share/ibus/component/</code> works for
-<code>ibus list-engine</code> but GNOME only exec’s engines from
-<code>/usr/share/ibus/component/</code>; fix is a systemd user service
-that starts the engine at login</li>
+engines</strong> — fix is a systemd user service that starts the engine
+at login</li>
+<li><strong>The component XML MUST be in the system dir
+<code>/usr/share/ibus/component/</code>, NOT
+<code>~/.local/share/ibus/component/</code></strong> (Session 17) —
+ibus-daemon scans only the system XDG data dirs, so a user-local
+component never appears in <code>ibus list-engine</code> or the GNOME
+picker (verified: 973 engines loaded, 0 from <code>~/.local</code>).
+Earlier sessions only seemed to work because a stale 2-engine system
+file happened to exist. The binary + tables + systemd service stay
+user-local; the system component just points <code>&lt;exec&gt;</code>
+at the user binary. <strong>Two same-named components collide</strong>
+(<code>org.freedesktop.IBus.Gcin</code>): a stale system file shadows
+everything, so reinstall must overwrite it, then
+<code>ibus write-cache &amp;&amp; ibus restart</code>. The Makefile
+<code>install</code> target now does this via <code>sudo</code> (needs a
+password).</li>
+<li><strong>Systemd service uses <code>%h</code> not a hardcoded
+path</strong> —
+<code>ExecStart=%h/.local/lib/ibus-gcin/ibus-engine-gcin</code>;
+<code>%h</code> is the systemd unit specifier for the user’s home
+directory, making the service file portable across users</li>
 <li><strong>Quick and Array share <code>feedkey_gtab</code> — only the
 <code>.gtab</code> table differs</strong> — switching
 <code>cur_inmd</code> and calling <code>init_gtab(inmd_idx)</code>
@@ -240,18 +291,64 @@ character</li>
 combined endkey+selkey</strong> — after a full code, pressing a digit
 auto-commits the single match in one step without needing space first;
 pressing space triggers a different but equivalent code path</li>
+<li><strong><code>find_inmd("cj5")</code> is safe alongside
+<code>find_inmd("cj")</code></strong> —
+<code>strstr("cj.gtab","cj5")</code> = NULL, so the CJ3 entry is never
+confused with CJ5; gtab.list lists them in order: cj.gtab before
+cj5.gtab</li>
+<li><strong>CJ5 has 74,944 characters</strong> vs 13,209 in CJ3 — larger
+table, same code path</li>
+<li><strong><code>find_inmd("simplex-punc")</code> is
+unambiguous</strong> —
+<code>strstr("simplex.gtab","simplex-punc")</code> = NULL; suffix match
+<code>"simplex-punc"</code> in <code>enable()</code> is checked before
+the cangjie catch-all</li>
+<li><strong>gcin-everywhere needs zero gcin-core changes</strong> — the
+core already switches methods per-keypress (each
+<code>feedkey_&lt;method&gt;</code> sets <code>in_method</code> +
+<code>init_gtab()</code> on first call); the unified engine just makes
+the IBus layer’s <code>e-&gt;mode</code> mutable at runtime via a
+Ctrl+Alt+digit handler in <code>process_key_event()</code></li>
+<li><strong>Ctrl+Alt+digit handler must run first in
+<code>process_key_event</code></strong> — before the Shift+Space and
+Ctrl/Alt phrase intercepts; gated on <code>e-&gt;allow_switch</code>
+(TRUE only when engine name ends in <code>everywhere</code>) so the 6
+single-method engines pass Ctrl+Alt+digit through to the app
+unchanged</li>
+<li><strong>IBus clears panel properties on focus change</strong> — the
+gcin-everywhere <code>IBusProperty</code> must be re-registered in a
+<code>focus_in</code> handler, not only in <code>enable()</code>; keep
+an owned ref on both the prop and the prop-list so the pointer stays
+valid for <code>ibus_engine_update_property()</code></li>
+<li><strong>Digit map mirrors gcin’s gtab.list
+<code>key_ch</code></strong> (1/2/3/8) and extends it (4=速成 Quick,
+5=標點簡易 SimplexPunc) since gcin leaves those on <code>-</code></li>
+<li><strong>libibus dev headers are re-extractable</strong> —
+<code>cd /tmp/ibus-dev-extract &amp;&amp; apt-get download libibus-1.0-dev &amp;&amp; dpkg-deb -x *.deb .</code>
+(IBus 1.5.32); the Makefile falls back to
+<code>/tmp/ibus-dev-extract/usr/include/ibus-1.0</code> when pkg-config
+has no <code>ibus-1.0</code></li>
 </ul>
 <hr />
 <h2 id="next-actions">Next Actions</h2>
 <ol type="1">
-<li><strong>Phase 2 continued — More input methods</strong> — Buxiemi
-(嘸蝦米, <code>bpmf.cin</code>) if present in snapshot; any other
-gtab-based method follows the same <code>feedkey_gtab_method()</code>
-adapter pattern. Dayi (大易) skipped — <code>dayi3.cin</code> absent
-from snapshot.</li>
-<li><strong>Windows TSF port</strong> — next platform after IBus is
-fully stable.</li>
+<li>✅ <strong>gcin-everywhere confirmed working end-to-end</strong>
+(Session 17) — all 7 engines load (component installed to system dir
+<code>/usr/share/ibus/component/gcin.xml</code>);
+<code>Ctrl+Alt+1/2/3/4/5/8</code> switches method in place and
+<code>Ctrl+Space</code> toggles Chinese ↔︎ English, both confirmed by the
+user during live typing.</li>
+<li><strong>Phase 3: Windows TSF port</strong> — platform layer for
+Windows using Text Services Framework. <code>libgcin-core.a</code> links
+as-is; only the platform integration layer changes (analogous to
+<code>ibus-engine/</code> but for TSF).</li>
 </ol>
+<p><strong>Deferred / absent from snapshot:</strong></p>
+<ul>
+<li>Buxiemi (嘸蝦米) — <code>noseeing.gtab</code> and source
+<code>.cin</code> absent from gcin snapshot</li>
+<li>Dayi (大易) — <code>dayi3.cin</code> absent from snapshot</li>
+</ul>
 <p><strong>Deferred:</strong></p>
 <ul>
 <li>macOS (IMKit) port — future phase.</li>
@@ -260,6 +357,20 @@ fully stable.</li>
 <hr />
 <h2 id="session-logs">Session Logs</h2>
 <ol type="1">
+<li><strong><a
+href="logs/2026-06-21-session-17-gcin-everywhere-switcher.html">Session
+17: Phase 10 — Unified gcin-everywhere Switcher</a></strong>
+(2026-06-21) — Added <code>gcin-everywhere</code> engine: Ctrl+Alt+digit
+switches method in place (mirrors gcin <code>eve.cpp:1240</code>); panel
+IBusProperty; switching gated to this engine; no core changes; 29/29
+tests pass.</li>
+<li><strong><a href="logs/2026-05-05-session-16-simplex-punc.html">Session
+16: Phase 2 — Simplex+Punc (標點簡易)</a></strong> (2026-05-05) — Added
+gcin-simplex-punc engine; 6 IBus engines; 25/25 tests pass.</li>
+<li><strong><a href="logs/2026-05-05-session-15-phase2-cj5.html">Session
+15: Phase 2 — CJ5 (倉頡五代)</a></strong> (2026-05-05) — Added CJ5
+engine via <code>feedkey_gtab_method()</code>; 5 IBus engines; 23/23
+tests pass.</li>
 <li><strong><a
 href="logs/2026-05-05-session-14-phase2-quick-array.html">Session 14:
 Phase 2 — Quick and Array Input Methods</a></strong> (2026-05-05) —
@@ -273,24 +384,6 @@ Phase 7 — Alt+Shift / Ctrl Phrase Tables</a></strong> (2026-05-05) —
 Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed
 <code>watch_fopen</code> stub to prepend TableDir; 15/15 tests
 pass.</li>
-<li><strong><a
-href="logs/2026-05-05-session-12-phase6-fullwidth-phase7-plan.html">Session
-12: Phase 6 — Full-Width Mode; Phase 7 Planned</a></strong> (2026-05-05)
-— Implemented Shift+Space full-width toggle; copied
-<code>half_char_to_full_char</code>+<code>full_char_proc</code>; 11/11
-tests; investigated Alt+Shift/Ctrl phrase tables; Phase 7 designed.</li>
-<li><strong><a
-href="logs/2026-05-05-session-11-github-and-makefile.html">Session 11:
-GitHub Setup and Top-Level Makefile</a></strong> (2026-05-05) — Forked
-gcin to ThinkerYzu/gcin; created ThinkerYzu/gcin-everywhere; top-level
-Makefile handles full pipeline;
-<code>make test &amp;&amp; make install</code> is the complete
-workflow.</li>
-<li><strong><a
-href="logs/2026-05-05-session-10-mode-fix-and-e2e-confirmed.html">Session
-10: Mode Detection Fix — Phase 1 Complete</a></strong> (2026-05-05) —
-Moved mode detection from <code>init()</code> to <code>enable()</code>;
-Cangjie and Zhuyin both confirmed working end-to-end.</li>
 </ol>
 <hr />
 <h2 id="document-web">Document Web</h2>
@@ -315,7 +408,7 @@ progress</li>
 <p><strong>Source Repo:</strong> <code>sources/gcin-everywhere/</code> —
 initialized with gcin submodule at <code>gcin/</code>, new engine code
 goes in <code>ibus-engine/</code></p>
-<p><strong>Last Updated:</strong> 2026-05-05 (Session 14 — Phase 2
-complete: Quick and Array)</p>
+<p><strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase 10:
+unified gcin-everywhere switcher; 7 engines total)</p>
 </body>
 </html>

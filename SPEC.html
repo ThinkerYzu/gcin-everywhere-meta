@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>SPEC – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#spec-gcin-everywhere" id="toc-spec-gcin-everywhere">Spec:
+gcin-everywhere</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#problem-statement" id="toc-problem-statement">Problem
+Statement</a>
+<ul>
+<li><a href="#background" id="toc-background">Background</a></li>
+</ul></li>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#non-goals" id="toc-non-goals">Non-Goals</a></li>
+<li><a href="#requirements" id="toc-requirements">Requirements</a>
+<ul>
+<li><a href="#functional-requirements"
+id="toc-functional-requirements">Functional Requirements</a></li>
+<li><a href="#non-functional-requirements"
+id="toc-non-functional-requirements">Non-Functional
+Requirements</a></li>
+</ul></li>
+<li><a href="#constraints" id="toc-constraints">Constraints</a></li>
+<li><a href="#success-criteria" id="toc-success-criteria">Success
+Criteria</a></li>
+<li><a href="#open-questions" id="toc-open-questions">Open
+Questions</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="spec-gcin-everywhere">Spec: gcin-everywhere</h1>
+<p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-21 (added FR8: unified
+<code>gcin-everywhere</code> switcher engine) <strong>Status:</strong>
+Approved</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
+href="SPEC.html">SPEC</a> <em>(you are here)</em> | <a
+href="DESIGN.html">DESIGN</a> | <a
+href="IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> | <a
+href="HANDOFF.html">HANDOFF</a></p>
+<p><strong>This Document:</strong></p>
+<ul>
+<li><a href="#problem-statement">Problem Statement</a></li>
+<li><a href="#goals">Goals</a></li>
+<li><a href="#non-goals">Non-Goals</a></li>
+<li><a href="#requirements">Requirements</a></li>
+<li><a href="#constraints">Constraints</a></li>
+<li><a href="#success-criteria">Success Criteria</a></li>
+<li><a href="#open-questions">Open Questions</a></li>
+</ul>
+<hr />
+<h2 id="problem-statement">Problem Statement</h2>
+<p>gcin is a well-loved Traditional Chinese input method framework
+widely used in Taiwan. It supports input methods such as Cangjie (倉頡),
+Zhuyin (注音/Bopomofo), Array (行列), Dayi (大易), Bu-xie-mi (嘸蝦米),
+and others. It was built for X11 and is effectively unmaintained for
+modern Linux desktops.</p>
+<p>With GNOME fully transitioning to Wayland, gcin no longer works for
+users who relied on it daily. There is no suitable replacement that
+faithfully reproduces gcin’s input behavior and key bindings. Users who
+grew up with gcin find current alternatives unfamiliar and
+uncomfortable.</p>
+<p>The goal of this project is to bring gcin’s input methods back to
+life on modern platforms — starting with GNOME/Wayland, and eventually
+extending to Windows and macOS — by porting gcin’s existing engine and
+data tables into a modern IME integration layer.</p>
+<h3 id="background">Background</h3>
+<p>gcin was created by Edward G.J. Lee and uses its own X11-based UI and
+XIM protocol for input. Its core strengths are:</p>
+<ul>
+<li>Mature, well-tested input method tables for Traditional Chinese</li>
+<li>Familiar key bindings for long-time users</li>
+<li>Support for a wide range of input methods under one framework</li>
+</ul>
+<p>Modern GNOME on Wayland uses IBus as its default input method
+framework. An IBus engine is the standard integration path: the engine
+implements IBus’s D-Bus interface and GNOME handles candidate display,
+focus, and text commitment.</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ol type="1">
+<li><strong>Wayland/GNOME support (Phase 1):</strong> Wrap gcin’s core
+engine as an IBus engine so it works on GNOME/Wayland desktops.</li>
+<li><strong>Cangjie and Zhuyin first:</strong> Support Cangjie (倉頡)
+and Zhuyin (注音) as the top-priority input methods in Phase 1.</li>
+<li><strong>Reuse gcin’s data and logic:</strong> Port gcin’s existing
+source code, data tables, and input algorithms directly — do not rewrite
+the input method logic.</li>
+<li><strong>Cross-platform foundation (future phases):</strong>
+Establish a clean separation between gcin’s core and the platform
+integration layer so future ports to Windows (TSF) and macOS (IMKit) are
+straightforward.</li>
+</ol>
+<h2 id="non-goals">Non-Goals</h2>
+<ol type="1">
+<li><strong>Not a clean rewrite</strong> — existing gcin source, data
+tables, and character lookup algorithms are reused directly.</li>
+<li><strong>No Windows or macOS support in Phase 1</strong> —
+cross-platform ports are future work.</li>
+<li><strong>No Fcitx5 engine in Phase 1</strong> — IBus is the only
+integration target for now.</li>
+<li><strong>No redesign of input algorithms or table formats</strong> —
+gcin’s existing formats are used as-is.</li>
+<li><strong>No X11-specific support</strong> — the project targets
+Wayland; XWayland compatibility is incidental.</li>
+</ol>
+<hr />
+<h2 id="requirements">Requirements</h2>
+<h3 id="functional-requirements">Functional Requirements</h3>
+<ol type="1">
+<li><p><strong>IBus engine registration</strong> — The engine registers
+with IBus and appears as a selectable input source in GNOME Settings →
+Keyboard → Input Sources.</p></li>
+<li><p><strong>Cangjie input</strong> — Full Cangjie (倉頡) input
+support using gcin’s existing lookup tables and algorithms.</p></li>
+<li><p><strong>Zhuyin input</strong> — Full Zhuyin (注音/Bopomofo) input
+support using gcin’s existing tables and tone key handling.</p></li>
+<li><p><strong>Candidate window</strong> — Display character candidates
+during composition; the user can select from them.</p></li>
+<li><p><strong>Preedit / composition display</strong> — Show in-progress
+input (preedit string) in the input field while composing.</p></li>
+<li><p><strong>Character commitment</strong> — Commit the selected
+Traditional Chinese character(s) to the application on
+confirmation.</p></li>
+<li><p><strong>Input method switching</strong> — User can switch between
+Cangjie and Zhuyin (and other supported methods) via
+IBus/GNOME.</p></li>
+<li><p><strong>Unified switcher engine
+(<code>gcin-everywhere</code>)</strong> — A single IBus engine that lets
+the user switch between all supported input methods <em>in place</em>
+via <code>Ctrl+Alt+&lt;digit&gt;</code>, mirroring gcin’s native
+hotkeys. The digit→method mapping follows gcin’s <code>gtab.list</code>
+<code>key_ch</code> column where defined, extended for methods gcin
+leaves unnumbered:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Hotkey</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Ctrl+Alt+1</code></td>
+<td>倉頡 Cangjie</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+2</code></td>
+<td>倉五 CJ5</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+3</code></td>
+<td>注音 Zhuyin</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+4</code></td>
+<td>速成 Quick (extension — gcin uses <code>-</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>Ctrl+Alt+5</code></td>
+<td>標點簡易 SimplexPunc (extension — gcin uses <code>-</code>)</td>
+</tr>
+<tr class="even">
+<td><code>Ctrl+Alt+8</code></td>
+<td>行列 Array</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>The switch persists for the session until changed again; the engine
+starts in Cangjie.</li>
+<li><code>Ctrl+Alt+&lt;digit&gt;</code> switching is active
+<strong>only</strong> in the <code>gcin-everywhere</code> engine. The
+six single-method engines (<code>gcin-cangjie</code>, …) remain fixed to
+their method so the IBus panel label stays accurate.</li>
+<li>The IBus panel reflects the active method via an engine property
+(symbol updates 全→倉/注/…).</li>
+</ul></li>
+<li><p><strong>English toggle (<code>Ctrl+Space</code>)</strong> —
+within <code>gcin-everywhere</code>, <code>Ctrl+Space</code> toggles
+between Chinese input and English passthrough in place — the gcin-native
+<code>gcin_im_toggle</code> behavior. The previously selected method is
+preserved, so toggling back resumes it. The panel symbol shows 英 while
+in English. This is an in-engine toggle (not a desktop input-source
+switch), so it requires that no desktop shortcut grab plain
+<code>Ctrl+Space</code> (see DESIGN §8).</p></li>
+</ol>
+<h3 id="non-functional-requirements">Non-Functional Requirements</h3>
+<ol type="1">
+<li><strong>Performance</strong> — Candidate lookup must feel
+instantaneous; target &lt;50ms from keypress to candidate display.</li>
+<li><strong>Compatibility</strong> — Works on GNOME 45+ with Wayland.
+Input works correctly in GTK4 and Qt6 applications via IBus.</li>
+<li><strong>Reliability</strong> — Engine must not crash on invalid or
+unexpected input sequences; handle edge cases gracefully.</li>
+</ol>
+<hr />
+<h2 id="constraints">Constraints</h2>
+<ol type="1">
+<li>Must reuse gcin’s existing data tables (character lookup tables,
+input method definitions) without reformatting them.</li>
+<li>Must reuse gcin’s existing input algorithms directly (ported C/C++
+code, not reimplemented).</li>
+<li>Implementation language: <strong>C/C++</strong>.</li>
+<li>Platform integration: <strong>IBus</strong> for Phase 1
+(GNOME/Wayland).</li>
+<li>gcin is licensed <strong>GPL</strong> — the project inherits this
+license.</li>
+</ol>
+<hr />
+<h2 id="success-criteria">Success Criteria</h2>
+<ol type="1">
+<li><strong>Cangjie works end-to-end</strong> — A user can type Cangjie
+key sequences and commit Traditional Chinese characters in a GNOME
+Wayland app (e.g., gedit, GNOME Text Editor). Verified manually with
+test phrases.</li>
+<li><strong>Zhuyin works end-to-end</strong> — Same verification for
+Zhuyin input with tone key selection.</li>
+<li><strong>GTK4 and Qt6 compatibility</strong> — Input works correctly
+in at least one GTK4 app and one Qt6 app.</li>
+<li><strong>IBus registration</strong> — Engine appears in GNOME
+Settings → Keyboard → Input Sources and can be selected without manual
+D-Bus manipulation.</li>
+<li><strong>No crashes</strong> — Engine runs stably for a 30-minute
+typing session without crashing or hanging.</li>
+<li><strong>Unified switching works</strong> — With the
+<code>gcin-everywhere</code> engine active,
+<code>Ctrl+Alt+1/2/3/4/5/8</code> switches the active method in place;
+subsequent keystrokes use the newly selected method and the panel symbol
+updates accordingly.</li>
+</ol>
+<hr />
+<h2 id="open-questions">Open Questions</h2>
+<p>All open questions resolved.</p>
+<table>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>gcin source base</td>
+<td>https://github.com/pkg-ime/gcin</td>
+</tr>
+<tr class="even">
+<td>Candidate window</td>
+<td>IBus built-in candidate window</td>
+</tr>
+<tr class="odd">
+<td>Phase 1 input methods</td>
+<td>Cangjie and Zhuyin only</td>
+</tr>
+<tr class="even">
+<td>Build system</td>
+<td>Keep gcin’s existing Makefile</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-21 (added FR8: unified
+<code>gcin-everywhere</code> switcher engine)</p>
+</body>
+</html>
