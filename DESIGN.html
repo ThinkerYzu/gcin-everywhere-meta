@@ -140,6 +140,9 @@ href="#unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-pla
 id="toc-unified-switcher-engine-gcin-everywhere-ctrlaltdigit-switches-mode-in-place">8.
 Unified switcher engine (<code>gcin-everywhere</code>): Ctrl+Alt+digit
 switches mode in place</a></li>
+<li><a href="#gnome-panel-indicator-state-file-gnome-shell-extension"
+id="toc-gnome-panel-indicator-state-file-gnome-shell-extension">9. GNOME
+panel indicator: state file + GNOME Shell extension</a></li>
 </ul></li>
 <li><a href="#data-model" id="toc-data-model">Data Model</a>
 <ul>
@@ -165,7 +168,8 @@ in <code>engine_process_key_event</code></a></li>
 </nav>
 <h1 id="design-gcin-everywhere">Design: gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-05-04</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (added decision 9:
+GNOME panel indicator extension)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -652,6 +656,51 @@ when switching desktop input sources is the tell-tale of a double-bound
 href="HANDOFF.html#key-design-decisions">HANDOFF key design
 decisions</a>.</p>
 <hr />
+<h3 id="gnome-panel-indicator-state-file-gnome-shell-extension">9. GNOME
+panel indicator: state file + GNOME Shell extension</h3>
+<p><strong>Problem.</strong> <code>gcin-everywhere</code> is a single
+IBus engine, and GNOME Shell’s top-bar input indicator renders only an
+engine’s <strong>static <code>symbol</code> from the component
+XML</strong> (全). It <strong>ignores live <code>IBusProperty</code>
+symbol updates</strong>, so the symbol-flipping in decision 8 — which
+works on KDE and the standalone <code>ibus-ui-gtk3</code> panel — is a
+no-op on GNOME. The user has no way to tell which method is active.</p>
+<p><strong>Decision.</strong> Publish the active method from the engine
+to a small state file and render it with a bundled GNOME Shell
+extension. This rides <em>alongside</em> the existing IBus property — no
+mechanism is removed — so each desktop uses whatever it supports.</p>
+<ul>
+<li><p><strong>Engine → state file.</strong> <code>write_state()</code>
+writes <code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code> as
+<code>"&lt;glyph&gt;\t&lt;label&gt;"</code>
+(e.g. <code>注\t注音 Zhuyin</code>; <code>英\t英文 English</code> in
+English mode), or an <strong>empty</strong> file when the engine is
+disabled. It’s called from <code>update_property()</code> (so it tracks
+every switch, <code>enable</code>, and <code>focus_in</code>) and from
+<code>disable()</code> (to clear). Gated on <code>allow_switch</code>,
+so the six single-method engines never write it.</p></li>
+<li><p><strong>Extension ← state file.</strong>
+<code>gcin-everywhere@gcin.dev</code> (GNOME 45+ ESM) is a
+<code>PanelMenu.Button</code> with an <code>St.Label</code>. A
+<code>Gio.FileMonitor</code> on the state <strong>directory</strong>
+(robust against atomic replacement) drives a refresh that reads the
+file, sets the glyph, and <strong>shows the button only when the file is
+non-empty</strong> — i.e. only while gcin-everywhere is the active
+source. inotify-driven, no polling.</p></li>
+</ul>
+<p><strong>Why a file, not D-Bus.</strong> A watched file needs zero new
+D-Bus plumbing in the C engine and is equally responsive via inotify.
+The extension’s mere existence is the “GNOME detection” required by FR10
+— on non-GNOME desktops nothing reads the file and the IBus property
+drives the native panel; the engine doesn’t branch on desktop type.</p>
+<p><strong>Visibility = engine lifecycle.</strong> Populated on
+<code>enable</code>, emptied on <code>disable</code>, so the indicator
+appears and disappears with the gcin-everywhere source — satisfying
+“show only on the switcher engine”. On Wayland the extension must be
+enabled once and the session restarted (logout/in) for GNOME Shell to
+load it. See <a href="HANDOFF.html#key-design-decisions">HANDOFF key
+design decisions</a>.</p>
+<hr />
 <h2 id="data-model">Data Model</h2>
 <h3 id="cangjie-table-based-input-flow">Cangjie (table-based) input
 flow</h3>
@@ -764,7 +813,7 @@ if mode == ZHUYIN:
     same update sequence
 return TRUE (key consumed)</code></pre>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-21 (added decision 8: unified
-gcin-everywhere switcher engine)</p>
+<p><strong>Last Updated:</strong> 2026-06-22 (added decision 9: GNOME
+panel indicator extension)</p>
 </body>
 </html>

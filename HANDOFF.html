@@ -57,13 +57,14 @@ Status</a> | <a href="#next-actions">Next Actions</a> | <a
 href="#session-logs">Session Logs</a></p>
 <hr />
 <h2 id="current-status">Current Status</h2>
-<p><strong>Phase:</strong> Phase 10 complete — unified gcin-everywhere
-switcher engine (7 IBus engines total) <strong>Progress:</strong> 6
-single-method engines (Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc)
-+ <code>gcin-everywhere</code> unified switcher (Ctrl+Alt+digit); 29/29
-unit tests pass <strong>Next Milestone:</strong> Manual end-to-end test
-of gcin-everywhere under ibus-daemon, then Phase 3 — Windows TSF port
-<strong>Blockers:</strong> None</p>
+<p><strong>Phase:</strong> Phase 11 complete — GNOME panel indicator for
+gcin-everywhere (7 IBus engines + GNOME Shell extension)
+<strong>Progress:</strong> 6 single-method engines (Cangjie, Zhuyin,
+Quick, Array, CJ5, SimplexPunc) + <code>gcin-everywhere</code> unified
+switcher (Ctrl+Alt+digit) + GNOME Shell extension showing the live
+method in the top panel; 29/29 unit tests pass <strong>Next
+Milestone:</strong> User logout/in to enable the GNOME extension live,
+then Phase 3 — Windows TSF port <strong>Blockers:</strong> None</p>
 <blockquote>
 <p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
 finalized (open questions resolved) - ✅ Design complete - ✅
@@ -85,7 +86,9 @@ via <code>feedkey_gtab_method()</code>; 23/23 tests pass - ✅ Phase 2
 (SimplexPunc) — 標點簡易 via <code>feedkey_gtab_method()</code>; 25/25
 tests pass - ✅ Phase 10 — unified <code>gcin-everywhere</code> engine:
 Ctrl+Alt+digit switches method in place; panel property; 29/29 tests
-pass</p>
+pass - ✅ Phase 11 — GNOME Shell extension: engine publishes the active
+method to a state file; extension mirrors the glyph in the top panel,
+shown only while gcin-everywhere is active</p>
 </blockquote>
 <h3 id="what-we-have">What We Have</h3>
 <ul>
@@ -106,6 +109,18 @@ preedit and candidates wired to IBus APIs</li>
 toggles Chinese ↔︎ English passthrough (panel shows 英); panel
 <code>IBusProperty</code> shows the live method; switching gated to this
 engine only</li>
+<li><strong>GNOME panel indicator</strong> —
+<code>gnome-extension/gcin-everywhere@gcin.dev/</code> (GNOME 45+ ESM).
+The engine writes the active method to
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code>
+(<code>"&lt;glyph&gt;\t&lt;label&gt;"</code>, empty when disabled); the
+extension watches it via <code>Gio.FileMonitor</code> and shows the
+glyph in the top bar, <strong>only</strong> while gcin-everywhere is the
+active source. Installed <strong>and auto-enabled</strong> by
+<code>make install-extension</code> (user-local; gated on
+<code>gnome-shell</code> detection; appends UUID to
+<code>enabled-extensions</code>). User’s only step is a Wayland
+logout/in so the shell loads it</li>
 <li><strong>Cangjie working end-to-end</strong> — <code>ko</code> →
 preedit shows 大, candidates appear, select commits 大人</li>
 <li><strong>Zhuyin preedit/candidates wired</strong> —
@@ -328,6 +343,41 @@ valid for <code>ibus_engine_update_property()</code></li>
 (IBus 1.5.32); the Makefile falls back to
 <code>/tmp/ibus-dev-extract/usr/include/ibus-1.0</code> when pkg-config
 has no <code>ibus-1.0</code></li>
+<li><strong>GNOME Shell ignores IBus property symbol updates</strong>
+(Session 18) — the top-bar input indicator shows only an engine’s
+<strong>static <code>symbol</code> from the component XML</strong>, so a
+single-engine switcher like gcin-everywhere can only ever show 全. The
+live property symbol updates <em>do</em> work on KDE / the standalone
+<code>ibus-ui-gtk3</code> panel, just not GNOME Shell. The GNOME-native
+fix is an <strong>external indicator</strong> (a Shell extension), not
+more property work.</li>
+<li><strong>GNOME indicator = state file + extension, not D-Bus</strong>
+(Session 18) — the engine writes
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code>
+(<code>"&lt;glyph&gt;\t&lt;label&gt;"</code>, empty when disabled) in
+<code>write_state()</code>, called from <code>update_property()</code>
+(every switch/enable/focus-in) and cleared in <code>disable()</code>.
+The extension watches it with <code>Gio.FileMonitor</code> (inotify, no
+polling). This needs zero new C deps and <strong>coexists</strong> with
+the IBus property (both always written; whichever the desktop supports
+renders). Visibility is tied to enable/disable so it shows only for the
+unified engine.</li>
+<li><strong>A stale daemon-spawned engine can keep serving old
+code</strong> (Session 18) — after
+<code>systemctl --user restart</code>, an engine process spawned the
+prior day <em>outside</em> systemd’s cgroup (exe shows
+<code>(deleted)</code>) still owned the bus name
+<code>org.freedesktop.IBus.Gcin</code>; the freshly-restarted process
+requested the name with flag 0 (no replace) and sat idle, so the
+<strong>old binary kept handling the engine</strong> (symptom: new state
+file never appeared). Fix: <code>kill &lt;stale-pid&gt;</code>,
+<code>systemctl --user restart ibus-engine-gcin</code>,
+<code>ibus restart</code>. Future hardening: request the name with
+<code>IBUS_BUS_NAME_FLAG_REPLACE_EXISTING | ALLOW_REPLACEMENT</code>.</li>
+<li><strong>Wayland needs logout/in for a new extension</strong>
+(Session 18) — GNOME Shell can’t be reloaded live on Wayland (Alt+F2
+<code>r</code> is X11-only), so a newly-installed extension isn’t listed
+by <code>gnome-extensions</code> until the next login.</li>
 </ul>
 <hr />
 <h2 id="next-actions">Next Actions</h2>
@@ -338,6 +388,12 @@ has no <code>ibus-1.0</code></li>
 <code>Ctrl+Alt+1/2/3/4/5/8</code> switches method in place and
 <code>Ctrl+Space</code> toggles Chinese ↔︎ English, both confirmed by the
 user during live typing.</li>
+<li>⏳ <strong>GNOME panel indicator — needs live confirmation</strong>
+(Session 18) — engine state-file half verified end-to-end; extension
+installed + syntax-valid. <strong>User to:</strong> log out/in
+(Wayland),
+<code>gnome-extensions enable gcin-everywhere@gcin.dev</code>, then
+confirm the glyph appears and updates live as the method switches.</li>
 <li><strong>Phase 3: Windows TSF port</strong> — platform layer for
 Windows using Text Services Framework. <code>libgcin-core.a</code> links
 as-is; only the platform integration layer changes (analogous to
@@ -358,6 +414,14 @@ as-is; only the platform integration layer changes (analogous to
 <h2 id="session-logs">Session Logs</h2>
 <ol type="1">
 <li><strong><a
+href="logs/2026-06-22-session-18-gnome-panel-indicator.html">Session 18:
+Phase 11 — GNOME Panel Indicator</a></strong> (2026-06-22) — GNOME Shell
+extension showing the active gcin-everywhere method in the top bar;
+engine publishes state to
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code>; shown only while
+the unified engine is active. GNOME ignores IBus property symbols —
+hence the external indicator.</li>
+<li><strong><a
 href="logs/2026-06-21-session-17-gcin-everywhere-switcher.html">Session
 17: Phase 10 — Unified gcin-everywhere Switcher</a></strong>
 (2026-06-21) — Added <code>gcin-everywhere</code> engine: Ctrl+Alt+digit
@@ -376,13 +440,6 @@ href="logs/2026-05-05-session-14-phase2-quick-array.html">Session 14:
 Phase 2 — Quick and Array Input Methods</a></strong> (2026-05-05) —
 Added Quick (速成) and Array (行列) engines via shared
 <code>feedkey_gtab_method()</code>; 4 IBus engines; 20/20 tests
-pass.</li>
-<li><strong><a
-href="logs/2026-05-05-session-13-phase7-phrase-tables.html">Session 13:
-Phase 7 — Alt+Shift / Ctrl Phrase Tables</a></strong> (2026-05-05) —
-<code>gcin_core_feed_phrase()</code> wraps <code>feed_phrase()</code>;
-Alt+Shift→phrase.table, Ctrl→phrase-ctrl.table; fixed
-<code>watch_fopen</code> stub to prepend TableDir; 15/15 tests
 pass.</li>
 </ol>
 <hr />
@@ -408,7 +465,7 @@ progress</li>
 <p><strong>Source Repo:</strong> <code>sources/gcin-everywhere/</code> —
 initialized with gcin submodule at <code>gcin/</code>, new engine code
 goes in <code>ibus-engine/</code></p>
-<p><strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase 10:
-unified gcin-everywhere switcher; 7 engines total)</p>
+<p><strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase 11:
+GNOME panel indicator extension for gcin-everywhere)</p>
 </body>
 </html>

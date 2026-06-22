@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-06-22 (added decision 9: GNOME panel indicator extension)
 
 ---
 
@@ -315,6 +315,42 @@ double-bound `Ctrl+Space`. See [HANDOFF key design decisions](HANDOFF.md#key-des
 
 ---
 
+### 9. GNOME panel indicator: state file + GNOME Shell extension
+
+**Problem.** `gcin-everywhere` is a single IBus engine, and GNOME Shell's top-bar input
+indicator renders only an engine's **static `symbol` from the component XML** (全). It
+**ignores live `IBusProperty` symbol updates**, so the symbol-flipping in decision 8 — which
+works on KDE and the standalone `ibus-ui-gtk3` panel — is a no-op on GNOME. The user has no
+way to tell which method is active.
+
+**Decision.** Publish the active method from the engine to a small state file and render it
+with a bundled GNOME Shell extension. This rides *alongside* the existing IBus property — no
+mechanism is removed — so each desktop uses whatever it supports.
+
+- **Engine → state file.** `write_state()` writes `$XDG_RUNTIME_DIR/gcin-everywhere/state`
+  as `"<glyph>\t<label>"` (e.g. `注\t注音 Zhuyin`; `英\t英文 English` in English mode), or an
+  **empty** file when the engine is disabled. It's called from `update_property()` (so it
+  tracks every switch, `enable`, and `focus_in`) and from `disable()` (to clear). Gated on
+  `allow_switch`, so the six single-method engines never write it.
+- **Extension ← state file.** `gcin-everywhere@gcin.dev` (GNOME 45+ ESM) is a
+  `PanelMenu.Button` with an `St.Label`. A `Gio.FileMonitor` on the state **directory**
+  (robust against atomic replacement) drives a refresh that reads the file, sets the glyph,
+  and **shows the button only when the file is non-empty** — i.e. only while gcin-everywhere
+  is the active source. inotify-driven, no polling.
+
+**Why a file, not D-Bus.** A watched file needs zero new D-Bus plumbing in the C engine and
+is equally responsive via inotify. The extension's mere existence is the "GNOME detection"
+required by FR10 — on non-GNOME desktops nothing reads the file and the IBus property drives
+the native panel; the engine doesn't branch on desktop type.
+
+**Visibility = engine lifecycle.** Populated on `enable`, emptied on `disable`, so the
+indicator appears and disappears with the gcin-everywhere source — satisfying "show only on
+the switcher engine". On Wayland the extension must be enabled once and the session
+restarted (logout/in) for GNOME Shell to load it. See
+[HANDOFF key design decisions](HANDOFF.md#key-design-decisions).
+
+---
+
 ## Data Model
 
 ### Cangjie (table-based) input flow
@@ -399,4 +435,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-06-21 (added decision 8: unified gcin-everywhere switcher engine)
+**Last Updated:** 2026-06-22 (added decision 9: GNOME panel indicator extension)

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-06-22-session-18-gnome-panel-indicator – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#session-18-phase-11-gnome-panel-indicator-for-gcin-everywhere"
+id="toc-session-18-phase-11-gnome-panel-indicator-for-gcin-everywhere">Session
+18: Phase 11 — GNOME Panel Indicator for gcin-everywhere</a>
+<ul>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#the-problem" id="toc-the-problem">The problem</a></li>
+<li><a href="#what-was-done-file-fed-gnome-shell-extension"
+id="toc-what-was-done-file-fed-gnome-shell-extension">What was done —
+file-fed GNOME Shell extension</a>
+<ul>
+<li><a href="#engine-side-ibus-enginegcin_engine.c"
+id="toc-engine-side-ibus-enginegcin_engine.c">Engine side
+(<code>ibus-engine/gcin_engine.c</code>)</a></li>
+<li><a href="#extension-gnome-extensiongcin-everywheregcin.dev"
+id="toc-extension-gnome-extensiongcin-everywheregcin.dev">Extension
+(<code>gnome-extension/gcin-everywhere@gcin.dev/</code>)</a></li>
+<li><a href="#build-makefile" id="toc-build-makefile">Build
+(<code>Makefile</code>)</a></li>
+</ul></li>
+<li><a href="#verification" id="toc-verification">Verification</a></li>
+<li><a href="#key-findings" id="toc-key-findings">Key findings</a></li>
+<li><a href="#decisions-made" id="toc-decisions-made">Decisions
+made</a></li>
+<li><a href="#status-at-end-of-session"
+id="toc-status-at-end-of-session">Status at end of session</a></li>
+<li><a href="#next-steps" id="toc-next-steps">Next steps</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1
+id="session-18-phase-11-gnome-panel-indicator-for-gcin-everywhere">Session
+18: Phase 11 — GNOME Panel Indicator for gcin-everywhere</h1>
+<p><strong>Date:</strong> 2026-06-22 <strong>Phase:</strong> Phase 11 —
+GNOME Shell extension showing the active method <strong>Branch:</strong>
+master</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ul>
+<li><p>Give the user a visible indicator of which input method
+<code>gcin-everywhere</code> is currently in (it was impossible to tell
+— the panel only ever showed 全).</p></li>
+<li><p>Detect the environment and show the indicator
+<strong>only</strong> when the unified switcher engine is the active
+source.</p></li>
+</ul>
+<h2 id="the-problem">The problem</h2>
+<p><code>gcin-everywhere</code> is a <strong>single</strong> IBus engine
+that switches method internally. GNOME Shell’s built-in top-bar input
+indicator renders only an engine’s <strong>static <code>symbol</code>
+from its component XML</strong> (全 for gcin-everywhere) and
+<strong>ignores live <code>IBusProperty</code> symbol updates</strong>.
+So the <code>ibus_engine_update_property()</code> calls the engine
+already makes (flipping 倉→注→速…) are a no-op <em>on GNOME</em> — they
+work on KDE / the standalone <code>ibus-ui-gtk3</code> panel, but not
+GNOME Shell. Result: the user could not tell the active method.</p>
+<p>Considered and rejected: a notification-on-switch toast (user: “too
+annoying”); an SNI/AppIndicator tray icon (also needs a GNOME extension
+to render on stock GNOME, so a native panel indicator is strictly
+simpler).</p>
+<h2 id="what-was-done-file-fed-gnome-shell-extension">What was done —
+file-fed GNOME Shell extension</h2>
+<p>Chose a <strong>state-file + GNOME Shell extension</strong> design
+(no polling, no new C deps, coexists with the existing IBus
+property):</p>
+<h3 id="engine-side-ibus-enginegcin_engine.c">Engine side
+(<code>ibus-engine/gcin_engine.c</code>)</h3>
+<ul>
+<li><p>Added <code>mode_label()</code> (readable name per mode,
+e.g. <code>注音 Zhuyin</code>).</p></li>
+<li><p>Added <code>write_state(e, active)</code>: writes
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code> with
+<code>"&lt;glyph&gt;\t&lt;label&gt;"</code> while active, or
+<strong>empty</strong> when disabled. Gated on <code>allow_switch</code>
+(no-op for the 6 single-method engines).</p></li>
+<li><p><code>update_property()</code> now also calls
+<code>write_state(e, TRUE)</code> — so the file tracks every switch,
+enable, and focus-in (all already route through
+<code>update_property</code>).</p></li>
+<li><p><code>gcin_engine_disable()</code> now calls
+<code>write_state(ge, FALSE)</code> — clears the file when the user
+switches away, so the indicator disappears.</p></li>
+</ul>
+<h3 id="extension-gnome-extensiongcin-everywheregcin.dev">Extension
+(<code>gnome-extension/gcin-everywhere@gcin.dev/</code>)</h3>
+<ul>
+<li><p><code>extension.js</code> (GNOME 45+ ESM): a
+<code>PanelMenu.Button</code> holding an <code>St.Label</code>. A
+<code>Gio.FileMonitor</code> on the state <strong>directory</strong>
+(robust to atomic replacement) fires on change; <code>_refresh()</code>
+reads the file and sets the glyph + shows the button, or hides it when
+the file is empty/absent. A non-interactive menu line shows the full
+method name.</p></li>
+<li><p><code>metadata.json</code> (shell-version 45–49),
+<code>stylesheet.css</code> (bold, padded label).</p></li>
+</ul>
+<h3 id="build-makefile">Build (<code>Makefile</code>)</h3>
+<ul>
+<li>New <code>install-extension</code> target copies the extension to
+<code>~/.local/share/gnome-shell/extensions/gcin-everywhere@gcin.dev/</code>
+(user-local, no sudo); <code>install</code> now depends on it.</li>
+</ul>
+<h2 id="verification">Verification</h2>
+<ul>
+<li>Engine binary rebuilt and confirmed to contain the new code;
+<strong>state file verified</strong> end-to-end via
+<code>ibus engine</code> switching:
+<ul>
+<li>gcin-everywhere active → <code>倉\t倉頡 Cangjie</code></li>
+<li>switched to English (<code>xkb:us::eng</code>) → file emptied
+(indicator will hide)</li>
+<li>back to gcin-everywhere → repopulated</li>
+</ul></li>
+<li><code>extension.js</code> passes <code>node --check</code> (ESM
+syntax); <code>metadata.json</code> valid.</li>
+</ul>
+<h2 id="key-findings">Key findings</h2>
+<ul>
+<li><p><strong>GNOME Shell ignores IBus property symbol updates</strong>
+— confirmed root cause of “only 全 shows”. An external indicator
+(extension) is the only GNOME-native fix for a single-engine switcher;
+the IBus property still serves KDE / standalone panel.</p></li>
+<li><p><strong>Stale daemon-spawned engine can own the bus
+name.</strong> After <code>systemctl restart</code>, an old engine
+process (started the prior day, exe shown as <code>(deleted)</code>,
+spawned outside systemd’s cgroup) still held
+<code>org.freedesktop.IBus.Gcin</code>. The new process requested the
+name with flag 0 (no replace) and stayed idle, so the <strong>old code
+kept serving</strong> and no state file appeared. Fix: <code>kill</code>
+the stale PID, <code>systemctl --user restart</code>,
+<code>ibus   restart</code>. (Possible future hardening: request the
+name with
+<code>IBUS_BUS_NAME_FLAG_REPLACE_EXISTING | ALLOW_REPLACEMENT</code>.)</p></li>
+<li><p><strong>Wayland needs logout/login</strong> for GNOME Shell to
+pick up a newly-installed extension — the shell can’t be reloaded live
+on Wayland (Alt+F2 <code>r</code> is X11-only).</p></li>
+</ul>
+<h2 id="decisions-made">Decisions made</h2>
+<ul>
+<li><p><strong>State file over D-Bus signal</strong> — a tiny file
+watched via <code>Gio.FileMonitor</code> is inotify-driven (no polling)
+and needs zero new D-Bus plumbing in the C engine.</p></li>
+<li><p><strong>Coexist with the IBus property, no environment detection
+in C</strong> — the engine always writes both; whichever the desktop
+supports renders (GNOME → extension; KDE/standalone → property). The
+extension’s mere existence is the “GNOME detection”.</p></li>
+<li><p><strong>Visibility tied to engine enable/disable</strong> — file
+populated on <code>enable</code>, emptied on <code>disable</code>, so
+the indicator shows <strong>only</strong> while gcin-everywhere is the
+active source.</p></li>
+</ul>
+<h2 id="status-at-end-of-session">Status at end of session</h2>
+<ul>
+<li><p>Engine half verified working. Extension installed and
+syntax-valid; <strong>pending the user’s logout/login</strong> on
+Wayland + <code>gnome-extensions enable gcin-everywhere@gcin.dev</code>
+for live confirmation in the panel.</p></li>
+<li><p>No regressions: single-method engines never call
+<code>write_state</code> (gated on <code>allow_switch</code>).</p></li>
+</ul>
+<h2 id="next-steps">Next steps</h2>
+<ul>
+<li>User: log out/in, enable the extension, confirm the glyph appears
+and updates live.</li>
+<li>Phase 3 (Windows TSF port) remains the next platform milestone.</li>
+</ul>
+<hr />
+<p><strong>Files Changed:</strong></p>
+<ul>
+<li><code>ibus-engine/gcin_engine.c</code> — <code>mode_label()</code>,
+<code>write_state()</code>, write on <code>update_property</code>, clear
+on <code>disable</code>;
+<code>#include &lt;glib/gstdio.h&gt;</code></li>
+<li><code>gnome-extension/gcin-everywhere@gcin.dev/{extension.js,metadata.json,stylesheet.css}</code>
+— new GNOME Shell indicator extension</li>
+<li><code>Makefile</code> — <code>install-extension</code> target;
+<code>install</code> depends on it</li>
+<li><code>README.md</code> (source) — corrected the misleading “GNOME
+panel symbol shows the method” claim; documented the extension +
+install/enable</li>
+</ul>
+</body>
+</html>

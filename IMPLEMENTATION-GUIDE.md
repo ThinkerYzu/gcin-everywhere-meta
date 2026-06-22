@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-21 (Session 17 — Phase 10: unified gcin-everywhere switcher engine)
+**Last Updated:** 2026-06-22 (Session 18 — Phase 11: GNOME panel indicator extension)
 
 ---
 
@@ -24,6 +24,7 @@
 - [Phase 8: Quick and Array Input Methods](#phase-8-quick-and-array-input-methods)
 - [Phase 9: Additional gtab Engines (CJ5, SimplexPunc)](#phase-9-additional-gtab-engines-cj5-simplexpunc)
 - [Phase 10: Unified Switcher Engine (gcin-everywhere)](#phase-10-unified-switcher-engine-gcin-everywhere)
+- [Phase 11: GNOME Panel Indicator](#phase-11-gnome-panel-indicator-gcin-everywheregcindev)
 - [gcin Source File Reference](#gcin-source-file-reference)
 
 ---
@@ -1493,4 +1494,76 @@ tables and core feedkey functions.
 
 ---
 
-**Last Updated:** 2026-06-21 (Session 17 — Phase 10: unified gcin-everywhere switcher engine)
+## Phase 11: GNOME Panel Indicator (gcin-everywhere@gcin.dev)
+
+GNOME Shell shows only an engine's static component `symbol` (全) and **ignores live
+`IBusProperty` symbol updates**, so the user can't tell which method gcin-everywhere is in.
+Fix: the engine publishes the active method to a state file; a GNOME Shell extension watches
+it and shows the glyph in the top bar (only while gcin-everywhere is active). See
+[DESIGN §9](DESIGN.md#9-gnome-panel-indicator-state-file--gnome-shell-extension).
+
+### Engine side — `ibus-engine/gcin_engine.c`
+
+1. **`mode_label(int mode)`** — readable name per mode (`注音 Zhuyin`, etc.), alongside the
+   existing single-glyph `mode_symbol()`.
+2. **`write_state(GcinEngine *e, gboolean active)`** — writes
+   `$XDG_RUNTIME_DIR/gcin-everywhere/state`:
+   ```c
+   char *dir  = g_build_filename(g_get_user_runtime_dir(), "gcin-everywhere", NULL);
+   g_mkdir_with_parents(dir, 0700);
+   char *path = g_build_filename(dir, "state", NULL);
+   char *content = active
+       ? g_strdup_printf("%s\t%s",
+             e->chinese_mode ? mode_symbol(e->mode) : "英",
+             e->chinese_mode ? mode_label(e->mode)  : "英文 English")
+       : g_strdup("");
+   g_file_set_contents(path, content, -1, NULL);
+   ```
+   Gated on `allow_switch` (no-op for single-method engines). Needs `#include <glib/gstdio.h>`.
+3. **Call it from `update_property()`** (append `write_state(e, TRUE);`) so it tracks every
+   switch, `enable`, and `focus_in` — all already route through `update_property()`.
+4. **Clear it in `gcin_engine_disable()`** (`if (ge->allow_switch) write_state(ge, FALSE);`)
+   so the indicator hides when switching away.
+
+### Extension — `gnome-extension/gcin-everywhere@gcin.dev/`
+
+- **`extension.js`** (GNOME 45+ ESM): a `PanelMenu.Button` + `St.Label`, added to the panel
+  hidden. A `Gio.FileMonitor` on the state **directory** (robust to atomic replace) calls a
+  `_refresh()` that `GLib.file_get_contents(STATE_FILE)`, splits on `\t`, sets the glyph, and
+  toggles `button.visible` on whether the content is non-empty. A non-interactive
+  `PopupMenuItem` shows the full label. Teardown in `disable()` (cancel monitor, destroy
+  button).
+- **`metadata.json`**: `uuid` `gcin-everywhere@gcin.dev`, `shell-version` `["45"…"49"]`.
+- **`stylesheet.css`**: bold, padded `.gcin-everywhere-label`.
+
+### Build — `Makefile`
+
+`install-extension` copies the extension to
+`~/.local/share/gnome-shell/extensions/gcin-everywhere@gcin.dev/` (user-local); `install`
+depends on it. The copy is **gated on detecting `gnome-shell`** (skipped on non-GNOME
+desktops, where the IBus property drives the panel; override with `FORCE_EXTENSION=1`). It
+also **auto-enables** by appending the UUID to GNOME's `enabled-extensions` gsettings list
+(idempotent; works pre-scan, unlike `gnome-extensions enable`, which errors with "does not
+exist" before the shell has scanned the new dir). The user's only remaining step is the
+**Wayland logout/in**, which the shell requires to load a newly-installed extension.
+
+### Verification
+
+State file confirmed via `ibus engine` switching (gcin-everywhere → `倉\t倉頡 Cangjie`;
+English source → empty; back → repopulated). `extension.js` passes `node --check`.
+**Gotcha:** a stale daemon-spawned engine (outside systemd's cgroup) can keep owning the bus
+name `org.freedesktop.IBus.Gcin` after `systemctl restart`, so old code keeps serving and no
+state file appears — `kill` it, then restart the service + `ibus restart`.
+
+### Files changed (Session 18)
+
+| File | Change |
+|------|--------|
+| `ibus-engine/gcin_engine.c` | `#include <glib/gstdio.h>`; `mode_label()`; `write_state()`; write in `update_property()`; clear in `disable()` |
+| `gnome-extension/gcin-everywhere@gcin.dev/{extension.js,metadata.json,stylesheet.css}` | New GNOME Shell indicator extension |
+| `Makefile` | `install-extension` target; `install` depends on it |
+| `README.md` (source) | Corrected the GNOME-panel claim; documented the extension + enable steps |
+
+---
+
+**Last Updated:** 2026-06-22 (Session 18 — Phase 11: GNOME panel indicator extension)

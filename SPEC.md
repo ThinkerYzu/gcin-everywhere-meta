@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-21 (added FR8: unified `gcin-everywhere` switcher engine)
+**Last Updated:** 2026-06-22 (added FR10: GNOME panel indicator for gcin-everywhere)
 **Status:** Approved
 
 ---
@@ -82,8 +82,9 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
 
    - The switch persists for the session until changed again; the engine starts in Cangjie.
    - `Ctrl+Alt+<digit>` switching is active **only** in the `gcin-everywhere` engine. The six single-method engines (`gcin-cangjie`, …) remain fixed to their method so the IBus panel label stays accurate.
-   - The IBus panel reflects the active method via an engine property (symbol updates 全→倉/注/…).
+   - The IBus panel reflects the active method via an engine property (symbol updates 全→倉/注/…). **On GNOME this property is not rendered** (GNOME Shell shows only the static component symbol), so a panel indicator is provided separately — see FR10.
 9. **English toggle (`Ctrl+Space`)** — within `gcin-everywhere`, `Ctrl+Space` toggles between Chinese input and English passthrough in place — the gcin-native `gcin_im_toggle` behavior. The previously selected method is preserved, so toggling back resumes it. The panel symbol shows 英 while in English. This is an in-engine toggle (not a desktop input-source switch), so it requires that no desktop shortcut grab plain `Ctrl+Space` (see DESIGN §8).
+10. **GNOME panel indicator** — On GNOME Shell, the active `gcin-everywhere` method is shown in the top panel by a bundled GNOME Shell extension. The indicator updates live as the method switches (and shows 英 in English mode), and is visible **only** while the `gcin-everywhere` source is active. It must detect support gracefully — where the mechanism isn't available the engine and other panels are unaffected (see DESIGN §9).
 
 ### Non-Functional Requirements
 
@@ -111,6 +112,7 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
 4. **IBus registration** — Engine appears in GNOME Settings → Keyboard → Input Sources and can be selected without manual D-Bus manipulation.
 5. **No crashes** — Engine runs stably for a 30-minute typing session without crashing or hanging.
 6. **Unified switching works** — With the `gcin-everywhere` engine active, `Ctrl+Alt+1/2/3/4/5/8` switches the active method in place; subsequent keystrokes use the newly selected method and the panel symbol updates accordingly.
+7. **GNOME indicator works** — On GNOME Shell with the bundled extension enabled, the top panel shows the active `gcin-everywhere` method glyph, updates live as it switches, and is hidden when another source is active.
 
 ---
 
@@ -127,4 +129,4 @@ All open questions resolved.
 
 ---
 
-**Last Updated:** 2026-06-21 (added FR8: unified `gcin-everywhere` switcher engine)
+**Last Updated:** 2026-06-22 (added FR10: GNOME panel indicator for gcin-everywhere)

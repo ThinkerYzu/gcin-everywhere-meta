@@ -298,14 +298,30 @@ Ctrl+Space (gcin-native)</a></li>
 <li><a href="#files-changed-session-17"
 id="toc-files-changed-session-17">Files changed (Session 17)</a></li>
 </ul></li>
+<li><a href="#phase-11-gnome-panel-indicator-gcin-everywheregcin.dev"
+id="toc-phase-11-gnome-panel-indicator-gcin-everywheregcin.dev">Phase
+11: GNOME Panel Indicator (gcin-everywhere@gcin.dev)</a>
+<ul>
+<li><a href="#engine-side-ibus-enginegcin_engine.c"
+id="toc-engine-side-ibus-enginegcin_engine.c">Engine side —
+<code>ibus-engine/gcin_engine.c</code></a></li>
+<li><a href="#extension-gnome-extensiongcin-everywheregcin.dev"
+id="toc-extension-gnome-extensiongcin-everywheregcin.dev">Extension —
+<code>gnome-extension/gcin-everywhere@gcin.dev/</code></a></li>
+<li><a href="#build-makefile" id="toc-build-makefile">Build —
+<code>Makefile</code></a></li>
+<li><a href="#verification" id="toc-verification">Verification</a></li>
+<li><a href="#files-changed-session-18"
+id="toc-files-changed-session-18">Files changed (Session 18)</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
 <h1 id="implementation-guide-gcin-everywhere">Implementation Guide:
 gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase
-10: unified gcin-everywhere switcher engine)</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase
+11: GNOME panel indicator extension)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -338,6 +354,9 @@ Array Input Methods</a></li>
 Additional gtab Engines (CJ5, SimplexPunc)</a></li>
 <li><a href="#phase-10-unified-switcher-engine-gcin-everywhere">Phase
 10: Unified Switcher Engine (gcin-everywhere)</a></li>
+<li><a
+href="#phase-11-gnome-panel-indicator-gcin-everywheregcindev">Phase 11:
+GNOME Panel Indicator</a></li>
 <li><a href="#gcin-source-file-reference">gcin Source File
 Reference</a></li>
 </ul>
@@ -2422,7 +2441,123 @@ registration</td>
 <code>gcin-core</code> change — the unified engine reuses the existing
 tables and core feedkey functions.</p>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-21 (Session 17 — Phase 10:
-unified gcin-everywhere switcher engine)</p>
+<h2 id="phase-11-gnome-panel-indicator-gcin-everywheregcin.dev">Phase
+11: GNOME Panel Indicator (gcin-everywhere@gcin.dev)</h2>
+<p>GNOME Shell shows only an engine’s static component
+<code>symbol</code> (全) and <strong>ignores live
+<code>IBusProperty</code> symbol updates</strong>, so the user can’t
+tell which method gcin-everywhere is in. Fix: the engine publishes the
+active method to a state file; a GNOME Shell extension watches it and
+shows the glyph in the top bar (only while gcin-everywhere is active).
+See <a
+href="DESIGN.html#9-gnome-panel-indicator-state-file--gnome-shell-extension">DESIGN
+§9</a>.</p>
+<h3 id="engine-side-ibus-enginegcin_engine.c">Engine side —
+<code>ibus-engine/gcin_engine.c</code></h3>
+<ol type="1">
+<li><p><strong><code>mode_label(int mode)</code></strong> — readable
+name per mode (<code>注音 Zhuyin</code>, etc.), alongside the existing
+single-glyph <code>mode_symbol()</code>.</p></li>
+<li><p><strong><code>write_state(GcinEngine *e, gboolean active)</code></strong>
+— writes <code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code>:</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>dir  <span class="op">=</span> g_build_filename<span class="op">(</span>g_get_user_runtime_dir<span class="op">(),</span> <span class="st">&quot;gcin-everywhere&quot;</span><span class="op">,</span> NULL<span class="op">);</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>g_mkdir_with_parents<span class="op">(</span>dir<span class="op">,</span> <span class="bn">0700</span><span class="op">);</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>path <span class="op">=</span> g_build_filename<span class="op">(</span>dir<span class="op">,</span> <span class="st">&quot;state&quot;</span><span class="op">,</span> NULL<span class="op">);</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="dt">char</span> <span class="op">*</span>content <span class="op">=</span> active</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">?</span> g_strdup_printf<span class="op">(</span><span class="st">&quot;</span><span class="sc">%s\t%s</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>          e<span class="op">-&gt;</span>chinese_mode <span class="op">?</span> mode_symbol<span class="op">(</span>e<span class="op">-&gt;</span>mode<span class="op">)</span> <span class="op">:</span> <span class="st">&quot;英&quot;</span><span class="op">,</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>          e<span class="op">-&gt;</span>chinese_mode <span class="op">?</span> mode_label<span class="op">(</span>e<span class="op">-&gt;</span>mode<span class="op">)</span>  <span class="op">:</span> <span class="st">&quot;英文 English&quot;</span><span class="op">)</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span> g_strdup<span class="op">(</span><span class="st">&quot;&quot;</span><span class="op">);</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>g_file_set_contents<span class="op">(</span>path<span class="op">,</span> content<span class="op">,</span> <span class="op">-</span><span class="dv">1</span><span class="op">,</span> NULL<span class="op">);</span></span></code></pre></div>
+<p>Gated on <code>allow_switch</code> (no-op for single-method engines).
+Needs <code>#include &lt;glib/gstdio.h&gt;</code>.</p></li>
+<li><p><strong>Call it from <code>update_property()</code></strong>
+(append <code>write_state(e, TRUE);</code>) so it tracks every switch,
+<code>enable</code>, and <code>focus_in</code> — all already route
+through <code>update_property()</code>.</p></li>
+<li><p><strong>Clear it in <code>gcin_engine_disable()</code></strong>
+(<code>if (ge-&gt;allow_switch) write_state(ge, FALSE);</code>) so the
+indicator hides when switching away.</p></li>
+</ol>
+<h3 id="extension-gnome-extensiongcin-everywheregcin.dev">Extension —
+<code>gnome-extension/gcin-everywhere@gcin.dev/</code></h3>
+<ul>
+<li><p><strong><code>extension.js</code></strong> (GNOME 45+ ESM): a
+<code>PanelMenu.Button</code> + <code>St.Label</code>, added to the
+panel hidden. A <code>Gio.FileMonitor</code> on the state
+<strong>directory</strong> (robust to atomic replace) calls a
+<code>_refresh()</code> that
+<code>GLib.file_get_contents(STATE_FILE)</code>, splits on
+<code>\t</code>, sets the glyph, and toggles <code>button.visible</code>
+on whether the content is non-empty. A non-interactive
+<code>PopupMenuItem</code> shows the full label. Teardown in
+<code>disable()</code> (cancel monitor, destroy button).</p></li>
+<li><p><strong><code>metadata.json</code></strong>: <code>uuid</code>
+<code>gcin-everywhere@gcin.dev</code>, <code>shell-version</code>
+<code>["45"…"49"]</code>.</p></li>
+<li><p><strong><code>stylesheet.css</code></strong>: bold, padded
+<code>.gcin-everywhere-label</code>.</p></li>
+</ul>
+<h3 id="build-makefile">Build — <code>Makefile</code></h3>
+<p><code>install-extension</code> copies the extension to
+<code>~/.local/share/gnome-shell/extensions/gcin-everywhere@gcin.dev/</code>
+(user-local); <code>install</code> depends on it. The copy is
+<strong>gated on detecting <code>gnome-shell</code></strong> (skipped on
+non-GNOME desktops, where the IBus property drives the panel; override
+with <code>FORCE_EXTENSION=1</code>). It also
+<strong>auto-enables</strong> by appending the UUID to GNOME’s
+<code>enabled-extensions</code> gsettings list (idempotent; works
+pre-scan, unlike <code>gnome-extensions enable</code>, which errors with
+“does not exist” before the shell has scanned the new dir). The user’s
+only remaining step is the <strong>Wayland logout/in</strong>, which the
+shell requires to load a newly-installed extension.</p>
+<h3 id="verification">Verification</h3>
+<p>State file confirmed via <code>ibus engine</code> switching
+(gcin-everywhere → <code>倉\t倉頡 Cangjie</code>; English source →
+empty; back → repopulated). <code>extension.js</code> passes
+<code>node --check</code>. <strong>Gotcha:</strong> a stale
+daemon-spawned engine (outside systemd’s cgroup) can keep owning the bus
+name <code>org.freedesktop.IBus.Gcin</code> after
+<code>systemctl restart</code>, so old code keeps serving and no state
+file appears — <code>kill</code> it, then restart the service +
+<code>ibus restart</code>.</p>
+<h3 id="files-changed-session-18">Files changed (Session 18)</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td><code>#include &lt;glib/gstdio.h&gt;</code>;
+<code>mode_label()</code>; <code>write_state()</code>; write in
+<code>update_property()</code>; clear in <code>disable()</code></td>
+</tr>
+<tr class="even">
+<td><code>gnome-extension/gcin-everywhere@gcin.dev/{extension.js,metadata.json,stylesheet.css}</code></td>
+<td>New GNOME Shell indicator extension</td>
+</tr>
+<tr class="odd">
+<td><code>Makefile</code></td>
+<td><code>install-extension</code> target; <code>install</code> depends
+on it</td>
+</tr>
+<tr class="even">
+<td><code>README.md</code> (source)</td>
+<td>Corrected the GNOME-panel claim; documented the extension + enable
+steps</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase 11:
+GNOME panel indicator extension)</p>
 </body>
 </html>
