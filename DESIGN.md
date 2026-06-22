@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-22 (added decision 9: GNOME panel indicator extension)
+**Last Updated:** 2026-06-22 (added decision 10: reset to English on focus change)
 
 ---
 
@@ -351,6 +351,35 @@ restarted (logout/in) for GNOME Shell to load it. See
 
 ---
 
+### 10. Reset to English on focus change (gcin-everywhere only)
+
+**Decision.** When the `gcin-everywhere` source is active, the engine clears `chinese_mode`
+on every `focus_in`, so each newly-focused text field starts in English passthrough. The
+selected method (`e->mode`) is left untouched, so `Ctrl+Space` / `Ctrl+Alt+<digit>` resumes
+it; the panel property and the state file then show 英. Gated on `allow_switch`, so the six
+single-method engines keep their existing focus behavior.
+
+**Why focus, not window.** IBus delivers `focus_out`/`focus_in` to the engine on every focus
+change but **does not tell it which window/app gained focus** — the standard signal carries no
+window identity, and even IBus 1.5.27+'s `focus_in_id(object_path, client)` identifies the
+toolkit/app, not the individual window. So the reset necessarily fires on *any* focus gain — a
+different window, a different field, or re-entering the same field. This is the classic
+per-context IME behavior (gcin and many IMEs offer it); for the all-in-one switcher it means a
+predictable "always begins in English" default rather than carrying a Chinese method into an
+unrelated field.
+
+**Implementation.** In `gcin_engine_focus_in()` (which already re-registers the panel
+properties IBus clears on focus change): for `allow_switch` engines, set
+`ge->chinese_mode = FALSE`, `gcin_core_reset()`, hide preedit + lookup table, then
+`update_property()` (which mirrors 英 to the panel and the state file). One added branch, no
+core changes.
+
+**Always on.** Shipped unconditionally rather than behind a flag — a single, predictable
+default keeps the UX consistent with classic per-context IMEs. (A future opt-out env var
+remains possible if users ask for sticky Chinese.)
+
+---
+
 ## Data Model
 
 ### Cangjie (table-based) input flow
@@ -435,4 +464,4 @@ return TRUE (key consumed)
 
 ---
 
-**Last Updated:** 2026-06-22 (added decision 9: GNOME panel indicator extension)
+**Last Updated:** 2026-06-22 (added decision 10: reset to English on focus change)

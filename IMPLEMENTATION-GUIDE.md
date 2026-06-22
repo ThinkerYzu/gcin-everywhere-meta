@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-22 (Session 18 — Phase 11: GNOME panel indicator extension)
+**Last Updated:** 2026-06-22 (Session 19 — Phase 12: reset to English on focus change)
 
 ---
 
@@ -25,6 +25,7 @@
 - [Phase 9: Additional gtab Engines (CJ5, SimplexPunc)](#phase-9-additional-gtab-engines-cj5-simplexpunc)
 - [Phase 10: Unified Switcher Engine (gcin-everywhere)](#phase-10-unified-switcher-engine-gcin-everywhere)
 - [Phase 11: GNOME Panel Indicator](#phase-11-gnome-panel-indicator-gcin-everywheregcindev)
+- [Phase 12: Reset to English on Focus Change](#phase-12-reset-to-english-on-focus-change)
 - [gcin Source File Reference](#gcin-source-file-reference)
 
 ---
@@ -1566,4 +1567,55 @@ state file appears — `kill` it, then restart the service + `ibus restart`.
 
 ---
 
-**Last Updated:** 2026-06-22 (Session 18 — Phase 11: GNOME panel indicator extension)
+## Phase 12: Reset to English on Focus Change
+
+When the `gcin-everywhere` source is active, each newly-focused text field should start in
+English passthrough rather than carry a Chinese method across windows/fields. IBus exposes
+focus, not window identity, so the reset fires on *any* focus gain — the classic per-context
+IME behavior. See [DESIGN §10](DESIGN.md#10-reset-to-english-on-focus-change-gcin-everywhere-only).
+
+### Engine side — `ibus-engine/gcin_engine.c`
+
+The existing `gcin_engine_focus_in()` already re-registers the panel properties IBus clears on
+focus change. Add a reset branch for the unified engine, before that:
+
+```c
+static void gcin_engine_focus_in(IBusEngine *e) {
+    GcinEngine *ge = (GcinEngine *)e;
+    if (ge->allow_switch) {
+        ge->chinese_mode = FALSE;          /* every newly-focused field starts in English */
+        gcin_core_reset();                 /* discard any pending composition */
+        ibus_engine_hide_preedit_text(e);
+        ibus_engine_hide_lookup_table(e);
+        if (ge->props) {
+            ibus_engine_register_properties(e, ge->props);
+            update_property(ge);           /* mirrors 英 to the panel + state file */
+        }
+    }
+}
+```
+
+`e->mode` is preserved, so `Ctrl+Space` / `Ctrl+Alt+<digit>` resumes the last method.
+`update_property()` already publishes 英 to both the IBus property and the state file, so the
+GNOME indicator updates for free. Gated on `allow_switch` — the six single-method engines keep
+their prior focus behavior. No gcin-core changes. Always on (no flag).
+
+### Verification
+
+Built clean (`make engine`), reinstalled, restarted. Live-confirmed by the user: typing
+Chinese in one field then switching window/field comes up in English (indicator shows 英);
+`Ctrl+Space` resumes the method. **Gotcha (recurring):** a stale daemon-spawned engine (exe
+`(deleted)`, parent `ibus-daemon`) can keep owning `org.freedesktop.IBus.Gcin` after a service
+restart and serve old code — `kill` it, then restart the service + `ibus restart`, and confirm
+no surviving process has a `(deleted)` exe.
+
+### Files changed (Session 19)
+
+| File | Change |
+|------|--------|
+| `ibus-engine/gcin_engine.c` | `gcin_engine_focus_in()` resets `chinese_mode` for the unified engine |
+| `README.md` (source) | Documented the focus → English reset under the gcin-everywhere usage |
+
+---
+
+**Last Updated:** 2026-06-22 (Session 19 — Phase 12: reset to English on focus change)

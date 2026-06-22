@@ -56,9 +56,8 @@ Questions</a></li>
 </nav>
 <h1 id="spec-gcin-everywhere">Spec: gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (added FR10: GNOME
-panel indicator for gcin-everywhere) <strong>Status:</strong>
-Approved</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (added FR11: reset
+to English on focus change) <strong>Status:</strong> Approved</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -222,6 +221,18 @@ method switches (and shows 英 in English mode), and is visible
 active. It must detect support gracefully — where the mechanism isn’t
 available the engine and other panels are unaffected (see DESIGN
 §9).</p></li>
+<li><p><strong>Reset to English on focus change</strong> — within
+<code>gcin-everywhere</code>, every newly-focused text field starts in
+English passthrough: on focus-in the engine clears
+<code>chinese_mode</code> (any pending composition is discarded). The
+selected method (<code>e-&gt;mode</code>) is preserved, so
+<code>Ctrl+Space</code> / <code>Ctrl+Alt+&lt;digit&gt;</code> resumes
+it, and the panel/indicator shows 英. IBus delivers focus, not window
+identity, so this fires on <em>any</em> focus gain (a different window,
+a different field, or re-entering one) — the classic per-context IME
+behavior (see DESIGN §10). Active <strong>only</strong> in
+<code>gcin-everywhere</code>; the six single-method engines are
+unaffected.</p></li>
 </ol>
 <h3 id="non-functional-requirements">Non-Functional Requirements</h3>
 <ol type="1">
@@ -270,6 +281,11 @@ updates accordingly.</li>
 bundled extension enabled, the top panel shows the active
 <code>gcin-everywhere</code> method glyph, updates live as it switches,
 and is hidden when another source is active.</li>
+<li><strong>Focus reset works</strong> — With
+<code>gcin-everywhere</code> active, after typing Chinese in one field,
+switching to another window or field comes up in English passthrough
+(panel/indicator shows 英); <code>Ctrl+Space</code> resumes the
+previously selected method.</li>
 </ol>
 <hr />
 <h2 id="open-questions">Open Questions</h2>
@@ -301,7 +317,7 @@ and is hidden when another source is active.</li>
 </tbody>
 </table>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-22 (added FR10: GNOME panel
-indicator for gcin-everywhere)</p>
+<p><strong>Last Updated:</strong> 2026-06-22 (added FR11: reset to
+English on focus change)</p>
 </body>
 </html>

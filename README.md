@@ -1,6 +1,6 @@
 # gcin-everywhere
 
-**Status:** Phase 11 complete — 7 IBus engines incl. unified gcin-everywhere (Ctrl+Alt+digit switcher) + GNOME panel indicator extension; Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
+**Status:** Phase 12 complete — 7 IBus engines incl. unified gcin-everywhere (Ctrl+Alt+digit switcher, Ctrl+Space English toggle, resets to English on focus change) + GNOME panel indicator extension; Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
 **Created:** 2026-05-04
 **Last Updated:** 2026-06-22
 **Goal:** Port gcin's Traditional Chinese input engine to modern platforms, starting with GNOME/Wayland via IBus.
@@ -70,6 +70,7 @@ gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are pa
 - Bu-xie-mi (嘸蝦米) — future
 - ✅ Unified switcher — `gcin-everywhere` engine: `Ctrl+Alt+digit` switches method in place (mirrors gcin's native hotkeys); panel property shows the live method
 - ✅ GNOME panel indicator — `gcin-everywhere@gcin.dev` Shell extension shows the active method glyph in the top bar (engine publishes state via `$XDG_RUNTIME_DIR/gcin-everywhere/state`); shown only while gcin-everywhere is active (GNOME ignores IBus property symbols)
+- ✅ Reset to English on focus change — gcin-everywhere clears `chinese_mode` on focus-in, so each newly-focused window/field starts in English (method preserved; `Ctrl+Space` resumes); fires on any focus gain since IBus exposes focus, not window identity
 
 ### Phase 3: Cross-Platform (FUTURE)
 - Windows via Text Services Framework (TSF)

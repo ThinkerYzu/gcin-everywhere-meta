@@ -82,8 +82,9 @@ Package</a></li>
 </ul>
 </nav>
 <h1 id="gcin-everywhere">gcin-everywhere</h1>
-<p><strong>Status:</strong> Phase 11 complete — 7 IBus engines
-incl. unified gcin-everywhere (Ctrl+Alt+digit switcher) + GNOME panel
+<p><strong>Status:</strong> Phase 12 complete — 7 IBus engines
+incl. unified gcin-everywhere (Ctrl+Alt+digit switcher, Ctrl+Space
+English toggle, resets to English on focus change) + GNOME panel
 indicator extension; Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc,
 full-width, phrase tables all working <strong>Created:</strong>
 2026-05-04 <strong>Last Updated:</strong> 2026-06-22
@@ -191,6 +192,11 @@ Shell extension shows the active method glyph in the top bar (engine
 publishes state via
 <code>$XDG_RUNTIME_DIR/gcin-everywhere/state</code>); shown only while
 gcin-everywhere is active (GNOME ignores IBus property symbols)</li>
+<li>✅ Reset to English on focus change — gcin-everywhere clears
+<code>chinese_mode</code> on focus-in, so each newly-focused
+window/field starts in English (method preserved;
+<code>Ctrl+Space</code> resumes); fires on any focus gain since IBus
+exposes focus, not window identity</li>
 </ul>
 <h3 id="phase-3-cross-platform-future">Phase 3: Cross-Platform
 (FUTURE)</h3>

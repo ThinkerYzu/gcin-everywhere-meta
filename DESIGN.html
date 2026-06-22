@@ -143,6 +143,9 @@ switches mode in place</a></li>
 <li><a href="#gnome-panel-indicator-state-file-gnome-shell-extension"
 id="toc-gnome-panel-indicator-state-file-gnome-shell-extension">9. GNOME
 panel indicator: state file + GNOME Shell extension</a></li>
+<li><a href="#reset-to-english-on-focus-change-gcin-everywhere-only"
+id="toc-reset-to-english-on-focus-change-gcin-everywhere-only">10. Reset
+to English on focus change (gcin-everywhere only)</a></li>
 </ul></li>
 <li><a href="#data-model" id="toc-data-model">Data Model</a>
 <ul>
@@ -168,8 +171,8 @@ in <code>engine_process_key_event</code></a></li>
 </nav>
 <h1 id="design-gcin-everywhere">Design: gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (added decision 9:
-GNOME panel indicator extension)</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (added decision 10:
+reset to English on focus change)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -701,6 +704,41 @@ enabled once and the session restarted (logout/in) for GNOME Shell to
 load it. See <a href="HANDOFF.html#key-design-decisions">HANDOFF key
 design decisions</a>.</p>
 <hr />
+<h3 id="reset-to-english-on-focus-change-gcin-everywhere-only">10. Reset
+to English on focus change (gcin-everywhere only)</h3>
+<p><strong>Decision.</strong> When the <code>gcin-everywhere</code>
+source is active, the engine clears <code>chinese_mode</code> on every
+<code>focus_in</code>, so each newly-focused text field starts in
+English passthrough. The selected method (<code>e-&gt;mode</code>) is
+left untouched, so <code>Ctrl+Space</code> /
+<code>Ctrl+Alt+&lt;digit&gt;</code> resumes it; the panel property and
+the state file then show 英. Gated on <code>allow_switch</code>, so the
+six single-method engines keep their existing focus behavior.</p>
+<p><strong>Why focus, not window.</strong> IBus delivers
+<code>focus_out</code>/<code>focus_in</code> to the engine on every
+focus change but <strong>does not tell it which window/app gained
+focus</strong> — the standard signal carries no window identity, and
+even IBus 1.5.27+’s <code>focus_in_id(object_path, client)</code>
+identifies the toolkit/app, not the individual window. So the reset
+necessarily fires on <em>any</em> focus gain — a different window, a
+different field, or re-entering the same field. This is the classic
+per-context IME behavior (gcin and many IMEs offer it); for the
+all-in-one switcher it means a predictable “always begins in English”
+default rather than carrying a Chinese method into an unrelated
+field.</p>
+<p><strong>Implementation.</strong> In
+<code>gcin_engine_focus_in()</code> (which already re-registers the
+panel properties IBus clears on focus change): for
+<code>allow_switch</code> engines, set
+<code>ge-&gt;chinese_mode = FALSE</code>,
+<code>gcin_core_reset()</code>, hide preedit + lookup table, then
+<code>update_property()</code> (which mirrors 英 to the panel and the
+state file). One added branch, no core changes.</p>
+<p><strong>Always on.</strong> Shipped unconditionally rather than
+behind a flag — a single, predictable default keeps the UX consistent
+with classic per-context IMEs. (A future opt-out env var remains
+possible if users ask for sticky Chinese.)</p>
+<hr />
 <h2 id="data-model">Data Model</h2>
 <h3 id="cangjie-table-based-input-flow">Cangjie (table-based) input
 flow</h3>
@@ -813,7 +851,7 @@ if mode == ZHUYIN:
     same update sequence
 return TRUE (key consumed)</code></pre>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-22 (added decision 9: GNOME
-panel indicator extension)</p>
+<p><strong>Last Updated:</strong> 2026-06-22 (added decision 10: reset
+to English on focus change)</p>
 </body>
 </html>

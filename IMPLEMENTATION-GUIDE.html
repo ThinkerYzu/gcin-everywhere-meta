@@ -314,14 +314,26 @@ id="toc-extension-gnome-extensiongcin-everywheregcin.dev">Extension —
 <li><a href="#files-changed-session-18"
 id="toc-files-changed-session-18">Files changed (Session 18)</a></li>
 </ul></li>
+<li><a href="#phase-12-reset-to-english-on-focus-change"
+id="toc-phase-12-reset-to-english-on-focus-change">Phase 12: Reset to
+English on Focus Change</a>
+<ul>
+<li><a href="#engine-side-ibus-enginegcin_engine.c-1"
+id="toc-engine-side-ibus-enginegcin_engine.c-1">Engine side —
+<code>ibus-engine/gcin_engine.c</code></a></li>
+<li><a href="#verification-1"
+id="toc-verification-1">Verification</a></li>
+<li><a href="#files-changed-session-19"
+id="toc-files-changed-session-19">Files changed (Session 19)</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </nav>
 <h1 id="implementation-guide-gcin-everywhere">Implementation Guide:
 gcin-everywhere</h1>
 <p><strong>Project:</strong> gcin-everywhere <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase
-11: GNOME panel indicator extension)</p>
+2026-05-04 <strong>Last Updated:</strong> 2026-06-22 (Session 19 — Phase
+12: reset to English on focus change)</p>
 <hr />
 <h2 id="navigation">Navigation</h2>
 <p><strong>Project Docs:</strong> <a href="README.html">README</a> | <a
@@ -357,6 +369,8 @@ Additional gtab Engines (CJ5, SimplexPunc)</a></li>
 <li><a
 href="#phase-11-gnome-panel-indicator-gcin-everywheregcindev">Phase 11:
 GNOME Panel Indicator</a></li>
+<li><a href="#phase-12-reset-to-english-on-focus-change">Phase 12: Reset
+to English on Focus Change</a></li>
 <li><a href="#gcin-source-file-reference">gcin Source File
 Reference</a></li>
 </ul>
@@ -2557,7 +2571,78 @@ steps</td>
 </tbody>
 </table>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase 11:
-GNOME panel indicator extension)</p>
+<h2 id="phase-12-reset-to-english-on-focus-change">Phase 12: Reset to
+English on Focus Change</h2>
+<p>When the <code>gcin-everywhere</code> source is active, each
+newly-focused text field should start in English passthrough rather than
+carry a Chinese method across windows/fields. IBus exposes focus, not
+window identity, so the reset fires on <em>any</em> focus gain — the
+classic per-context IME behavior. See <a
+href="DESIGN.html#10-reset-to-english-on-focus-change-gcin-everywhere-only">DESIGN
+§10</a>.</p>
+<h3 id="engine-side-ibus-enginegcin_engine.c-1">Engine side —
+<code>ibus-engine/gcin_engine.c</code></h3>
+<p>The existing <code>gcin_engine_focus_in()</code> already re-registers
+the panel properties IBus clears on focus change. Add a reset branch for
+the unified engine, before that:</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="dt">static</span> <span class="dt">void</span> gcin_engine_focus_in<span class="op">(</span>IBusEngine <span class="op">*</span>e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    GcinEngine <span class="op">*</span>ge <span class="op">=</span> <span class="op">(</span>GcinEngine <span class="op">*)</span>e<span class="op">;</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>ge<span class="op">-&gt;</span>allow_switch<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>        ge<span class="op">-&gt;</span>chinese_mode <span class="op">=</span> FALSE<span class="op">;</span>          <span class="co">/* every newly-focused field starts in English */</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>        gcin_core_reset<span class="op">();</span>                 <span class="co">/* discard any pending composition */</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>        ibus_engine_hide_preedit_text<span class="op">(</span>e<span class="op">);</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>        ibus_engine_hide_lookup_table<span class="op">(</span>e<span class="op">);</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>ge<span class="op">-&gt;</span>props<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>            ibus_engine_register_properties<span class="op">(</span>e<span class="op">,</span> ge<span class="op">-&gt;</span>props<span class="op">);</span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>            update_property<span class="op">(</span>ge<span class="op">);</span>           <span class="co">/* mirrors 英 to the panel + state file */</span></span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><code>e-&gt;mode</code> is preserved, so <code>Ctrl+Space</code> /
+<code>Ctrl+Alt+&lt;digit&gt;</code> resumes the last method.
+<code>update_property()</code> already publishes 英 to both the IBus
+property and the state file, so the GNOME indicator updates for free.
+Gated on <code>allow_switch</code> — the six single-method engines keep
+their prior focus behavior. No gcin-core changes. Always on (no
+flag).</p>
+<h3 id="verification-1">Verification</h3>
+<p>Built clean (<code>make engine</code>), reinstalled, restarted.
+Live-confirmed by the user: typing Chinese in one field then switching
+window/field comes up in English (indicator shows 英);
+<code>Ctrl+Space</code> resumes the method. <strong>Gotcha
+(recurring):</strong> a stale daemon-spawned engine (exe
+<code>(deleted)</code>, parent <code>ibus-daemon</code>) can keep owning
+<code>org.freedesktop.IBus.Gcin</code> after a service restart and serve
+old code — <code>kill</code> it, then restart the service +
+<code>ibus restart</code>, and confirm no surviving process has a
+<code>(deleted)</code> exe.</p>
+<h3 id="files-changed-session-19">Files changed (Session 19)</h3>
+<table>
+<colgroup>
+<col style="width: 42%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ibus-engine/gcin_engine.c</code></td>
+<td><code>gcin_engine_focus_in()</code> resets <code>chinese_mode</code>
+for the unified engine</td>
+</tr>
+<tr class="even">
+<td><code>README.md</code> (source)</td>
+<td>Documented the focus → English reset under the gcin-everywhere
+usage</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-22 (Session 19 — Phase 12:
+reset to English on focus change)</p>
 </body>
 </html>

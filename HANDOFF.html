@@ -57,14 +57,14 @@ Status</a> | <a href="#next-actions">Next Actions</a> | <a
 href="#session-logs">Session Logs</a></p>
 <hr />
 <h2 id="current-status">Current Status</h2>
-<p><strong>Phase:</strong> Phase 11 complete — GNOME panel indicator for
-gcin-everywhere (7 IBus engines + GNOME Shell extension)
+<p><strong>Phase:</strong> Phase 12 complete — gcin-everywhere resets to
+English on focus change (7 IBus engines + GNOME Shell extension)
 <strong>Progress:</strong> 6 single-method engines (Cangjie, Zhuyin,
 Quick, Array, CJ5, SimplexPunc) + <code>gcin-everywhere</code> unified
-switcher (Ctrl+Alt+digit) + GNOME Shell extension showing the live
-method in the top panel; 29/29 unit tests pass <strong>Next
-Milestone:</strong> User logout/in to enable the GNOME extension live,
-then Phase 3 — Windows TSF port <strong>Blockers:</strong> None</p>
+switcher (Ctrl+Alt+digit, Ctrl+Space English toggle, resets to English
+on focus-in) + GNOME Shell extension showing the live method in the top
+panel; 29/29 unit tests pass <strong>Next Milestone:</strong> Phase 3 —
+Windows TSF port <strong>Blockers:</strong> None</p>
 <blockquote>
 <p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
 finalized (open questions resolved) - ✅ Design complete - ✅
@@ -88,7 +88,10 @@ tests pass - ✅ Phase 10 — unified <code>gcin-everywhere</code> engine:
 Ctrl+Alt+digit switches method in place; panel property; 29/29 tests
 pass - ✅ Phase 11 — GNOME Shell extension: engine publishes the active
 method to a state file; extension mirrors the glyph in the top panel,
-shown only while gcin-everywhere is active</p>
+shown only while gcin-everywhere is active - ✅ Phase 12 —
+gcin-everywhere resets to English on focus-in (each newly-focused field
+starts in English; method preserved for Ctrl+Space resume); confirmed
+live by the user</p>
 </blockquote>
 <h3 id="what-we-have">What We Have</h3>
 <ul>
@@ -106,9 +109,11 @@ preedit and candidates wired to IBus APIs</li>
 <li><strong>gcin-everywhere unified engine</strong> —
 <code>Ctrl+Alt+digit</code> switches <code>e-&gt;mode</code> in place
 (1=倉頡 2=倉五 3=注音 4=速成 5=標點簡易 8=行列); <code>Ctrl+Space</code>
-toggles Chinese ↔︎ English passthrough (panel shows 英); panel
-<code>IBusProperty</code> shows the live method; switching gated to this
-engine only</li>
+toggles Chinese ↔︎ English passthrough (panel shows 英); <strong>resets
+to English on focus-in</strong> (each newly-focused field starts in
+English; <code>e-&gt;mode</code> preserved so Ctrl+Space resumes it);
+panel <code>IBusProperty</code> shows the live method; switching gated
+to this engine only</li>
 <li><strong>GNOME panel indicator</strong> —
 <code>gnome-extension/gcin-everywhere@gcin.dev/</code> (GNOME 45+ ESM).
 The engine writes the active method to
@@ -378,6 +383,19 @@ file never appeared). Fix: <code>kill &lt;stale-pid&gt;</code>,
 (Session 18) — GNOME Shell can’t be reloaded live on Wayland (Alt+F2
 <code>r</code> is X11-only), so a newly-installed extension isn’t listed
 by <code>gnome-extensions</code> until the next login.</li>
+<li><strong>gcin-everywhere resets to English on focus-in</strong>
+(Session 19) — <code>gcin_engine_focus_in()</code> clears
+<code>chinese_mode</code> (+ <code>gcin_core_reset()</code>, hide
+preedit/lookup, <code>update_property()</code>) for
+<code>allow_switch</code> engines, so every newly-focused field starts
+in English. <strong>IBus exposes focus, not window identity</strong> —
+the standard <code>focus_in</code> carries no window, and even 1.5.27+’s
+<code>focus_in_id(object_path, client)</code> identifies the
+toolkit/app, not the window — so the reset necessarily fires on
+<em>any</em> focus gain (different window, different field, re-entering
+one). <code>e-&gt;mode</code> is preserved (Ctrl+Space resumes); always
+on (no flag). Single-method engines unaffected (gated on
+<code>allow_switch</code>).</li>
 </ul>
 <hr />
 <h2 id="next-actions">Next Actions</h2>
@@ -388,12 +406,14 @@ by <code>gnome-extensions</code> until the next login.</li>
 <code>Ctrl+Alt+1/2/3/4/5/8</code> switches method in place and
 <code>Ctrl+Space</code> toggles Chinese ↔︎ English, both confirmed by the
 user during live typing.</li>
-<li>⏳ <strong>GNOME panel indicator — needs live confirmation</strong>
-(Session 18) — engine state-file half verified end-to-end; extension
-installed + syntax-valid. <strong>User to:</strong> log out/in
-(Wayland),
-<code>gnome-extensions enable gcin-everywhere@gcin.dev</code>, then
-confirm the glyph appears and updates live as the method switches.</li>
+<li>✅ <strong>GNOME panel indicator confirmed working</strong> (Session
+18, re-confirmed Session 19) — extension enabled via gsettings +
+logout/in; the glyph appears and updates live as the method switches,
+including 英 on the focus-reset to English.</li>
+<li>✅ <strong>gcin-everywhere resets to English on focus
+change</strong> (Session 19) — confirmed live by the user: typing
+Chinese then switching window/field comes up in English; Ctrl+Space
+resumes the method.</li>
 <li><strong>Phase 3: Windows TSF port</strong> — platform layer for
 Windows using Text Services Framework. <code>libgcin-core.a</code> links
 as-is; only the platform integration layer changes (analogous to
@@ -413,6 +433,13 @@ as-is; only the platform integration layer changes (analogous to
 <hr />
 <h2 id="session-logs">Session Logs</h2>
 <ol type="1">
+<li><strong><a
+href="logs/2026-06-22-session-19-focus-reset-english.html">Session 19:
+Phase 12 — Reset to English on Focus Change</a></strong> (2026-06-22) —
+<code>gcin-everywhere</code> clears <code>chinese_mode</code> on
+<code>focus_in</code> so every newly-focused field starts in English;
+method preserved for Ctrl+Space resume. IBus exposes focus, not window
+identity, so it fires on any focus gain. Confirmed live.</li>
 <li><strong><a
 href="logs/2026-06-22-session-18-gnome-panel-indicator.html">Session 18:
 Phase 11 — GNOME Panel Indicator</a></strong> (2026-06-22) — GNOME Shell
@@ -435,12 +462,6 @@ gcin-simplex-punc engine; 6 IBus engines; 25/25 tests pass.</li>
 15: Phase 2 — CJ5 (倉頡五代)</a></strong> (2026-05-05) — Added CJ5
 engine via <code>feedkey_gtab_method()</code>; 5 IBus engines; 23/23
 tests pass.</li>
-<li><strong><a
-href="logs/2026-05-05-session-14-phase2-quick-array.html">Session 14:
-Phase 2 — Quick and Array Input Methods</a></strong> (2026-05-05) —
-Added Quick (速成) and Array (行列) engines via shared
-<code>feedkey_gtab_method()</code>; 4 IBus engines; 20/20 tests
-pass.</li>
 </ol>
 <hr />
 <h2 id="document-web">Document Web</h2>
@@ -465,7 +486,7 @@ progress</li>
 <p><strong>Source Repo:</strong> <code>sources/gcin-everywhere/</code> —
 initialized with gcin submodule at <code>gcin/</code>, new engine code
 goes in <code>ibus-engine/</code></p>
-<p><strong>Last Updated:</strong> 2026-06-22 (Session 18 — Phase 11:
-GNOME panel indicator extension for gcin-everywhere)</p>
+<p><strong>Last Updated:</strong> 2026-06-22 (Session 19 — Phase 12:
+gcin-everywhere resets to English on focus change)</p>
 </body>
 </html>

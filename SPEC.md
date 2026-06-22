@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-22 (added FR10: GNOME panel indicator for gcin-everywhere)
+**Last Updated:** 2026-06-22 (added FR11: reset to English on focus change)
 **Status:** Approved
 
 ---
@@ -85,6 +85,7 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
    - The IBus panel reflects the active method via an engine property (symbol updates 全→倉/注/…). **On GNOME this property is not rendered** (GNOME Shell shows only the static component symbol), so a panel indicator is provided separately — see FR10.
 9. **English toggle (`Ctrl+Space`)** — within `gcin-everywhere`, `Ctrl+Space` toggles between Chinese input and English passthrough in place — the gcin-native `gcin_im_toggle` behavior. The previously selected method is preserved, so toggling back resumes it. The panel symbol shows 英 while in English. This is an in-engine toggle (not a desktop input-source switch), so it requires that no desktop shortcut grab plain `Ctrl+Space` (see DESIGN §8).
 10. **GNOME panel indicator** — On GNOME Shell, the active `gcin-everywhere` method is shown in the top panel by a bundled GNOME Shell extension. The indicator updates live as the method switches (and shows 英 in English mode), and is visible **only** while the `gcin-everywhere` source is active. It must detect support gracefully — where the mechanism isn't available the engine and other panels are unaffected (see DESIGN §9).
+11. **Reset to English on focus change** — within `gcin-everywhere`, every newly-focused text field starts in English passthrough: on focus-in the engine clears `chinese_mode` (any pending composition is discarded). The selected method (`e->mode`) is preserved, so `Ctrl+Space` / `Ctrl+Alt+<digit>` resumes it, and the panel/indicator shows 英. IBus delivers focus, not window identity, so this fires on *any* focus gain (a different window, a different field, or re-entering one) — the classic per-context IME behavior (see DESIGN §10). Active **only** in `gcin-everywhere`; the six single-method engines are unaffected.
 
 ### Non-Functional Requirements
 
@@ -113,6 +114,7 @@ Modern GNOME on Wayland uses IBus as its default input method framework. An IBus
 5. **No crashes** — Engine runs stably for a 30-minute typing session without crashing or hanging.
 6. **Unified switching works** — With the `gcin-everywhere` engine active, `Ctrl+Alt+1/2/3/4/5/8` switches the active method in place; subsequent keystrokes use the newly selected method and the panel symbol updates accordingly.
 7. **GNOME indicator works** — On GNOME Shell with the bundled extension enabled, the top panel shows the active `gcin-everywhere` method glyph, updates live as it switches, and is hidden when another source is active.
+8. **Focus reset works** — With `gcin-everywhere` active, after typing Chinese in one field, switching to another window or field comes up in English passthrough (panel/indicator shows 英); `Ctrl+Space` resumes the previously selected method.
 
 ---
 
@@ -129,4 +131,4 @@ All open questions resolved.
 
 ---
 
-**Last Updated:** 2026-06-22 (added FR10: GNOME panel indicator for gcin-everywhere)
+**Last Updated:** 2026-06-22 (added FR11: reset to English on focus change)
