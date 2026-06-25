@@ -47,6 +47,9 @@ id="toc-voice-mode-in-ibus-enginegcin_engine.c">Voice mode in
 Made</a></li>
 <li><a href="#status-at-end-of-session"
 id="toc-status-at-end-of-session">Status at End of Session</a></li>
+<li><a href="#post-session-live-debug-deployment"
+id="toc-post-session-live-debug-deployment">Post-session: live debug +
+deployment</a></li>
 <li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
 </ul></li>
 </ul>
@@ -165,20 +168,43 @@ against <code>--mock</code>.</p></li>
 — daemon (real backend, POC venv) loads Breeze-ASR-26 on
 <code>cuda:0</code> in ~6 s on the RTX 3090 and emits <code>ready</code>
 to <code>ping</code>.</p></li>
-<li><p>⏳ <strong>Interactive end-to-end not yet run</strong> — needs a
-live GNOME/IBus session: Ctrl+Alt+0, speak, Enter-commit into a real
-app. (Transcription quality itself proven earlier in poc/.)</p></li>
+<li><p>✅ <strong>Confirmed working live by the user</strong> —
+Ctrl+Alt+0 → Space → speak → Space → Enter committed the transcript into
+a real app. First attempt failed only because the daemon wasn’t
+running.</p></li>
+<li><p>✅ <strong>Daemon deployed as a systemd <code>--user</code>
+service</strong> — <code>~/.local/lib/gcin-voiced/</code> with the venv
+symlinked to the POC CUDA venv; <code>gcin-voiced.service</code> enabled
+(autostart at login, ~7 MB idle).</p></li>
 <li><p>No regression to the 6 existing methods (voice path gated on
 <code>e-&gt;mode == MODE_VOICE</code>).</p></li>
 </ul>
+<h2 id="post-session-live-debug-deployment">Post-session: live debug +
+deployment</h2>
+<ul>
+<li><p><strong>Root cause of “Space does nothing”:</strong> the daemon
+was never started. The engine connects to the socket but does not spawn
+the daemon, so with nothing listening the <code>start</code> command is
+silently dropped. Documented as a key decision + in the source README
+troubleshooting.</p></li>
+<li><p>Installed the daemon as a systemd user service (autostart at
+login); venv symlinked to the existing POC CUDA venv to avoid
+duplicating ~6 GB of torch (trade-off: breaks if that checkout moves —
+dedicated venv is the portable option).</p></li>
+<li><p>Documented end-user voice usage (Ctrl+Alt+0 + Space/Enter/Esc,
+daemon setup) in the <strong>source repo
+<code>README.md</code></strong>.</p></li>
+</ul>
 <h2 id="next-steps">Next Steps</h2>
 <ul>
-<li><p>Install the daemon venv on the GPU box
-(<code>requirements.txt</code>), start <code>gcin-voiced.service</code>,
-enter voice with <code>Ctrl+Alt+0</code>, and run a full dictate→commit
-cycle into a real app.</p></li>
-<li><p>Tune the too-short/silence threshold; confirm 語→🎤→…→語 panel
-transitions live.</p></li>
+<li><p>✅ Live dictate→commit confirmed; daemon deployed as a systemd
+user service (done post-session).</p></li>
+<li><p>Confirm mic capture under the systemd service environment (prior
+live success used the hand-started daemon); tune the too-short/silence
+threshold.</p></li>
+<li><p>Optionally add a <code>make install-voiced</code> target (and an
+<code>install-voiced</code> variant that builds a dedicated,
+non-symlinked venv).</p></li>
 <li><p>Phase B (whisper.cpp/GGML native daemon) and Phase C (N-best
 lookup, hold-to-talk, idle unload, optional Tâi-lô) remain
 future.</p></li>

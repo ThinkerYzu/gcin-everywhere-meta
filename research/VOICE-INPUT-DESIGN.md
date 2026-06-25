@@ -2,7 +2,7 @@
 
 **Project:** gcin-everywhere
 **Feature:** Voice dictation method — speak Taiwanese (Taigi)/Mandarin, commit Mandarin Han characters
-**Status:** Phase A implemented (daemon + engine voice mode build & unit-test clean; pending live GPU/mic test) — Phases B/C future
+**Status:** Phase A **complete — confirmed working live** (user dictated end-to-end; daemon installed as a systemd user service) — Phases B/C future
 **Created:** 2026-06-24
 **Last Updated:** 2026-06-25 (Phase A implementation — Session 20)
 **Depends on:** [breeze3-taiwanese-asr.md](breeze3-taiwanese-asr.md) (feasibility) · [poc/](poc/) (validated transcription + mic capture)
@@ -327,14 +327,23 @@ GPU/microphone end-to-end test**.
 - **Real-mode model load over the socket** — the daemon (real backend, POC venv) loads
   Breeze-ASR-26 on `cuda:0` in ~6 s on the RTX 3090 and emits `{"event":"ready","device":"cuda:0"}`
   in response to `ping`. (Transcription quality itself was proven earlier in [poc/](poc/).)
+- **Live end-to-end (confirmed by the user)** — entered voice with `Ctrl+Alt+0`, recorded with
+  `Space`, and committed the transcript into a real app. The first attempt failed only because the
+  daemon wasn't running (the engine connects to the socket but does **not** spawn the daemon — see
+  decision 1); once started it worked.
 
-**Still to do for Phase A:** the interactive piece that needs a live GNOME/IBus session — enter
-voice with `Ctrl+Alt+0`, speak into the mic, and `Enter`-commit into a real app; then tune the
-too-short/silence threshold and confirm the 語→🎤→…→語 panel transitions live.
+**Deployment.** The daemon is installed as a systemd `--user` service (`gcin-voiced.service`,
+autostart at login, lazy load → ~7 MB idle). On this box the service venv is a symlink to the
+existing POC CUDA venv to avoid duplicating ~6 GB of torch; a dedicated venv is the portable
+alternative (see source `README.md`).
+
+**Open follow-ups (Phase A polish):** confirm mic capture under the systemd service environment
+(prior live success used the hand-started daemon; PipeWire is reached via `$XDG_RUNTIME_DIR`);
+tune the too-short/silence threshold; optionally a `make install-voiced` target.
 
 ## Phasing
 
-- **Phase A — MVP (GPU, Python daemon).** ✅ Implemented (above), pending live hardware test.
+- **Phase A — MVP (GPU, Python daemon).** ✅ Complete — confirmed working live; daemon deployed as a systemd user service.
   `gcin-voiced` wraps the validated Transformers path as a socket server; engine voice mode
   (Ctrl+Alt+0), PTT toggle, async preedit, commit/discard, panel 語/🎤. Reuses [poc/](poc/)
   wholesale. Goal: end-to-end dictation into any app.
@@ -345,4 +354,4 @@ too-short/silence threshold and confirm the 語→🎤→…→語 panel transit
 
 ---
 
-**Last Updated:** 2026-06-25 (Phase A implemented — daemon + engine voice mode; Session 20)
+**Last Updated:** 2026-06-25 (Phase A confirmed working live + deployed as systemd service; Session 20)

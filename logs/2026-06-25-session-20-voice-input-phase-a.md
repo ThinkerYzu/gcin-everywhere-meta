@@ -74,14 +74,29 @@
 - ✅ Engine compiles clean (`-Wall -Wextra`); `json_get_str` unit test passes.
 - ✅ **Real-mode model load verified over the socket** — daemon (real backend, POC venv) loads
   Breeze-ASR-26 on `cuda:0` in ~6 s on the RTX 3090 and emits `ready` to `ping`.
-- ⏳ **Interactive end-to-end not yet run** — needs a live GNOME/IBus session: Ctrl+Alt+0, speak,
-  Enter-commit into a real app. (Transcription quality itself proven earlier in poc/.)
+- ✅ **Confirmed working live by the user** — Ctrl+Alt+0 → Space → speak → Space → Enter committed
+  the transcript into a real app. First attempt failed only because the daemon wasn't running.
+- ✅ **Daemon deployed as a systemd `--user` service** — `~/.local/lib/gcin-voiced/` with the venv
+  symlinked to the POC CUDA venv; `gcin-voiced.service` enabled (autostart at login, ~7 MB idle).
 - No regression to the 6 existing methods (voice path gated on `e->mode == MODE_VOICE`).
+
+## Post-session: live debug + deployment
+
+- **Root cause of "Space does nothing":** the daemon was never started. The engine connects to the
+  socket but does not spawn the daemon, so with nothing listening the `start` command is silently
+  dropped. Documented as a key decision + in the source README troubleshooting.
+- Installed the daemon as a systemd user service (autostart at login); venv symlinked to the
+  existing POC CUDA venv to avoid duplicating ~6 GB of torch (trade-off: breaks if that checkout
+  moves — dedicated venv is the portable option).
+- Documented end-user voice usage (Ctrl+Alt+0 + Space/Enter/Esc, daemon setup) in the **source repo
+  `README.md`**.
 
 ## Next Steps
 
-- Install the daemon venv on the GPU box (`requirements.txt`), start `gcin-voiced.service`,
-  enter voice with `Ctrl+Alt+0`, and run a full dictate→commit cycle into a real app.
-- Tune the too-short/silence threshold; confirm 語→🎤→…→語 panel transitions live.
+- ✅ Live dictate→commit confirmed; daemon deployed as a systemd user service (done post-session).
+- Confirm mic capture under the systemd service environment (prior live success used the
+  hand-started daemon); tune the too-short/silence threshold.
+- Optionally add a `make install-voiced` target (and an `install-voiced` variant that builds a
+  dedicated, non-symlinked venv).
 - Phase B (whisper.cpp/GGML native daemon) and Phase C (N-best lookup, hold-to-talk, idle unload,
   optional Tâi-lô) remain future.

@@ -57,22 +57,24 @@ Status</a> | <a href="#next-actions">Next Actions</a> | <a
 href="#session-logs">Session Logs</a></p>
 <hr />
 <h2 id="current-status">Current Status</h2>
-<p><strong>Phase:</strong> Voice Phase A implemented (daemon + engine
-voice mode build &amp; unit-test clean; pending live GPU/mic test).
+<p><strong>Phase:</strong> Voice Phase A <strong>complete and confirmed
+working live</strong> (user dictated into an app end-to-end).
 Input-method work through Phase 12 complete (7 IBus engines + GNOME
 Shell extension). <strong>Progress:</strong> 6 single-method engines
 (Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc) +
 <code>gcin-everywhere</code> unified switcher (Ctrl+Alt+digit,
 Ctrl+Space English toggle, resets to English on focus-in) + GNOME Shell
-extension showing the live method; 29/29 unit tests pass. <strong>NEW:
-voice input (台語語音) Phase A</strong> — <code>gcin-voiced</code> ASR
-daemon (Breeze-ASR-26 over a Unix-socket JSON protocol,
+extension showing the live method; 29/29 unit tests pass. <strong>Voice
+input (台語語音) Phase A — working:</strong> <code>gcin-voiced</code>
+ASR daemon (Breeze-ASR-26 over a Unix-socket JSON protocol,
 <code>--mock</code> for testing) + voice mode (Ctrl+Alt+0) in the
 unified engine (Space=PTT, Enter=commit, async preedit, 語/🎤/… panel
-glyph). Daemon protocol test + engine JSON-parser test pass; engine
-builds clean. <strong>Next Milestone:</strong> Live end-to-end voice
-test on the GPU box; then Phase 3 (Windows TSF port)
-<strong>Blockers:</strong> None</p>
+glyph). Daemon <strong>installed as a systemd <code>--user</code>
+service</strong> (autostarts at login; venv symlinked to the existing
+CUDA venv to avoid re-download). Confirmed live by the user; model loads
+on cuda:0 in ~6 s; docs in source README. <strong>Next
+Milestone:</strong> Phase B (whisper.cpp/GGML native daemon) or Phase 3
+(Windows TSF port) <strong>Blockers:</strong> None</p>
 <blockquote>
 <p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
 finalized (open questions resolved) - ✅ Design complete - ✅
@@ -102,7 +104,9 @@ starts in English; method preserved for Ctrl+Space resume); confirmed
 live by the user - ✅ Voice Phase A — <code>gcin-voiced</code> daemon
 (socket JSON protocol, <code>--mock</code> + protocol test) + voice mode
 (Ctrl+Alt+0) in the unified engine; builds clean, JSON-parser unit test
-passes; <strong>pending live GPU/mic test</strong></p>
+passes; <strong>confirmed working live</strong> (user dictated
+end-to-end); daemon installed as a systemd <code>--user</code> service
+(autostart at login)</p>
 </blockquote>
 <h3 id="what-we-have">What We Have</h3>
 <ul>
@@ -407,6 +411,21 @@ file never appeared). Fix: <code>kill &lt;stale-pid&gt;</code>,
 (Session 18) — GNOME Shell can’t be reloaded live on Wayland (Alt+F2
 <code>r</code> is X11-only), so a newly-installed extension isn’t listed
 by <code>gnome-extensions</code> until the next login.</li>
+<li><strong>The engine does NOT spawn the daemon — it must run
+independently</strong> (Session 20) — <code>voiced_connect()</code> only
+<code>connect()</code>s to an existing socket; there is no fork/exec. If
+<code>gcin-voiced</code> isn’t running, <code>Ctrl+Alt+0</code> then
+<code>Space</code> is a <strong>silent no-op</strong> (the start command
+is dropped, nothing recorded) — this was the first live-test failure.
+Fix/standard setup: run the daemon as a systemd <code>--user</code>
+service. Installed at <code>~/.local/lib/gcin-voiced/</code> with
+<code>~/.local/lib/gcin-voiced/venv</code> <strong>symlinked to the
+existing POC CUDA venv</strong>
+(<code>proj_docs/.../research/poc/.venv</code>) so the stock
+<code>gcin-voiced.service</code> works unchanged and ~6 GB of torch
+isn’t duplicated (trade-off: the service breaks if that checkout moves —
+a dedicated venv is the robust alternative). Lazy load keeps login cheap
+(~7 MB idle); model loads on first ping.</li>
 <li><strong>Voice = mode 6 in the unified engine, ASR
 out-of-process</strong> (Session 20) — voice is just another
 <code>e-&gt;mode</code> (<code>MODE_VOICE</code>,
@@ -464,18 +483,16 @@ including 英 on the focus-reset to English.</li>
 change</strong> (Session 19) — confirmed live by the user: typing
 Chinese then switching window/field comes up in English; Ctrl+Space
 resumes the method.</li>
-<li><strong>Voice Phase A — live interactive test</strong> (next
-session) — daemon real-mode model load on the RTX 3090 over the socket
-is <strong>verified</strong> (loads Breeze-ASR-26 on cuda:0 in ~6 s,
-emits <code>ready</code>); <code>--mock</code> protocol test + engine
-JSON-parser test pass; engine builds clean. Remaining is the interactive
-piece that needs a live GNOME/IBus session: enter voice with
-<code>Ctrl+Alt+0</code>, speak into the mic, <code>Enter</code>-commit
-into a real app; tune the too-short/silence threshold; confirm the
-語→🎤→…→語 panel transitions live. Install:
-<code>voiced/requirements.txt</code> venv +
-<code>systemctl --user enable --now gcin-voiced.service</code> (or run
-<code>gcin-voiced.py</code> directly).</li>
+<li>✅ <strong>Voice Phase A — confirmed working live</strong> (Session
+20) — daemon installed as a systemd <code>--user</code> service
+(autostart at login, venv symlinked to the POC CUDA venv); user dictated
+speech into an app end-to-end (Ctrl+Alt+0 → Space → speak → Space →
+Enter). Model loads on cuda:0 in ~6 s. <strong>Open follow-ups:</strong>
+confirm mic capture works under the systemd service env (prior live
+success used the hand-started daemon; PipeWire reached via
+<code>$XDG_RUNTIME_DIR</code>); tune the too-short/silence threshold;
+optionally add a <code>make install-voiced</code> target and an
+<code>install-voiced</code> for a dedicated (non-symlinked) venv.</li>
 <li><strong>Voice Phase B/C</strong> (future) — B: convert Breeze-ASR-26
 to GGML and reimplement the daemon on whisper.cpp (CPU-capable,
 dependency-light) behind the same socket — zero engine changes. C:
@@ -561,6 +578,7 @@ progress</li>
 initialized with gcin submodule at <code>gcin/</code>, new engine code
 goes in <code>ibus-engine/</code></p>
 <p><strong>Last Updated:</strong> 2026-06-25 (Session 20 — Voice Input
-Phase A: gcin-voiced daemon + voice mode in the unified engine)</p>
+Phase A confirmed working live; daemon installed as a systemd user
+service)</p>
 </body>
 </html>

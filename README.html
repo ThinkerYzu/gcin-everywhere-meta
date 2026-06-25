@@ -86,9 +86,9 @@ Package</a></li>
 <h1 id="gcin-everywhere">gcin-everywhere</h1>
 <p><strong>Status:</strong> Phase 12 complete (7 IBus engines
 incl. unified gcin-everywhere + GNOME panel indicator) — <strong>plus
-Voice Input Phase A implemented</strong> (gcin-voiced ASR daemon +
-Ctrl+Alt+0 voice mode; build &amp; unit-test clean, pending live GPU/mic
-test). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width,
+Voice Input Phase A working</strong> (gcin-voiced ASR daemon +
+Ctrl+Alt+0 voice mode; confirmed live, daemon deployed as a systemd user
+service). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width,
 phrase tables all working <strong>Created:</strong> 2026-05-04
 <strong>Last Updated:</strong> 2026-06-25 <strong>Goal:</strong> Port
 gcin’s Traditional Chinese input engine to modern platforms, starting
@@ -221,9 +221,10 @@ exposes focus, not window identity</li>
 <code>gcin-voiced</code> ASR daemon (MediaTek Breeze-ASR-26, local) over
 a Unix-socket JSON protocol; voice mode (Ctrl+Alt+0) in the unified
 engine with Space push-to-talk and review-before-commit; async, never
-blocks the key loop; 語/🎤/… panel glyph. Build &amp; unit-test clean;
-pending live GPU/mic test. Backend is swappable for whisper.cpp (Phase
-B) behind the stable socket. See <a
+blocks the key loop; 語/🎤/… panel glyph. <strong>Confirmed working
+live; daemon deployed as a systemd user service</strong> (autostart at
+login). Backend is swappable for whisper.cpp (Phase B) behind the stable
+socket. See <a
 href="research/VOICE-INPUT-DESIGN.html">VOICE-INPUT-DESIGN.md</a></li>
 </ul>
 <h3 id="phase-3-cross-platform-future">Phase 3: Cross-Platform
