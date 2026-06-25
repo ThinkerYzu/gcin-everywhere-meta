@@ -321,8 +321,16 @@ GPU/microphone end-to-end test**.
   daemon lines.
 - Builds clean (`-Wall -Wextra`, no warnings).
 
-**Still to do for Phase A:** install the daemon venv on a GPU box, run end-to-end into a real app,
-tune the too-short/silence threshold, confirm panel glyph transitions live.
+**Verified (2026-06-25):**
+- `--mock` protocol exchange (`test-protocol.py`) and the engine's `json_get_str` parser — pass.
+- Engine builds clean (`-Wall -Wextra`).
+- **Real-mode model load over the socket** — the daemon (real backend, POC venv) loads
+  Breeze-ASR-26 on `cuda:0` in ~6 s on the RTX 3090 and emits `{"event":"ready","device":"cuda:0"}`
+  in response to `ping`. (Transcription quality itself was proven earlier in [poc/](poc/).)
+
+**Still to do for Phase A:** the interactive piece that needs a live GNOME/IBus session — enter
+voice with `Ctrl+Alt+0`, speak into the mic, and `Enter`-commit into a real app; then tune the
+too-short/silence threshold and confirm the 語→🎤→…→語 panel transitions live.
 
 ## Phasing
 

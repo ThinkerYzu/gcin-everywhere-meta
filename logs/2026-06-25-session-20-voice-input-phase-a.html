@@ -157,14 +157,19 @@ IPC dir.</p></li>
 </ul>
 <h2 id="status-at-end-of-session">Status at End of Session</h2>
 <ul>
-<li>✅ Daemon builds/runs; <code>test-protocol.py</code> passes against
-<code>--mock</code>.</li>
-<li>✅ Engine compiles clean (<code>-Wall -Wextra</code>);
-<code>json_get_str</code> unit test passes.</li>
-<li>⏳ <strong>Not yet run end-to-end on real hardware</strong> (GPU
-model load + live mic + commit into an app).</li>
-<li>No regression to the 6 existing methods (voice path gated on
-<code>e-&gt;mode == MODE_VOICE</code>).</li>
+<li><p>✅ Daemon builds/runs; <code>test-protocol.py</code> passes
+against <code>--mock</code>.</p></li>
+<li><p>✅ Engine compiles clean (<code>-Wall -Wextra</code>);
+<code>json_get_str</code> unit test passes.</p></li>
+<li><p>✅ <strong>Real-mode model load verified over the socket</strong>
+— daemon (real backend, POC venv) loads Breeze-ASR-26 on
+<code>cuda:0</code> in ~6 s on the RTX 3090 and emits <code>ready</code>
+to <code>ping</code>.</p></li>
+<li><p>⏳ <strong>Interactive end-to-end not yet run</strong> — needs a
+live GNOME/IBus session: Ctrl+Alt+0, speak, Enter-commit into a real
+app. (Transcription quality itself proven earlier in poc/.)</p></li>
+<li><p>No regression to the 6 existing methods (voice path gated on
+<code>e-&gt;mode == MODE_VOICE</code>).</p></li>
 </ul>
 <h2 id="next-steps">Next Steps</h2>
 <ul>

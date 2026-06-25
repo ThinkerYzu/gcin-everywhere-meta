@@ -72,7 +72,10 @@
 
 - ✅ Daemon builds/runs; `test-protocol.py` passes against `--mock`.
 - ✅ Engine compiles clean (`-Wall -Wextra`); `json_get_str` unit test passes.
-- ⏳ **Not yet run end-to-end on real hardware** (GPU model load + live mic + commit into an app).
+- ✅ **Real-mode model load verified over the socket** — daemon (real backend, POC venv) loads
+  Breeze-ASR-26 on `cuda:0` in ~6 s on the RTX 3090 and emits `ready` to `ping`.
+- ⏳ **Interactive end-to-end not yet run** — needs a live GNOME/IBus session: Ctrl+Alt+0, speak,
+  Enter-commit into a real app. (Transcription quality itself proven earlier in poc/.)
 - No regression to the 6 existing methods (voice path gated on `e->mode == MODE_VOICE`).
 
 ## Next Steps

@@ -605,9 +605,25 @@ on the daemon’s <code>ensure_ascii=False</code> UTF-8 output) —
 unit-tested separately against representative daemon lines.</p></li>
 <li><p>Builds clean (<code>-Wall -Wextra</code>, no warnings).</p></li>
 </ul>
-<p><strong>Still to do for Phase A:</strong> install the daemon venv on
-a GPU box, run end-to-end into a real app, tune the too-short/silence
-threshold, confirm panel glyph transitions live.</p>
+<p><strong>Verified (2026-06-25):</strong></p>
+<ul>
+<li><code>--mock</code> protocol exchange
+(<code>test-protocol.py</code>) and the engine’s
+<code>json_get_str</code> parser — pass.</li>
+<li>Engine builds clean (<code>-Wall -Wextra</code>).</li>
+<li><strong>Real-mode model load over the socket</strong> — the daemon
+(real backend, POC venv) loads Breeze-ASR-26 on <code>cuda:0</code> in
+~6 s on the RTX 3090 and emits
+<code>{"event":"ready","device":"cuda:0"}</code> in response to
+<code>ping</code>. (Transcription quality itself was proven earlier in
+<a href="poc/">poc/</a>.)</li>
+</ul>
+<p><strong>Still to do for Phase A:</strong> the interactive piece that
+needs a live GNOME/IBus session — enter voice with
+<code>Ctrl+Alt+0</code>, speak into the mic, and
+<code>Enter</code>-commit into a real app; then tune the
+too-short/silence threshold and confirm the 語→🎤→…→語 panel transitions
+live.</p>
 <h2 id="phasing">Phasing</h2>
 <ul>
 <li><p><strong>Phase A — MVP (GPU, Python daemon).</strong> ✅

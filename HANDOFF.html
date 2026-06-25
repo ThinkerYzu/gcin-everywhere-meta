@@ -464,15 +464,18 @@ including 英 on the focus-reset to English.</li>
 change</strong> (Session 19) — confirmed live by the user: typing
 Chinese then switching window/field comes up in English; Ctrl+Space
 resumes the method.</li>
-<li><strong>Voice Phase A — live end-to-end test</strong> (next session,
-needs the GPU box) — install the daemon venv
-(<code>voiced/requirements.txt</code>),
+<li><strong>Voice Phase A — live interactive test</strong> (next
+session) — daemon real-mode model load on the RTX 3090 over the socket
+is <strong>verified</strong> (loads Breeze-ASR-26 on cuda:0 in ~6 s,
+emits <code>ready</code>); <code>--mock</code> protocol test + engine
+JSON-parser test pass; engine builds clean. Remaining is the interactive
+piece that needs a live GNOME/IBus session: enter voice with
+<code>Ctrl+Alt+0</code>, speak into the mic, <code>Enter</code>-commit
+into a real app; tune the too-short/silence threshold; confirm the
+語→🎤→…→語 panel transitions live. Install:
+<code>voiced/requirements.txt</code> venv +
 <code>systemctl --user enable --now gcin-voiced.service</code> (or run
-<code>gcin-voiced.py</code> directly), enter voice with
-<code>Ctrl+Alt+0</code>, and run a full speak→stop→Enter dictation into
-a real app. Tune the too-short/silence threshold; confirm the 語→🎤→…→語
-panel transitions live. Everything before this is
-build/unit-test-verified only.</li>
+<code>gcin-voiced.py</code> directly).</li>
 <li><strong>Voice Phase B/C</strong> (future) — B: convert Breeze-ASR-26
 to GGML and reimplement the daemon on whisper.cpp (CPU-capable,
 dependency-light) behind the same socket — zero engine changes. C:
