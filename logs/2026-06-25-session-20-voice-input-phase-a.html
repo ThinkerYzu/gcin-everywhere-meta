@@ -199,12 +199,12 @@ daemon setup) in the <strong>source repo
 <ul>
 <li><p>✅ Live dictate→commit confirmed; daemon deployed as a systemd
 user service (done post-session).</p></li>
+<li><p>✅ Added a <code>make install-voiced</code> target (reuse a venv
+via <code>VOICED_VENV=...</code>, else builds a fresh one) so the
+deployment is reproducible.</p></li>
 <li><p>Confirm mic capture under the systemd service environment (prior
 live success used the hand-started daemon); tune the too-short/silence
 threshold.</p></li>
-<li><p>Optionally add a <code>make install-voiced</code> target (and an
-<code>install-voiced</code> variant that builds a dedicated,
-non-symlinked venv).</p></li>
 <li><p>Phase B (whisper.cpp/GGML native daemon) and Phase C (N-best
 lookup, hold-to-talk, idle unload, optional Tâi-lô) remain
 future.</p></li>

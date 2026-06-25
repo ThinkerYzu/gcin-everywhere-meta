@@ -627,15 +627,17 @@ see decision 1); once started it worked.</p></li>
 </ul>
 <p><strong>Deployment.</strong> The daemon is installed as a systemd
 <code>--user</code> service (<code>gcin-voiced.service</code>, autostart
-at login, lazy load → ~7 MB idle). On this box the service venv is a
-symlink to the existing POC CUDA venv to avoid duplicating ~6 GB of
-torch; a dedicated venv is the portable alternative (see source
-<code>README.md</code>).</p>
+at login, lazy load → ~7 MB idle) via
+<strong><code>make install-voiced</code></strong>
+(<code>VOICED_VENV=...</code> to reuse an existing venv via symlink,
+else it builds a fresh one). On this box the service venv is a symlink
+to the existing POC CUDA venv to avoid duplicating ~6 GB of torch; a
+fresh venv is the portable alternative.</p>
 <p><strong>Open follow-ups (Phase A polish):</strong> confirm mic
 capture under the systemd service environment (prior live success used
 the hand-started daemon; PipeWire is reached via
-<code>$XDG_RUNTIME_DIR</code>); tune the too-short/silence threshold;
-optionally a <code>make install-voiced</code> target.</p>
+<code>$XDG_RUNTIME_DIR</code>); tune the too-short/silence
+threshold.</p>
 <h2 id="phasing">Phasing</h2>
 <ul>
 <li><p><strong>Phase A — MVP (GPU, Python daemon).</strong> ✅ Complete

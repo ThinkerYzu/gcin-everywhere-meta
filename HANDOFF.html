@@ -483,16 +483,17 @@ including 英 on the focus-reset to English.</li>
 change</strong> (Session 19) — confirmed live by the user: typing
 Chinese then switching window/field comes up in English; Ctrl+Space
 resumes the method.</li>
-<li>✅ <strong>Voice Phase A — confirmed working live</strong> (Session
-20) — daemon installed as a systemd <code>--user</code> service
-(autostart at login, venv symlinked to the POC CUDA venv); user dictated
-speech into an app end-to-end (Ctrl+Alt+0 → Space → speak → Space →
-Enter). Model loads on cuda:0 in ~6 s. <strong>Open follow-ups:</strong>
-confirm mic capture works under the systemd service env (prior live
-success used the hand-started daemon; PipeWire reached via
-<code>$XDG_RUNTIME_DIR</code>); tune the too-short/silence threshold;
-optionally add a <code>make install-voiced</code> target and an
-<code>install-voiced</code> for a dedicated (non-symlinked) venv.</li>
+<li>✅ <strong>Voice Phase A — confirmed working live +
+packaged</strong> (Session 20) — daemon installed as a systemd
+<code>--user</code> service (autostart at login, venv symlinked to the
+POC CUDA venv); user dictated speech into an app end-to-end (Ctrl+Alt+0
+→ Space → speak → Space → Enter). Model loads on cuda:0 in ~6 s. Now
+reproducible via <strong><code>make install-voiced</code></strong>
+(<code>VOICED_VENV=/path/.venv</code> to reuse a venv, else builds a
+fresh one). <strong>Open follow-ups:</strong> confirm mic capture works
+under the systemd service env (prior live success used the hand-started
+daemon; PipeWire reached via <code>$XDG_RUNTIME_DIR</code>); tune the
+too-short/silence threshold.</li>
 <li><strong>Voice Phase B/C</strong> (future) — B: convert Breeze-ASR-26
 to GGML and reimplement the daemon on whisper.cpp (CPU-capable,
 dependency-light) behind the same socket — zero engine changes. C:
