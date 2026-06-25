@@ -1,0 +1,12 @@
+# Breeze-ASR-26 POC dependencies
+# Install into a venv:  python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+transformers>=4.40
+torch                # CPU build is fine; install the CUDA build for GPU
+librosa              # audio loading + resample to 16 kHz
+soundfile            # wav/flac backend for librosa (mp3 needs libsndfile>=1.1 or ffmpeg)
+accelerate           # speeds up / stabilizes model loading
+# Only needed to fetch the TaigiSpeech test clips (see README "Verified run"):
+datasets             # streaming download of sample audio
+torchcodec           # audio decode backend datasets now requires
+# Only needed for the live mic prototype (breeze_asr_mic.py):
+sounddevice          # mic capture via PortAudio (sudo apt install libportaudio2)

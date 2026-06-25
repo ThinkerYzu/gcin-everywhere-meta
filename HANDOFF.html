@@ -57,14 +57,22 @@ Status</a> | <a href="#next-actions">Next Actions</a> | <a
 href="#session-logs">Session Logs</a></p>
 <hr />
 <h2 id="current-status">Current Status</h2>
-<p><strong>Phase:</strong> Phase 12 complete — gcin-everywhere resets to
-English on focus change (7 IBus engines + GNOME Shell extension)
-<strong>Progress:</strong> 6 single-method engines (Cangjie, Zhuyin,
-Quick, Array, CJ5, SimplexPunc) + <code>gcin-everywhere</code> unified
-switcher (Ctrl+Alt+digit, Ctrl+Space English toggle, resets to English
-on focus-in) + GNOME Shell extension showing the live method in the top
-panel; 29/29 unit tests pass <strong>Next Milestone:</strong> Phase 3 —
-Windows TSF port <strong>Blockers:</strong> None</p>
+<p><strong>Phase:</strong> Voice Phase A implemented (daemon + engine
+voice mode build &amp; unit-test clean; pending live GPU/mic test).
+Input-method work through Phase 12 complete (7 IBus engines + GNOME
+Shell extension). <strong>Progress:</strong> 6 single-method engines
+(Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc) +
+<code>gcin-everywhere</code> unified switcher (Ctrl+Alt+digit,
+Ctrl+Space English toggle, resets to English on focus-in) + GNOME Shell
+extension showing the live method; 29/29 unit tests pass. <strong>NEW:
+voice input (台語語音) Phase A</strong> — <code>gcin-voiced</code> ASR
+daemon (Breeze-ASR-26 over a Unix-socket JSON protocol,
+<code>--mock</code> for testing) + voice mode (Ctrl+Alt+0) in the
+unified engine (Space=PTT, Enter=commit, async preedit, 語/🎤/… panel
+glyph). Daemon protocol test + engine JSON-parser test pass; engine
+builds clean. <strong>Next Milestone:</strong> Live end-to-end voice
+test on the GPU box; then Phase 3 (Windows TSF port)
+<strong>Blockers:</strong> None</p>
 <blockquote>
 <p><strong>Phase checklist:</strong> - ✅ Spec drafted - ✅ Spec
 finalized (open questions resolved) - ✅ Design complete - ✅
@@ -91,7 +99,10 @@ method to a state file; extension mirrors the glyph in the top panel,
 shown only while gcin-everywhere is active - ✅ Phase 12 —
 gcin-everywhere resets to English on focus-in (each newly-focused field
 starts in English; method preserved for Ctrl+Space resume); confirmed
-live by the user</p>
+live by the user - ✅ Voice Phase A — <code>gcin-voiced</code> daemon
+(socket JSON protocol, <code>--mock</code> + protocol test) + voice mode
+(Ctrl+Alt+0) in the unified engine; builds clean, JSON-parser unit test
+passes; <strong>pending live GPU/mic test</strong></p>
 </blockquote>
 <h3 id="what-we-have">What We Have</h3>
 <ul>
@@ -145,6 +156,19 @@ auto-detects <code>/tmp/gcin-tables</code></li>
 <li><strong>Table tools built</strong> (not committed):
 <code>gcin2tab</code>, <code>phoa2d</code>, <code>tsa2d32</code>,
 <code>kbmcv</code> — built with GCIN_CORE_BUILD + libgcin-core.a</li>
+<li><strong>Voice input Phase A</strong> —
+<code>voiced/gcin-voiced.py</code> (ASR daemon: Breeze-ASR-26 over
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/voiced.sock</code>, newline-JSON
+<code>ping/start/stop/cancel/config</code> ↔︎
+<code>ready/recording/thinking/transcript/error</code>; lazy model load,
+daemon-owned mic, worker-thread transcription, <code>--mock</code>
+backend); <code>voiced/test-protocol.py</code> passes;
+<code>voiced/{gcin-voiced.service,requirements.txt,README.md}</code>.
+Engine: <code>MODE_VOICE</code> (mode 6) in <code>gcin-everywhere</code>
+via <code>Ctrl+Alt+0</code>; socket client on a GLib
+<code>GSource</code>; Space=PTT, Enter=commit, Esc/Backspace=discard;
+語/🎤/… panel glyph through the existing state file. Design + status: <a
+href="research/VOICE-INPUT-DESIGN.html">research/VOICE-INPUT-DESIGN.md</a></li>
 </ul>
 <h3 id="key-design-decisions">Key Design Decisions</h3>
 <ul>
@@ -383,6 +407,32 @@ file never appeared). Fix: <code>kill &lt;stale-pid&gt;</code>,
 (Session 18) — GNOME Shell can’t be reloaded live on Wayland (Alt+F2
 <code>r</code> is X11-only), so a newly-installed extension isn’t listed
 by <code>gnome-extensions</code> until the next login.</li>
+<li><strong>Voice = mode 6 in the unified engine, ASR
+out-of-process</strong> (Session 20) — voice is just another
+<code>e-&gt;mode</code> (<code>MODE_VOICE</code>,
+<code>Ctrl+Alt+0</code>); no new IBus engine, no component-XML change,
+no GNOME-extension change. The recognizer (Breeze-ASR-26) runs in a
+separate <code>gcin-voiced</code> daemon; the engine is a thin
+Unix-socket client whose fd is on a GLib <code>GSource</code>
+(<code>g_io_add_watch</code>), so transcript events update the preedit
+<strong>asynchronously and <code>process_key_event</code> never
+blocks</strong>. The socket protocol is the only contract → the
+Python/Transformers backend can later be swapped for whisper.cpp with
+zero engine changes. The daemon’s <code>--mock</code> backend makes the
+whole contract testable with no GPU/mic.</li>
+<li><strong>Voice PTT = in-engine <code>Space</code>, commit =
+<code>Enter</code></strong> (Session 20) — choosing Space (handled
+inside the engine once voice mode is active) sidesteps the desktop-grab
+problem that forces the <code>gsettings</code> clearing for Ctrl+Space;
+no desktop config needed. Space toggles record / re-records; Enter
+commits the pending transcript; Esc/Backspace discards. Refines design
+decisions 5 &amp; 7.</li>
+<li><strong>Engine parses daemon JSON by hand, no json-glib</strong>
+(Session 20) — <code>json_get_str()</code> is a tiny string-value
+extractor; safe because the daemon controls the format and dumps
+<code>ensure_ascii=False</code> (literal UTF-8, no <code>\uXXXX</code>).
+Keeps the engine dependency-light. Unit-tested against representative
+daemon lines.</li>
 <li><strong>gcin-everywhere resets to English on focus-in</strong>
 (Session 19) — <code>gcin_engine_focus_in()</code> clears
 <code>chinese_mode</code> (+ <code>gcin_core_reset()</code>, hide
@@ -414,6 +464,21 @@ including 英 on the focus-reset to English.</li>
 change</strong> (Session 19) — confirmed live by the user: typing
 Chinese then switching window/field comes up in English; Ctrl+Space
 resumes the method.</li>
+<li><strong>Voice Phase A — live end-to-end test</strong> (next session,
+needs the GPU box) — install the daemon venv
+(<code>voiced/requirements.txt</code>),
+<code>systemctl --user enable --now gcin-voiced.service</code> (or run
+<code>gcin-voiced.py</code> directly), enter voice with
+<code>Ctrl+Alt+0</code>, and run a full speak→stop→Enter dictation into
+a real app. Tune the too-short/silence threshold; confirm the 語→🎤→…→語
+panel transitions live. Everything before this is
+build/unit-test-verified only.</li>
+<li><strong>Voice Phase B/C</strong> (future) — B: convert Breeze-ASR-26
+to GGML and reimplement the daemon on whisper.cpp (CPU-capable,
+dependency-light) behind the same socket — zero engine changes. C:
+N-best correction candidates in the lookup table, streaming partials,
+idle model unload, optional hold-to-talk + global chord, optional Tâi-lô
+output.</li>
 <li><strong>Phase 3: Windows TSF port</strong> — platform layer for
 Windows using Text Services Framework. <code>libgcin-core.a</code> links
 as-is; only the platform integration layer changes (analogous to
@@ -433,6 +498,14 @@ as-is; only the platform integration layer changes (analogous to
 <hr />
 <h2 id="session-logs">Session Logs</h2>
 <ol type="1">
+<li><strong><a
+href="logs/2026-06-25-session-20-voice-input-phase-a.html">Session 20:
+Voice Input — Phase A</a></strong> (2026-06-25) —
+<code>gcin-voiced</code> ASR daemon (Breeze-ASR-26 over a Unix-socket
+JSON protocol, lazy load, <code>--mock</code> + protocol test) + voice
+mode (Ctrl+Alt+0, mode 6) in the unified engine: async socket client on
+a GLib GSource, Space=PTT, Enter=commit, 語/🎤/… panel glyph. Builds
+clean; daemon + JSON-parser tests pass; pending live GPU/mic test.</li>
 <li><strong><a
 href="logs/2026-06-22-session-19-focus-reset-english.html">Session 19:
 Phase 12 — Reset to English on Focus Change</a></strong> (2026-06-22) —
@@ -458,11 +531,9 @@ tests pass.</li>
 <li><strong><a href="logs/2026-05-05-session-16-simplex-punc.html">Session
 16: Phase 2 — Simplex+Punc (標點簡易)</a></strong> (2026-05-05) — Added
 gcin-simplex-punc engine; 6 IBus engines; 25/25 tests pass.</li>
-<li><strong><a href="logs/2026-05-05-session-15-phase2-cj5.html">Session
-15: Phase 2 — CJ5 (倉頡五代)</a></strong> (2026-05-05) — Added CJ5
-engine via <code>feedkey_gtab_method()</code>; 5 IBus engines; 23/23
-tests pass.</li>
 </ol>
+<p>Older logs in <a href="HANDOFF-ARCHIVE.html">HANDOFF-ARCHIVE.md</a>
+(Session 15 and earlier).</p>
 <hr />
 <h2 id="document-web">Document Web</h2>
 <p><strong>Related Documents:</strong></p>
@@ -486,7 +557,7 @@ progress</li>
 <p><strong>Source Repo:</strong> <code>sources/gcin-everywhere/</code> —
 initialized with gcin submodule at <code>gcin/</code>, new engine code
 goes in <code>ibus-engine/</code></p>
-<p><strong>Last Updated:</strong> 2026-06-22 (Session 19 — Phase 12:
-gcin-everywhere resets to English on focus change)</p>
+<p><strong>Last Updated:</strong> 2026-06-25 (Session 20 — Voice Input
+Phase A: gcin-voiced daemon + voice mode in the unified engine)</p>
 </body>
 </html>

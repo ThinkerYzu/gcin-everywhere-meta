@@ -1,8 +1,8 @@
 # gcin-everywhere
 
-**Status:** Phase 12 complete — 7 IBus engines incl. unified gcin-everywhere (Ctrl+Alt+digit switcher, Ctrl+Space English toggle, resets to English on focus change) + GNOME panel indicator extension; Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
+**Status:** Phase 12 complete (7 IBus engines incl. unified gcin-everywhere + GNOME panel indicator) — **plus Voice Input Phase A implemented** (gcin-voiced ASR daemon + Ctrl+Alt+0 voice mode; build & unit-test clean, pending live GPU/mic test). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
 **Created:** 2026-05-04
-**Last Updated:** 2026-06-22
+**Last Updated:** 2026-06-25
 **Goal:** Port gcin's Traditional Chinese input engine to modern platforms, starting with GNOME/Wayland via IBus.
 
 ---
@@ -20,6 +20,12 @@
 ### Testing Documentation
 
 - **[TESTING-GUIDE.md](TESTING-GUIDE.md)** — Testing procedures, expected output, troubleshooting
+
+### Research Notes
+
+- **[research/breeze3-taiwanese-asr.md](research/breeze3-taiwanese-asr.md)** — Feasibility study: MediaTek Breeze 3 (Taiwanese ASR) for a voice input method — why it can't run on Ollama, and a possible Phase 3+ whisper.cpp dictation mode
+- **[research/VOICE-INPUT-DESIGN.md](research/VOICE-INPUT-DESIGN.md)** — Design + **Phase A implementation status** for voice dictation in `gcin-everywhere`: `gcin-voiced` ASR daemon (`sources/gcin-everywhere/voiced/`), socket protocol, Ctrl+Alt+0 voice mode, push-to-talk (Space), review-before-commit
+- **[research/poc/](research/poc/README.md)** — Validated POC: Breeze-ASR-26 file transcription + mic press-to-talk (transcribes Taigi → Mandarin Han at RTF ~0.1–0.3 on GPU)
 
 **Quick Links:**
 - [Overview](#overview) | [Design & Architecture](DESIGN.md) | [Current Status](HANDOFF.md#current-status) | [Testing](TESTING-GUIDE.md)
@@ -71,6 +77,7 @@ gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are pa
 - ✅ Unified switcher — `gcin-everywhere` engine: `Ctrl+Alt+digit` switches method in place (mirrors gcin's native hotkeys); panel property shows the live method
 - ✅ GNOME panel indicator — `gcin-everywhere@gcin.dev` Shell extension shows the active method glyph in the top bar (engine publishes state via `$XDG_RUNTIME_DIR/gcin-everywhere/state`); shown only while gcin-everywhere is active (GNOME ignores IBus property symbols)
 - ✅ Reset to English on focus change — gcin-everywhere clears `chinese_mode` on focus-in, so each newly-focused window/field starts in English (method preserved; `Ctrl+Space` resumes); fires on any focus gain since IBus exposes focus, not window identity
+- ✅ Voice input (台語語音) **Phase A** — `gcin-voiced` ASR daemon (MediaTek Breeze-ASR-26, local) over a Unix-socket JSON protocol; voice mode (Ctrl+Alt+0) in the unified engine with Space push-to-talk and review-before-commit; async, never blocks the key loop; 語/🎤/… panel glyph. Build & unit-test clean; pending live GPU/mic test. Backend is swappable for whisper.cpp (Phase B) behind the stable socket. See [VOICE-INPUT-DESIGN.md](research/VOICE-INPUT-DESIGN.md)
 
 ### Phase 3: Cross-Platform (FUTURE)
 - Windows via Text Services Framework (TSF)
@@ -127,4 +134,4 @@ The agent (Claude) must actively maintain both **content and connections** in th
 
 ---
 
-**Last Updated:** 2026-06-22
+**Last Updated:** 2026-06-25

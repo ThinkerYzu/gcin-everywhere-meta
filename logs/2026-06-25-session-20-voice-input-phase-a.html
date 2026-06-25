@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-06-25-session-20-voice-input-phase-a – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#session-20-voice-input-phase-a-gcin-voiced-daemon-engine-voice-mode"
+id="toc-session-20-voice-input-phase-a-gcin-voiced-daemon-engine-voice-mode">Session
+20: Voice Input — Phase A (gcin-voiced daemon + engine voice mode)</a>
+<ul>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a href="#gcin-voiced-daemon-sourcesgcin-everywherevoiced"
+id="toc-gcin-voiced-daemon-sourcesgcin-everywherevoiced"><code>gcin-voiced</code>
+daemon — <code>sources/gcin-everywhere/voiced/</code></a></li>
+<li><a href="#voice-mode-in-ibus-enginegcin_engine.c"
+id="toc-voice-mode-in-ibus-enginegcin_engine.c">Voice mode in
+<code>ibus-engine/gcin_engine.c</code></a></li>
+</ul></li>
+<li><a href="#key-findings" id="toc-key-findings">Key Findings</a></li>
+<li><a href="#decisions-made" id="toc-decisions-made">Decisions
+Made</a></li>
+<li><a href="#status-at-end-of-session"
+id="toc-status-at-end-of-session">Status at End of Session</a></li>
+<li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1
+id="session-20-voice-input-phase-a-gcin-voiced-daemon-engine-voice-mode">Session
+20: Voice Input — Phase A (gcin-voiced daemon + engine voice mode)</h1>
+<p><strong>Date:</strong> 2026-06-25 <strong>Phase:</strong> Voice Phase
+A (MVP) — implementation <strong>Branch:</strong> master</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Continue the voice-input track: turn the <a
+href="../research/VOICE-INPUT-DESIGN.html">VOICE-INPUT-DESIGN.md</a>
+proposal into a working Phase A — the <code>gcin-voiced</code> ASR
+daemon and a voice mode in the unified <code>gcin-everywhere</code>
+engine.</li>
+</ul>
+<h2 id="what-was-done">What Was Done</h2>
+<h3
+id="gcin-voiced-daemon-sourcesgcin-everywherevoiced"><code>gcin-voiced</code>
+daemon — <code>sources/gcin-everywhere/voiced/</code></h3>
+<ul>
+<li><p><strong><code>gcin-voiced.py</code></strong> — Unix-domain-socket
+server implementing the design’s newline-JSON protocol verbatim
+(<code>ping/start/stop/cancel/config</code> →
+<code>ready/recording/thinking/transcript/error</code>).</p>
+<ul>
+<li>Backend abstraction: <code>AsrBackend</code> wraps the validated POC
+Transformers path (Breeze-ASR-26, lazy load, daemon-owned
+<code>sounddevice</code> mic capture); <code>MockBackend</code> returns
+a canned transcript with no model/mic.</li>
+<li>Lazy model load on <code>ping</code> in a background thread (emits
+<code>ready</code> when up); transcription runs in a worker thread so
+the accept/read loop stays responsive to <code>cancel</code>. One engine
+client at a time; model persists across reconnects. State machine
+<code>idle→recording→thinking→idle</code>.</li>
+</ul></li>
+<li><p><strong><code>--mock</code></strong> mode +
+<strong><code>test-protocol.py</code></strong> — drives a full exchange
+(ping→start→stop→transcript, cancel, unknown-cmd error) with
+<strong>zero ML/audio deps</strong>. Passes.</p></li>
+<li><p><strong><code>gcin-voiced.service</code></strong> (systemd
+<code>--user</code>, <code>%h</code>-relative, deferred load),
+<strong><code>requirements.txt</code></strong>,
+<strong><code>README.md</code></strong>.</p></li>
+</ul>
+<h3 id="voice-mode-in-ibus-enginegcin_engine.c">Voice mode in
+<code>ibus-engine/gcin_engine.c</code></h3>
+<ul>
+<li><p>Voice is <strong>mode 6 inside the existing unified
+engine</strong> — no new IBus engine, no component-XML change, no
+GNOME-extension change. <code>Ctrl+Alt+0</code> →
+<code>MODE_VOICE</code>.</p></li>
+<li><p>Socket client: <code>voiced_connect/disconnect/send</code>; the
+fd is attached to the GLib main loop via <code>g_io_add_watch</code> (a
+<code>GSource</code>). Transcript events update the preedit
+<strong>asynchronously</strong>, so <code>process_key_event</code> never
+blocks on inference.</p></li>
+<li><p>Keys in voice mode: <code>Space</code> = PTT toggle (start/stop /
+re-record when pending), <code>Enter</code> = commit,
+<code>Esc</code>/<code>Backspace</code> = discard, <code>Esc</code>
+during recording = cancel.</p></li>
+<li><p>Panel glyph via the existing state file:
+<code>active_symbol()</code> returns 語 / 🎤 / … by voice sub-state;
+<code>write_state()</code>/<code>update_property()</code> refactored to
+use it (and <code>active_label()</code>). The GNOME extension renders it
+unchanged.</p></li>
+<li><p>Minimal hand-rolled JSON string extractor
+(<code>json_get_str</code>) — avoids a <code>json-glib</code>
+dependency; relies on the daemon’s <code>ensure_ascii=False</code>
+literal-UTF-8 output. Unit-tested standalone.</p></li>
+<li><p>Entering/leaving voice and the focus-in English reset all cancel
+any live recording cleanly.</p></li>
+<li><p>Builds clean under <code>-Wall -Wextra</code> (fixed a
+<code>sun_path</code> truncation warning by bounding the path and
+detecting truncation).</p></li>
+</ul>
+<h2 id="key-findings">Key Findings</h2>
+<ul>
+<li><p><strong>Space as the in-engine PTT key sidesteps the desktop-grab
+problem</strong> that forces the <code>gsettings</code> dance for
+Ctrl+Space (HANDOFF decision, Session 17). Once voice mode is active,
+Space already reaches the engine, so PTT works with no desktop
+config.</p></li>
+<li><p><strong>Voice fits the unified engine as a pure mode</strong> —
+the per-keypress <code>switch(e-&gt;mode)</code> and the state-file
+panel indicator already generalize; voice needed zero changes to the
+component XML or the GNOME extension.</p></li>
+<li><p>The daemon’s <code>--mock</code> backend makes the whole
+engine↔︎daemon contract testable without a GPU or microphone — valuable
+for CI and for developing the C side here.</p></li>
+</ul>
+<h2 id="decisions-made">Decisions Made</h2>
+<ul>
+<li><p><strong>PTT = <code>Space</code> (in-engine), commit =
+<code>Enter</code></strong> — refines design decisions 5 &amp; 7
+(original draft had Space as a commit alternative). Documented in the
+design doc.</p></li>
+<li><p><strong>Hand-rolled JSON extraction, no json-glib</strong> —
+keeps the engine dependency-light (consistent with the project’s
+minimal-deps stance); safe because the daemon controls the output format
+and emits literal UTF-8.</p></li>
+<li><p><strong>Voice = mode 6 in <code>gcin-everywhere</code>, not a
+separate engine</strong> — reuses mutable <code>e-&gt;mode</code>, the
+panel state file, and the <code>$XDG_RUNTIME_DIR/gcin-everywhere/</code>
+IPC dir.</p></li>
+</ul>
+<h2 id="status-at-end-of-session">Status at End of Session</h2>
+<ul>
+<li>✅ Daemon builds/runs; <code>test-protocol.py</code> passes against
+<code>--mock</code>.</li>
+<li>✅ Engine compiles clean (<code>-Wall -Wextra</code>);
+<code>json_get_str</code> unit test passes.</li>
+<li>⏳ <strong>Not yet run end-to-end on real hardware</strong> (GPU
+model load + live mic + commit into an app).</li>
+<li>No regression to the 6 existing methods (voice path gated on
+<code>e-&gt;mode == MODE_VOICE</code>).</li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li><p>Install the daemon venv on the GPU box
+(<code>requirements.txt</code>), start <code>gcin-voiced.service</code>,
+enter voice with <code>Ctrl+Alt+0</code>, and run a full dictate→commit
+cycle into a real app.</p></li>
+<li><p>Tune the too-short/silence threshold; confirm 語→🎤→…→語 panel
+transitions live.</p></li>
+<li><p>Phase B (whisper.cpp/GGML native daemon) and Phase C (N-best
+lookup, hold-to-talk, idle unload, optional Tâi-lô) remain
+future.</p></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>README – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#breeze-asr-26-poc-taiwanese-speech-text"
+id="toc-breeze-asr-26-poc-taiwanese-speech-text">Breeze-ASR-26 POC —
+Taiwanese speech → text</a>
+<ul>
+<li><a href="#setup" id="toc-setup">Setup</a></li>
+<li><a href="#run" id="toc-run">Run</a>
+<ul>
+<li><a href="#file-transcription-breeze_asr_transcribe.py"
+id="toc-file-transcription-breeze_asr_transcribe.py">File transcription
+— <code>breeze_asr_transcribe.py</code></a></li>
+<li><a href="#live-press-to-talk-dictation-breeze_asr_mic.py"
+id="toc-live-press-to-talk-dictation-breeze_asr_mic.py">Live
+press-to-talk dictation — <code>breeze_asr_mic.py</code></a></li>
+</ul></li>
+<li><a href="#verified-run-2026-06-24"
+id="toc-verified-run-2026-06-24">Verified run (2026-06-24)</a></li>
+<li><a href="#notes-caveats" id="toc-notes-caveats">Notes /
+caveats</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="breeze-asr-26-poc-taiwanese-speech-text">Breeze-ASR-26 POC —
+Taiwanese speech → text</h1>
+<p>Minimal proof-of-concept that transcribes a <strong>WAV or
+MP3</strong> file with <a
+href="https://huggingface.co/MediaTek-Research/Breeze-ASR-26">MediaTek
+Breeze-ASR-26</a> (Whisper-large-v2 fine-tuned on Taiwanese Hokkien).
+Runs locally via 🤗 Transformers — <strong>not Ollama</strong> (see <a
+href="../breeze3-taiwanese-asr.html">../breeze3-taiwanese-asr.md</a> for
+why).</p>
+<p>Output is <strong>Mandarin Han characters</strong>, not Tâi-lô/POJ
+romanization.</p>
+<h2 id="setup">Setup</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> proj_docs/gcin-everywhere/research/poc</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> venv .venv <span class="kw">&amp;&amp;</span> <span class="bu">.</span> .venv/bin/activate</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="at">-r</span> requirements.txt</span></code></pre></div>
+<h2 id="run">Run</h2>
+<h3 id="file-transcription-breeze_asr_transcribe.py">File transcription
+— <code>breeze_asr_transcribe.py</code></h3>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_transcribe.py sample.wav</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_transcribe.py sample.mp3 <span class="at">--language</span> chinese</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_transcribe.py clip.wav <span class="at">--timestamps</span> <span class="at">--device</span> cuda</span></code></pre></div>
+<h3 id="live-press-to-talk-dictation-breeze_asr_mic.py">Live
+press-to-talk dictation — <code>breeze_asr_mic.py</code></h3>
+<p>The voice-input-method prototype: speak Taigi into the mic, get
+Mandarin characters.</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_mic.py <span class="at">--list-devices</span>        <span class="co"># find your mic&#39;s index</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_mic.py <span class="at">--device-index</span> 4       <span class="co"># press ENTER to start/stop</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> breeze_asr_mic.py <span class="at">--seconds</span> 5            <span class="co"># fixed 5s capture per turn</span></span></code></pre></div>
+<p>Needs a microphone + PortAudio
+(<code>sudo apt install libportaudio2</code>,
+<code>pip install sounddevice</code>). The transcript goes to stdout;
+prompts/timing go to stderr. Ctrl+C to quit.</p>
+<ul>
+<li><p>First run downloads ~3 GB of weights to
+<code>~/.cache/huggingface</code>.</p></li>
+<li><p>The transcript is printed to <strong>stdout</strong>; progress +
+timestamps go to <strong>stderr</strong>, so
+<code>... &gt; out.txt</code> captures just the text.</p></li>
+<li><p>Long files are handled automatically via 30 s chunking
+(<code>--chunk-length</code>).</p></li>
+<li><p>CPU works (slow, RTF ~1–3×); add a CUDA <code>torch</code> build
+for speed.</p></li>
+</ul>
+<h2 id="verified-run-2026-06-24">Verified run (2026-06-24)</h2>
+<p>Confirmed working end-to-end on an RTX 3090. Test audio: 3 clips from
+the open <a
+href="https://huggingface.co/datasets/TaigiSpeech/TaigiSpeech"><code>TaigiSpeech/TaigiSpeech</code></a>
+test split (real Taigi speech, all labeled intent <code>SOS_CALL</code>;
+the dataset ships intent labels, not reference transcripts, so this
+shows transcription quality, not CER). First run downloaded ~3 GB;
+inference ran at <strong>RTF ≈ 0.30</strong> (5 s audio → 1.5 s).</p>
+<table>
+<thead>
+<tr class="header">
+<th>clip</th>
+<th>Breeze-ASR-26 output (Mandarin Han)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>taigi_0</td>
+<td>救命啊 快來救我 幫忙喔 失火了</td>
+</tr>
+<tr class="even">
+<td>taigi_1</td>
+<td>喂 快來 我老公昏倒了 有誰要來幫我</td>
+</tr>
+<tr class="odd">
+<td>taigi_2</td>
+<td>警察 遭小偷 誰要來幫我 快點 快點去叫警察</td>
+</tr>
+</tbody>
+</table>
+<p>Robustness across <strong>distinct intents</strong> (shuffled test
+split) — each transcript matches its intent label:</p>
+<table>
+<thead>
+<tr class="header">
+<th>intent label</th>
+<th>Breeze-ASR-26 output</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>BREATHING_CHEST_EMERG</td>
+<td>慘了 胸口悶悶的 頭還很暈 快幫我叫救護車</td>
+</tr>
+<tr class="even">
+<td>PAIN_GENERAL</td>
+<td>媽媽 我的眼睛好痛 快來幫我</td>
+</tr>
+<tr class="odd">
+<td>LIGHT_ON</td>
+<td>請麻煩幫我開一下燈</td>
+</tr>
+<tr class="even">
+<td>FALL_HELP</td>
+<td>我跌倒撞到頭 好痛 現在爬不起來</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Long-audio / chunking:</strong> a 42 s concatenation
+transcribed coherently end-to-end at RTF 0.11
+(<code>chunk_length_s=30</code> sliding window), confirming the
+long-form path works.</p>
+<p>All outputs are coherent Mandarin consistent with the spoken content
+— the model transcribes spoken Taigi into Mandarin characters as
+documented.</p>
+<p>To reproduce the test clips (needs <code>datasets</code> +
+<code>torchcodec</code>, also in requirements):</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> soundfile <span class="im">as</span> sf</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datasets <span class="im">import</span> load_dataset</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ds <span class="op">=</span> load_dataset(<span class="st">&quot;TaigiSpeech/TaigiSpeech&quot;</span>, split<span class="op">=</span><span class="st">&quot;test&quot;</span>, streaming<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n, row <span class="kw">in</span> <span class="bu">enumerate</span>(ds):</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&gt;=</span> <span class="dv">3</span>: <span class="cf">break</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> row[<span class="st">&quot;audio&quot;</span>]</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    sf.write(<span class="ss">f&quot;taigi_</span><span class="sc">{</span>n<span class="sc">}</span><span class="ss">_</span><span class="sc">{</span>row[<span class="st">&#39;intent&#39;</span>]<span class="sc">}</span><span class="ss">.wav&quot;</span>, a[<span class="st">&quot;array&quot;</span>], a[<span class="st">&quot;sampling_rate&quot;</span>])</span></code></pre></div>
+<h2 id="notes-caveats">Notes / caveats</h2>
+<ul>
+<li><p><strong>Accuracy:</strong> ~30% CER on the Taigi benchmark +
+synthetic training data → treat as draft/assist quality, not reliable
+dictation.</p></li>
+<li><p><strong>mp3:</strong> decoded by librosa via
+<code>soundfile</code> (libsndfile ≥ 1.1) or an
+<code>audioread</code>/ffmpeg fallback. If mp3 loading fails,
+<code>sudo apt install ffmpeg</code>.</p></li>
+<li><p>This is a standalone experiment — it does <strong>not</strong>
+touch the gtab/IBus engines. A native integration would convert the
+weights to GGML and call whisper.cpp.</p></li>
+</ul>
+</body>
+</html>

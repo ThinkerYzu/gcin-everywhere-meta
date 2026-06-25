@@ -37,6 +37,8 @@ id="toc-project-documentation">Project Documentation</a>
 Documentation</a></li>
 <li><a href="#testing-documentation"
 id="toc-testing-documentation">Testing Documentation</a></li>
+<li><a href="#research-notes" id="toc-research-notes">Research
+Notes</a></li>
 </ul></li>
 <li><a href="#overview" id="toc-overview">Overview</a></li>
 <li><a href="#recent-updates" id="toc-recent-updates">Recent
@@ -82,14 +84,15 @@ Package</a></li>
 </ul>
 </nav>
 <h1 id="gcin-everywhere">gcin-everywhere</h1>
-<p><strong>Status:</strong> Phase 12 complete — 7 IBus engines
-incl. unified gcin-everywhere (Ctrl+Alt+digit switcher, Ctrl+Space
-English toggle, resets to English on focus change) + GNOME panel
-indicator extension; Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc,
-full-width, phrase tables all working <strong>Created:</strong>
-2026-05-04 <strong>Last Updated:</strong> 2026-06-22
-<strong>Goal:</strong> Port gcin’s Traditional Chinese input engine to
-modern platforms, starting with GNOME/Wayland via IBus.</p>
+<p><strong>Status:</strong> Phase 12 complete (7 IBus engines
+incl. unified gcin-everywhere + GNOME panel indicator) — <strong>plus
+Voice Input Phase A implemented</strong> (gcin-voiced ASR daemon +
+Ctrl+Alt+0 voice mode; build &amp; unit-test clean, pending live GPU/mic
+test). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width,
+phrase tables all working <strong>Created:</strong> 2026-05-04
+<strong>Last Updated:</strong> 2026-06-25 <strong>Goal:</strong> Port
+gcin’s Traditional Chinese input engine to modern platforms, starting
+with GNOME/Wayland via IBus.</p>
 <hr />
 <h2 id="project-documentation">Project Documentation</h2>
 <h3 id="core-documentation">Core Documentation</h3>
@@ -110,6 +113,23 @@ status, next actions, session logs (the handoff package)</li>
 <ul>
 <li><strong><a href="TESTING-GUIDE.html">TESTING-GUIDE.md</a></strong> —
 Testing procedures, expected output, troubleshooting</li>
+</ul>
+<h3 id="research-notes">Research Notes</h3>
+<ul>
+<li><strong><a
+href="research/breeze3-taiwanese-asr.html">research/breeze3-taiwanese-asr.md</a></strong>
+— Feasibility study: MediaTek Breeze 3 (Taiwanese ASR) for a voice input
+method — why it can’t run on Ollama, and a possible Phase 3+ whisper.cpp
+dictation mode</li>
+<li><strong><a
+href="research/VOICE-INPUT-DESIGN.html">research/VOICE-INPUT-DESIGN.md</a></strong>
+— Design + <strong>Phase A implementation status</strong> for voice
+dictation in <code>gcin-everywhere</code>: <code>gcin-voiced</code> ASR
+daemon (<code>sources/gcin-everywhere/voiced/</code>), socket protocol,
+Ctrl+Alt+0 voice mode, push-to-talk (Space), review-before-commit</li>
+<li><strong><a href="research/poc/README.html">research/poc/</a></strong>
+— Validated POC: Breeze-ASR-26 file transcription + mic press-to-talk
+(transcribes Taigi → Mandarin Han at RTF ~0.1–0.3 on GPU)</li>
 </ul>
 <p><strong>Quick Links:</strong></p>
 <ul>
@@ -197,6 +217,14 @@ gcin-everywhere is active (GNOME ignores IBus property symbols)</li>
 window/field starts in English (method preserved;
 <code>Ctrl+Space</code> resumes); fires on any focus gain since IBus
 exposes focus, not window identity</li>
+<li>✅ Voice input (台語語音) <strong>Phase A</strong> —
+<code>gcin-voiced</code> ASR daemon (MediaTek Breeze-ASR-26, local) over
+a Unix-socket JSON protocol; voice mode (Ctrl+Alt+0) in the unified
+engine with Space push-to-talk and review-before-commit; async, never
+blocks the key loop; 語/🎤/… panel glyph. Build &amp; unit-test clean;
+pending live GPU/mic test. Backend is swappable for whisper.cpp (Phase
+B) behind the stable socket. See <a
+href="research/VOICE-INPUT-DESIGN.html">VOICE-INPUT-DESIGN.md</a></li>
 </ul>
 <h3 id="phase-3-cross-platform-future">Phase 3: Cross-Platform
 (FUTURE)</h3>
@@ -265,6 +293,6 @@ the task and push forward without asking questions.</p>
 this and implement the next phase without asking clarifying
 questions?”</p>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-22</p>
+<p><strong>Last Updated:</strong> 2026-06-25</p>
 </body>
 </html>

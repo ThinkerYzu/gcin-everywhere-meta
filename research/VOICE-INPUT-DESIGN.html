@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>VOICE-INPUT-DESIGN – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {  background-color: #f8f8f8; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ef2929; } /* Alert */
+    code span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #204a87; } /* Attribute */
+    code span.bn { color: #0000cf; } /* BaseN */
+    code span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4e9a06; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #8f5902; font-style: italic; } /* Comment */
+    code span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+    code span.dt { color: #204a87; } /* DataType */
+    code span.dv { color: #0000cf; } /* DecVal */
+    code span.er { color: #a40000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #0000cf; } /* Float */
+    code span.fu { color: #204a87; font-weight: bold; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+    code span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+    code span.ot { color: #8f5902; } /* Other */
+    code span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+    code span.sc { color: #ce5c00; font-weight: bold; } /* SpecialChar */
+    code span.ss { color: #4e9a06; } /* SpecialString */
+    code span.st { color: #4e9a06; } /* String */
+    code span.va { color: #000000; } /* Variable */
+    code span.vs { color: #4e9a06; } /* VerbatimString */
+    code span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#design-gcin-everywhere-voice-input-taiwanese-asr"
+id="toc-design-gcin-everywhere-voice-input-taiwanese-asr">Design:
+gcin-everywhere Voice Input (Taiwanese ASR)</a>
+<ul>
+<li><a href="#navigation" id="toc-navigation">Navigation</a></li>
+<li><a href="#goal-scope" id="toc-goal-scope">Goal &amp; Scope</a>
+<ul>
+<li><a href="#spec-alignment" id="toc-spec-alignment">SPEC
+alignment</a></li>
+</ul></li>
+<li><a href="#design-philosophy" id="toc-design-philosophy">Design
+Philosophy</a></li>
+<li><a href="#architecture-overview"
+id="toc-architecture-overview">Architecture Overview</a>
+<ul>
+<li><a href="#component-roles" id="toc-component-roles">Component
+Roles</a></li>
+</ul></li>
+<li><a href="#key-design-decisions" id="toc-key-design-decisions">Key
+Design Decisions</a>
+<ul>
+<li><a href="#separate-asr-daemon-not-in-process"
+id="toc-separate-asr-daemon-not-in-process">1. Separate ASR daemon, not
+in-process</a></li>
+<li><a href="#the-daemon-owns-audio-capture"
+id="toc-the-daemon-owns-audio-capture">2. The daemon owns audio
+capture</a></li>
+<li><a href="#stable-socket-protocol-swappable-backend"
+id="toc-stable-socket-protocol-swappable-backend">3. Stable socket
+protocol = swappable backend</a></li>
+<li><a href="#voice-is-a-mode-in-the-unified-switcher"
+id="toc-voice-is-a-mode-in-the-unified-switcher">4. Voice is a mode in
+the unified switcher</a></li>
+<li><a href="#push-to-talk-interaction-toggle-style"
+id="toc-push-to-talk-interaction-toggle-style">5. Push-to-talk
+interaction, toggle-style</a></li>
+<li><a href="#asynchronous-non-blocking-transcript-delivery"
+id="toc-asynchronous-non-blocking-transcript-delivery">6. Asynchronous,
+non-blocking transcript delivery</a></li>
+<li><a href="#commit-to-preedit-with-explicit-confirmation"
+id="toc-commit-to-preedit-with-explicit-confirmation">7.
+Commit-to-preedit with explicit confirmation</a></li>
+<li><a href="#output-is-mandarin-han-characters-documented-by-design"
+id="toc-output-is-mandarin-han-characters-documented-by-design">8.
+Output is Mandarin Han characters (documented, by design)</a></li>
+<li><a href="#daemon-lifecycle-systemd-user-service-lazy-load"
+id="toc-daemon-lifecycle-systemd-user-service-lazy-load">9. Daemon
+lifecycle: systemd user service, lazy load</a></li>
+</ul></li>
+<li><a href="#socket-protocol" id="toc-socket-protocol">Socket
+Protocol</a></li>
+<li><a href="#engine-state-interaction-flow"
+id="toc-engine-state-interaction-flow">Engine State &amp; Interaction
+Flow</a>
+<ul>
+<li><a href="#added-engine-state-gcinengine"
+id="toc-added-engine-state-gcinengine">Added engine state
+(<code>GcinEngine</code>)</a></li>
+<li><a href="#push-to-talk-dictation-flow"
+id="toc-push-to-talk-dictation-flow">Push-to-talk dictation
+flow</a></li>
+</ul></li>
+<li><a href="#risks-open-questions" id="toc-risks-open-questions">Risks
+&amp; Open Questions</a></li>
+<li><a href="#implementation-status-phase-a"
+id="toc-implementation-status-phase-a">Implementation Status (Phase
+A)</a></li>
+<li><a href="#phasing" id="toc-phasing">Phasing</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="design-gcin-everywhere-voice-input-taiwanese-asr">Design:
+gcin-everywhere Voice Input (Taiwanese ASR)</h1>
+<p><strong>Project:</strong> gcin-everywhere <strong>Feature:</strong>
+Voice dictation method — speak Taiwanese (Taigi)/Mandarin, commit
+Mandarin Han characters <strong>Status:</strong> Phase A implemented
+(daemon + engine voice mode build &amp; unit-test clean; pending live
+GPU/mic test) — Phases B/C future <strong>Created:</strong> 2026-06-24
+<strong>Last Updated:</strong> 2026-06-25 (Phase A implementation —
+Session 20) <strong>Depends on:</strong> <a
+href="breeze3-taiwanese-asr.html">breeze3-taiwanese-asr.md</a>
+(feasibility) · <a href="poc/">poc/</a> (validated transcription + mic
+capture) <strong>Code:</strong>
+<code>sources/gcin-everywhere/voiced/</code> (daemon) ·
+<code>sources/gcin-everywhere/ibus-engine/gcin_engine.c</code> (voice
+mode)</p>
+<hr />
+<h2 id="navigation">Navigation</h2>
+<p><strong>Project Docs:</strong> <a href="../README.html">README</a> | <a
+href="../SPEC.html">SPEC</a> | <a href="../DESIGN.html">DESIGN</a> | <a
+href="../IMPLEMENTATION-GUIDE.html">IMPLEMENTATION-GUIDE</a> | <a
+href="../HANDOFF.html">HANDOFF</a> <strong>Research:</strong> <a
+href="breeze3-taiwanese-asr.html">Breeze 3 feasibility</a> | <a
+href="poc/README.html">POC</a> | <strong>Voice Input Design</strong>
+<em>(you are here)</em></p>
+<p><strong>This Document:</strong></p>
+<ul>
+<li><a href="#goal--scope">Goal &amp; Scope</a></li>
+<li><a href="#design-philosophy">Design Philosophy</a></li>
+<li><a href="#architecture-overview">Architecture Overview</a></li>
+<li><a href="#key-design-decisions">Key Design Decisions</a></li>
+<li><a href="#socket-protocol">Socket Protocol</a></li>
+<li><a href="#engine-state--interaction-flow">Engine State &amp;
+Interaction Flow</a></li>
+<li><a href="#risks--open-questions">Risks &amp; Open Questions</a></li>
+<li><a href="#phasing">Phasing</a></li>
+</ul>
+<hr />
+<h2 id="goal-scope">Goal &amp; Scope</h2>
+<p>Add a <strong>voice input method</strong> to the
+<code>gcin-everywhere</code> unified engine: the user speaks Taigi (or
+Mandarin, or code-switched speech) into a microphone and the recognized
+text — <strong>Mandarin Han characters</strong> — is committed to the
+focused application, exactly as the table/phonetic methods commit their
+output.</p>
+<p>The recognizer is <strong>MediaTek Breeze-ASR-26</strong>
+(Whisper-large-v2 fine-tuned on Taigi), run <strong>fully
+locally</strong>. The POC (<a href="poc/README.html">poc/</a>) already
+proved transcription quality (coherent Mandarin across varied intents),
+long-audio chunking, and mic capture.</p>
+<p><strong>In scope:</strong> push-to-talk dictation, per-utterance
+batch recognition, review-before-commit, integration into the
+Ctrl+Alt+digit switcher and the panel indicator. <strong>Out of scope
+(this phase):</strong> real-time streaming partials, Taiwanese
+romanization (Tâi-lô) output, training/fine-tuning, non-Linux
+platforms.</p>
+<h3 id="spec-alignment">SPEC alignment</h3>
+<p>This extends the input-method surface; it does <strong>not</strong>
+change the existing engines. It reuses the project’s established
+mechanisms — the unified switcher’s mutable <code>e-&gt;mode</code>, the
+panel <code>IBusProperty</code>, and the
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/</code> IPC directory — so it is
+additive and gated to <code>gcin-everywhere</code> (like decisions 8–10
+in <a href="../DESIGN.html">DESIGN.md</a>).</p>
+<hr />
+<h2 id="design-philosophy">Design Philosophy</h2>
+<ol type="1">
+<li><p><strong>Reuse, don’t reinvent.</strong> Recognition is
+Breeze-ASR-26 as-is; no model changes. The IBus integration reuses the
+unified-engine plumbing already shipped.</p></li>
+<li><p><strong>Local-only, private by default.</strong> Audio never
+leaves the machine; no network calls. This is a core selling point
+versus cloud dictation.</p></li>
+<li><p><strong>Keep the engine thin and never block it.</strong> The
+IBus engine is a C process driving GNOME’s input loop. The heavy ML
+runtime lives in a <strong>separate daemon</strong>; the engine talks to
+it asynchronously and must never stall
+<code>process_key_event</code>.</p></li>
+<li><p><strong>A stable socket boundary.</strong> The engine⇄daemon
+protocol is the contract. The daemon’s internals can start as
+Python/Transformers (validated) and later become native whisper.cpp
+without the engine changing.</p></li>
+<li><p><strong>Accuracy-aware UX.</strong> At ~30% CER, recognition is
+draft quality. Transcripts land in the <strong>preedit</strong> for
+review/commit, never silently auto-committed.</p></li>
+</ol>
+<hr />
+<h2 id="architecture-overview">Architecture Overview</h2>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│            GNOME / Wayland focused application            │
+└───────────────────────────┬──────────────────────────────┘
+                            │ commit text (Mandarin Han)
+┌───────────────────────────▼──────────────────────────────┐
+│   ibus-engine-gcin  (gcin-everywhere mode = VOICE)        │
+│   - Ctrl+Alt+0 enters voice mode; panel shows 語/🎤       │
+│   - push-to-talk key → start/stop control messages        │
+│   - GLib GSource on socket: async transcript → preedit    │
+│   - Enter = commit preedit, Esc = discard                 │
+└───────────────────────────┬──────────────────────────────┘
+                            │ Unix domain socket (newline JSON)
+                            │ $XDG_RUNTIME_DIR/gcin-everywhere/voiced.sock
+┌───────────────────────────▼──────────────────────────────┐
+│   gcin-voiced  (ASR daemon, systemd --user)               │
+│   - owns mic capture (PortAudio/PipeWire)                 │
+│   - holds Breeze-ASR-26 in memory (GPU or CPU)            │
+│   - start → record; stop → transcribe → {transcript}      │
+│   ┌────────────────────────────────────────────────────┐ │
+│   │ Backend (swappable behind the socket):             │ │
+│   │  Phase A: Python + 🤗 Transformers  (validated)    │ │
+│   │  Phase B: whisper.cpp + GGML Breeze-ASR-26 (native)│ │
+│   └────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘</code></pre>
+<h3 id="component-roles">Component Roles</h3>
+<table>
+<colgroup>
+<col style="width: 35%" />
+<col style="width: 45%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>New/Existing</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gcin_engine.c</code> voice path</td>
+<td>Extend existing</td>
+<td>Voice mode, PTT key, socket client, async preedit/commit</td>
+</tr>
+<tr class="even">
+<td><code>gcin-voiced</code> daemon</td>
+<td><strong>New</strong></td>
+<td>Audio capture + Breeze-ASR-26 inference; one socket server</td>
+</tr>
+<tr class="odd">
+<td>Socket protocol</td>
+<td><strong>New</strong></td>
+<td>Newline-delimited JSON control/result channel</td>
+</tr>
+<tr class="even">
+<td>Breeze-ASR-26 weights</td>
+<td><strong>New asset</strong></td>
+<td>HF safetensors (Phase A) or GGML (Phase B)</td>
+</tr>
+<tr class="odd">
+<td>systemd user unit</td>
+<td><strong>New</strong></td>
+<td><code>gcin-voiced.service</code>, lazy model load</td>
+</tr>
+<tr class="even">
+<td>Panel indicator</td>
+<td>Reuse</td>
+<td>Shows 語/🎤 via the existing state file + extension</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-design-decisions">Key Design Decisions</h2>
+<h3 id="separate-asr-daemon-not-in-process">1. Separate ASR daemon, not
+in-process</h3>
+<p><strong>Decision.</strong> Recognition runs in a standalone
+<code>gcin-voiced</code> daemon, not linked into the IBus engine.</p>
+<p><strong>Rationale.</strong> Breeze-ASR-26 is ~2B params (≈1.5 GB
+GGML, ~3 GB safetensors) and wants a CUDA context. Loading that into
+<code>ibus-engine-gcin</code> would bloat a process that today starts
+fast and only loads gcin tables, tie GPU init to engine startup, and
+waste memory whenever voice is unused. A daemon loads the model once,
+lazily, and survives engine focus churn. It also mirrors the project’s
+existing out-of-process IPC (the
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/</code> state file).</p>
+<h3 id="the-daemon-owns-audio-capture">2. The daemon owns audio
+capture</h3>
+<p><strong>Decision.</strong> <code>gcin-voiced</code> captures the
+microphone; the engine sends only
+<code>start</code>/<code>stop</code>.</p>
+<p><strong>Rationale.</strong> Keeps PortAudio/PipeWire dependencies out
+of the C engine entirely. The daemon already links the audio-capable
+runtime (the POC’s <code>sounddevice</code> path). The engine stays a
+pure control client — no PCM ever crosses the socket in the MVP. (A
+later streaming phase may push PCM, but the boundary already allows
+it.)</p>
+<h3 id="stable-socket-protocol-swappable-backend">3. Stable socket
+protocol = swappable backend</h3>
+<p><strong>Decision.</strong> Engine⇄daemon speak newline-delimited JSON
+over a Unix domain socket at
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/voiced.sock</code>. See <a
+href="#socket-protocol">Socket Protocol</a>.</p>
+<p><strong>Rationale.</strong> The protocol is the only contract.
+<strong>Phase A</strong> ships the daemon as the already-validated
+Python/Transformers code (reuse <code>poc/breeze_asr_mic.py</code> logic
+as a server). <strong>Phase B</strong> swaps in a native whisper.cpp +
+GGML daemon for a dependency-light, CPU-capable build — with
+<strong>zero engine changes</strong>. Breeze-ASR-26 is a standard HF
+Whisper checkpoint, so whisper.cpp’s <code>convert-h5-to-ggml.py</code>
+conversion path applies.</p>
+<h3 id="voice-is-a-mode-in-the-unified-switcher">4. Voice is a mode in
+the unified switcher</h3>
+<p><strong>Decision.</strong> Add a voice slot to the Ctrl+Alt+digit
+map: <strong><code>Ctrl+Alt+0</code> → 台語語音 (voice)</strong>. The
+panel property/state file shows <strong>語</strong> (or 🎤 while
+recording). Gated on <code>allow_switch</code>, so only
+<code>gcin-everywhere</code> exposes it.</p>
+<p><strong>Rationale.</strong> Reuses decision 8’s mutable
+<code>e-&gt;mode</code> dispatch and the panel indicator (decision 9)
+verbatim — voice becomes “just another method”, consistent UX.
+<code>0</code> is free in the current map (1/2/3/4/5/8 used).</p>
+<table>
+<thead>
+<tr class="header">
+<th>Hotkey</th>
+<th><code>e-&gt;mode</code></th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Ctrl+Alt+0</code></td>
+<td>(new) VOICE</td>
+<td>台語語音 Voice (Breeze-ASR-26)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="push-to-talk-interaction-toggle-style">5. Push-to-talk
+interaction, toggle-style</h3>
+<p><strong>Decision.</strong> In voice mode, a <strong>push-to-talk key
+toggles recording</strong>: press to start (panel → 🎤, daemon
+<code>start</code>), press again to stop (daemon <code>stop</code>,
+transcribe). <strong>Phase A uses <code>Space</code> as the in-engine
+PTT key</strong> — not a global desktop chord.</p>
+<p><strong>Rationale.</strong> Toggle is robust under IBus (no reliable
+key-<em>release</em> semantics for true hold-to-talk across all apps).
+Per-utterance batch matches Whisper’s 30 s window and the POC’s proven
+path. <strong>Choosing Space (handled inside the engine while in voice
+mode) sidesteps the desktop-grab caveat that afflicts Ctrl+Space
+(decision 8)</strong>: once voice mode is active, Space already reaches
+<code>process_key_event</code>, so no <code>gsettings</code> clearing is
+needed and it works out of the box. In voice mode Space has no other
+meaning (utterances commit whole), so the overload is free. Hold-to-talk
+and an optional global chord (<code>Super+grave</code>-style) move to
+Phase C.</p>
+<h3 id="asynchronous-non-blocking-transcript-delivery">6. Asynchronous,
+non-blocking transcript delivery</h3>
+<p><strong>Decision.</strong> The engine attaches the socket fd to the
+GLib main loop as a <code>GSource</code> (<code>g_io_add_watch</code>).
+<code>start</code>/<code>stop</code> are fire-and-forget writes. The
+<code>transcript</code> event arrives later on the GLib callback, which
+updates the preedit — <code>process_key_event</code> <strong>never
+blocks</strong>.</p>
+<p><strong>Rationale.</strong> Transcription takes 100 ms–several
+seconds. Blocking the IBus engine loop would freeze the user’s keyboard
+everywhere. IBus already runs on GLib, so a <code>GSource</code> is the
+natural, zero-extra-thread mechanism. While recognition is in flight the
+panel shows a “…thinking” glyph.</p>
+<h3 id="commit-to-preedit-with-explicit-confirmation">7.
+Commit-to-preedit with explicit confirmation</h3>
+<p><strong>Decision.</strong> A returned transcript is placed in the
+<strong>preedit buffer</strong> (underlined, uncommitted).
+<code>Enter</code> commits it via
+<code>ibus_engine_commit_text()</code>;
+<code>Esc</code>/<code>Backspace</code> discards; <code>Space</code>
+(the PTT key) re-records, replacing the pending text. (Phase A change
+from the original draft: commit is <code>Enter</code> only —
+<code>Space</code> is reserved for the PTT toggle per decision 5, so it
+re-records rather than commits.) Optionally, alternative hypotheses
+(Whisper beam search N-best) populate the IBus lookup table for quick
+swap (Phase C).</p>
+<p><strong>Rationale.</strong> At ~30% CER, silent auto-commit would
+scatter errors into documents. Review fits IBus’s existing
+preedit/lookup model (decision 5) and gives a correction point at no UI
+cost.</p>
+<h3 id="output-is-mandarin-han-characters-documented-by-design">8.
+Output is Mandarin Han characters (documented, by design)</h3>
+<p><strong>Decision.</strong> Voice mode commits Mandarin Han characters
+— Breeze-ASR-26 maps spoken Taigi → 中文漢字, not Tâi-lô/POJ. This is
+surfaced in UI help text.</p>
+<p><strong>Rationale.</strong> Consistent with every other gcin method
+(all emit Han characters) and convenient for a Traditional-Chinese IME.
+Romanized-Taigi output is a possible future toggle, not MVP.</p>
+<h3 id="daemon-lifecycle-systemd-user-service-lazy-load">9. Daemon
+lifecycle: systemd user service, lazy load</h3>
+<p><strong>Decision.</strong> <code>gcin-voiced.service</code> (systemd
+<code>--user</code>, <code>%h</code>-relative like the engine unit)
+starts the daemon at login but <strong>defers model loading until the
+first <code>start</code></strong>, so idle cost is just the socket. The
+engine auto-starts/pings the daemon when voice mode is first
+entered.</p>
+<p><strong>Rationale.</strong> Most sessions never use voice; paying ~3
+GB + CUDA init at every login is unacceptable. Lazy load keeps non-voice
+users at zero cost while keeping first-use latency to one model
+load.</p>
+<hr />
+<h2 id="socket-protocol">Socket Protocol</h2>
+<p>Unix domain socket
+<code>$XDG_RUNTIME_DIR/gcin-everywhere/voiced.sock</code>,
+newline-delimited JSON, one object per line. Engine is the client;
+daemon is the server.</p>
+<p><strong>Engine → daemon (commands):</strong></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;ping&quot;</span><span class="fu">}</span>                      <span class="er">→</span> <span class="er">liveness</span> <span class="er">/</span> <span class="er">trigger</span> <span class="er">lazy</span> <span class="er">model</span> <span class="er">load</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;start&quot;</span><span class="fu">}</span>                     <span class="er">→</span> <span class="er">begin</span> <span class="er">mic</span> <span class="er">capture</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;stop&quot;</span><span class="fu">}</span>                      <span class="er">→</span> <span class="er">end</span> <span class="er">capture,</span> <span class="er">transcribe,</span> <span class="er">return</span> <span class="er">transcript</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;cancel&quot;</span><span class="fu">}</span>                    <span class="er">→</span> <span class="er">drop</span> <span class="er">capture,</span> <span class="er">no</span> <span class="er">transcription</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;config&quot;</span><span class="fu">,</span><span class="dt">&quot;language&quot;</span><span class="fu">:</span><span class="st">&quot;chinese&quot;</span><span class="fu">,</span><span class="dt">&quot;task&quot;</span><span class="fu">:</span><span class="st">&quot;transcribe&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p><strong>Daemon → engine (events):</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;ready&quot;</span><span class="fu">,</span><span class="dt">&quot;model&quot;</span><span class="fu">:</span><span class="st">&quot;Breeze-ASR-26&quot;</span><span class="fu">,</span><span class="dt">&quot;device&quot;</span><span class="fu">:</span><span class="st">&quot;cuda:0&quot;</span><span class="fu">}</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;recording&quot;</span><span class="fu">}</span>               <span class="er">→</span> <span class="er">mic</span> <span class="er">is</span> <span class="er">live</span> <span class="er">(engine</span> <span class="er">shows</span> <span class="er">🎤)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;thinking&quot;</span><span class="fu">}</span>                <span class="er">→</span> <span class="er">transcription</span> <span class="er">started</span> <span class="er">(engine</span> <span class="er">shows</span> <span class="er">…)</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;transcript&quot;</span><span class="fu">,</span><span class="dt">&quot;text&quot;</span><span class="fu">:</span><span class="st">&quot;救命啊 快來救我&quot;</span><span class="fu">,</span><span class="dt">&quot;alts&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;…&quot;</span><span class="ot">]</span><span class="fu">,</span><span class="dt">&quot;rtf&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="er">.</span><span class="dv">3</span><span class="fu">}</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;error&quot;</span><span class="fu">,</span><span class="dt">&quot;msg&quot;</span><span class="fu">:</span><span class="st">&quot;no input device&quot;</span><span class="fu">}</span></span></code></pre></div>
+<p>State machine (daemon):
+<code>idle → recording → thinking → idle</code>. <code>cancel</code>
+returns to <code>idle</code> from <code>recording</code>. The engine
+mirrors this to the panel glyph (語 → 🎤 → … → 語).</p>
+<hr />
+<h2 id="engine-state-interaction-flow">Engine State &amp; Interaction
+Flow</h2>
+<h3 id="added-engine-state-gcinengine">Added engine state
+(<code>GcinEngine</code>)</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode c"><code class="sourceCode c"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span>   voice_mode<span class="op">;</span>        <span class="co">/* e-&gt;mode == VOICE */</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span>   voice_recording<span class="op">;</span>   <span class="co">/* toggle state for the PTT key */</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span>   voiced_fd<span class="op">;</span>         <span class="co">/* Unix socket to gcin-voiced, -1 if unconnected */</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>guint voiced_watch<span class="op">;</span>      <span class="co">/* GSource id for async event delivery */</span></span></code></pre></div>
+<h3 id="push-to-talk-dictation-flow">Push-to-talk dictation flow</h3>
+<pre><code>User: Ctrl+Alt+0                → e-&gt;mode = VOICE; connect socket; ping daemon; panel 語
+User: press PTT key             → write {&quot;cmd&quot;:&quot;start&quot;}; voice_recording=1
+Daemon                          → {&quot;event&quot;:&quot;recording&quot;}; panel 🎤
+User: speaks Taigi
+User: press PTT key again        → write {&quot;cmd&quot;:&quot;stop&quot;}; voice_recording=0
+Daemon                          → {&quot;event&quot;:&quot;thinking&quot;}; panel …
+Daemon (async, ~0.1–2s)         → {&quot;event&quot;:&quot;transcript&quot;,&quot;text&quot;:&quot;…&quot;}
+Engine GSource callback         → set preedit = text (underlined); panel 語
+User: Enter                     → ibus_engine_commit_text(text); clear preedit
+   (or Esc to discard / PTT to re-record)</code></pre>
+<p>All daemon events arrive on the GLib <code>GSource</code>, so the
+keyboard is never blocked while recording or transcribing.</p>
+<hr />
+<h2 id="risks-open-questions">Risks &amp; Open Questions</h2>
+<table>
+<colgroup>
+<col style="width: 45%" />
+<col style="width: 54%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Risk / Question</th>
+<th>Notes / Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>CPU latency</strong></td>
+<td>RTF 0.1–0.3 on RTX 3090; CPU is far slower. Phase A targets GPU
+boxes; Phase B (whisper.cpp) adds quantized CPU. May offer a smaller
+Whisper fallback.</td>
+</tr>
+<tr class="even">
+<td><strong>~30% CER</strong></td>
+<td>Mitigated by review-before-commit (decision 7) + N-best
+alternatives. Set user expectations in help text.</td>
+</tr>
+<tr class="odd">
+<td><strong>PTT key grabbed by mutter</strong></td>
+<td>Same class as the Ctrl+Space issue (decision 8); pick an unbound
+chord and document the gsettings clear.</td>
+</tr>
+<tr class="even">
+<td><strong>Mic under Wayland/PipeWire</strong></td>
+<td>Daemon uses PipeWire via PortAudio; device selection config like
+POC’s <code>--device-index</code>.</td>
+</tr>
+<tr class="odd">
+<td><strong>GPU memory shared with other apps</strong></td>
+<td>Lazy load + a configurable <code>cpu</code>/<code>cuda</code>
+setting; daemon can unload after idle timeout.</td>
+</tr>
+<tr class="even">
+<td><strong>First-use latency (model load)</strong></td>
+<td><code>ping</code> on entering voice mode warms the model before the
+first utterance.</td>
+</tr>
+<tr class="odd">
+<td><strong>Romanized Taigi (Tâi-lô) demand</strong></td>
+<td>Out of scope now; protocol’s <code>task</code>/<code>config</code>
+leaves room for an output-format flag later.</td>
+</tr>
+<tr class="even">
+<td><strong>Streaming partials</strong></td>
+<td>Whisper is batch; chunked/streaming decoding is a later enhancement
+over the same socket (PCM push).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="implementation-status-phase-a">Implementation Status (Phase
+A)</h2>
+<p>Implemented in Session 20 (2026-06-25); builds and unit-tests clean,
+<strong>pending a live GPU/microphone end-to-end test</strong>.</p>
+<p><strong>Daemon —
+<code>sources/gcin-everywhere/voiced/</code></strong></p>
+<ul>
+<li><p><code>gcin-voiced.py</code> — Unix-socket server, newline-JSON
+protocol exactly as specified above. Lazy model load on
+<code>ping</code> (background thread → <code>ready</code>); daemon owns
+the mic; transcription runs in a worker thread so the accept loop stays
+responsive to <code>cancel</code>. One engine client at a time; the
+model stays loaded across reconnects.</p></li>
+<li><p><code>--mock</code> backend (no model, no mic; canned transcript)
+lets the engine + protocol be developed and tested with <strong>zero
+ML/audio dependencies</strong>.</p></li>
+<li><p><code>test-protocol.py</code> drives a full
+<code>ping → start → stop → transcript</code> + cancel + error exchange
+against <code>--mock</code>; <strong>passes</strong>.</p></li>
+<li><p><code>gcin-voiced.service</code> (systemd <code>--user</code>,
+<code>%h</code>-relative, deferred model load),
+<code>requirements.txt</code>, <code>README.md</code>.</p></li>
+</ul>
+<p><strong>Engine — <code>ibus-engine/gcin_engine.c</code></strong></p>
+<ul>
+<li><p>Voice is <strong>mode 6 inside the unified
+<code>gcin-everywhere</code> engine</strong> (no new IBus engine, no
+component-XML change). <code>Ctrl+Alt+0</code> enters it
+(<code>digit_to_mode('0') → MODE_VOICE</code>), connects the socket and
+pings to warm the model.</p></li>
+<li><p>Socket client attached to the GLib main loop via
+<code>g_io_add_watch</code> (a <code>GSource</code>); transcript events
+update the preedit asynchronously — <code>process_key_event</code> never
+blocks.</p></li>
+<li><p>Keys: <code>Space</code> = PTT toggle (start/stop / re-record),
+<code>Enter</code> = commit pending,
+<code>Esc</code>/<code>Backspace</code> = discard, <code>Esc</code>
+while recording = cancel.</p></li>
+<li><p>Panel glyph via the existing state file +
+<code>active_symbol()</code>: 語 (idle) → 🎤 (recording) → … (thinking).
+The GNOME extension shows it unchanged — it just renders whatever glyph
+the state file holds.</p></li>
+<li><p>A minimal hand-rolled JSON string extractor
+(<code>json_get_str</code>, no <code>json-glib</code> dependency; relies
+on the daemon’s <code>ensure_ascii=False</code> UTF-8 output) —
+unit-tested separately against representative daemon lines.</p></li>
+<li><p>Builds clean (<code>-Wall -Wextra</code>, no warnings).</p></li>
+</ul>
+<p><strong>Still to do for Phase A:</strong> install the daemon venv on
+a GPU box, run end-to-end into a real app, tune the too-short/silence
+threshold, confirm panel glyph transitions live.</p>
+<h2 id="phasing">Phasing</h2>
+<ul>
+<li><p><strong>Phase A — MVP (GPU, Python daemon).</strong> ✅
+Implemented (above), pending live hardware test.
+<code>gcin-voiced</code> wraps the validated Transformers path as a
+socket server; engine voice mode (Ctrl+Alt+0), PTT toggle, async
+preedit, commit/discard, panel 語/🎤. Reuses <a href="poc/">poc/</a>
+wholesale. Goal: end-to-end dictation into any app.</p></li>
+<li><p><strong>Phase B — Native runtime.</strong> Convert Breeze-ASR-26
+to GGML; reimplement the daemon on whisper.cpp (C/C++), CPU-capable and
+dependency-light. No engine changes (stable socket).</p></li>
+<li><p><strong>Phase C — UX polish.</strong> N-best correction
+candidates in the lookup table, streaming partial results, idle model
+unload, optional hold-to-talk and a global shortcut, optional Tâi-lô
+output.</p></li>
+</ul>
+<hr />
+<p><strong>Last Updated:</strong> 2026-06-25 (Phase A implemented —
+daemon + engine voice mode; Session 20)</p>
+</body>
+</html>
