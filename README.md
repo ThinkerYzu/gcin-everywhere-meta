@@ -1,6 +1,6 @@
 # gcin-everywhere
 
-**Status:** Phase 12 complete (7 IBus engines incl. unified gcin-everywhere + GNOME panel indicator) — **plus Voice Input Phase A working** (gcin-voiced ASR daemon + Ctrl+Alt+0 voice mode; confirmed live, daemon deployed as a systemd user service). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
+**Status:** Phase 12 complete (7 IBus engines incl. unified gcin-everywhere + GNOME panel indicator) — **plus Voice Input Phase A working** (gcin-voiced ASR daemon + Ctrl+Alt+0 voice mode; confirmed live, daemon deployed as a systemd user service) **with LLM punctuation restoration** (transcripts post-processed through Ollama `qwen3:14b` to add ，。！？ without altering words). Cangjie, Zhuyin, Quick, Array, CJ5, SimplexPunc, full-width, phrase tables all working
 **Created:** 2026-05-04
 **Last Updated:** 2026-06-25
 **Goal:** Port gcin's Traditional Chinese input engine to modern platforms, starting with GNOME/Wayland via IBus.
@@ -77,7 +77,7 @@ gcin has two distinct input paths. **Cangjie** is table-based: keystrokes are pa
 - ✅ Unified switcher — `gcin-everywhere` engine: `Ctrl+Alt+digit` switches method in place (mirrors gcin's native hotkeys); panel property shows the live method
 - ✅ GNOME panel indicator — `gcin-everywhere@gcin.dev` Shell extension shows the active method glyph in the top bar (engine publishes state via `$XDG_RUNTIME_DIR/gcin-everywhere/state`); shown only while gcin-everywhere is active (GNOME ignores IBus property symbols)
 - ✅ Reset to English on focus change — gcin-everywhere clears `chinese_mode` on focus-in, so each newly-focused window/field starts in English (method preserved; `Ctrl+Space` resumes); fires on any focus gain since IBus exposes focus, not window identity
-- ✅ Voice input (台語語音) **Phase A** — `gcin-voiced` ASR daemon (MediaTek Breeze-ASR-26, local) over a Unix-socket JSON protocol; voice mode (Ctrl+Alt+0) in the unified engine with Space push-to-talk and review-before-commit; async, never blocks the key loop; 語/🎤/… panel glyph. **Confirmed working live; daemon deployed as a systemd user service** (autostart at login). Backend is swappable for whisper.cpp (Phase B) behind the stable socket. See [VOICE-INPUT-DESIGN.md](research/VOICE-INPUT-DESIGN.md)
+- ✅ Voice input (台語語音) **Phase A** — `gcin-voiced` ASR daemon (MediaTek Breeze-ASR-26, local) over a Unix-socket JSON protocol; voice mode (Ctrl+Alt+0) in the unified engine with Space push-to-talk and review-before-commit; async, never blocks the key loop; 語/🎤/… panel glyph. **Confirmed working live; daemon deployed as a systemd user service** (autostart at login). Backend is swappable for whisper.cpp (Phase B) behind the stable socket. **Transcripts are post-processed through a local LLM (Ollama `qwen3:14b`) to restore punctuation** (in the daemon; word-skeleton guard + fail-safe fallback to raw text). See [VOICE-INPUT-DESIGN.md](research/VOICE-INPUT-DESIGN.md)
 
 ### Phase 3: Cross-Platform (FUTURE)
 - Windows via Text Services Framework (TSF)

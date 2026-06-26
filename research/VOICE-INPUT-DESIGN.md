@@ -213,6 +213,42 @@ is just the socket. The engine auto-starts/pings the daemon when voice mode is f
 unacceptable. Lazy load keeps non-voice users at zero cost while keeping first-use latency to
 one model load.
 
+### 10. Punctuation restoration via a local LLM (in the daemon)
+
+**Decision.** Breeze-ASR-26 emits Mandarin Han text with **no punctuation**. The daemon
+post-processes each raw transcript through a **local LLM** (Ollama, default `qwen3:14b`) that
+inserts `，。！？、；：` **without changing the wording**, and returns the punctuated text in the
+same `transcript` event. It lives in the **daemon**, not the engine, and runs inside the
+existing transcribe worker thread.
+
+**Rationale.** Punctuation is a text-cleanup step on the recognizer's output, so it belongs on
+the daemon side of the socket boundary (decision 3) — the engine stays unchanged and just shows
+nicer preedit text. The worker thread hides the latency behind the "…thinking" glyph and never
+blocks `process_key_event`. A local LLM keeps the **local-only / private** guarantee — audio
+*and* text stay on the machine. Reuses the host's Ollama install; **no new Python dependency**
+(stdlib HTTP only).
+
+**Safety.** Two nets:
+- **Never lose a transcript** — Ollama down / timeout / any error → fall back to the raw,
+  unpunctuated text.
+- **Never corrupt words** — accept the LLM output only if its "word skeleton" (text with
+  punctuation + whitespace stripped) is identical to the input. If the model dropped, added,
+  translated, or changed a character, discard its output and keep the raw text. `_clean()` also
+  strips `<think>` blocks / quote / code-fence wrappers.
+
+**Model + GPU co-tenancy.** `qwen3:14b` (sent `think:false` to skip reasoning tokens) punctuates
+faithfully and **co-fits** the GPU with Breeze (~9.8 GB + ~6.6 GB on 24 GB; verified Breeze's
+`.generate()` runs with ~7.6 GB free), so the default `keep_alive: 5m` keeps it resident (fast,
+~2–3 s/utterance). The daemon **never pre-warms** the LLM (loading it before transcription would
+starve `.generate()`); it loads on demand after transcription. A heavier model that doesn't
+co-reside (e.g. the 13–16 GB vision model `qwen2.5vl`) needs `--punctuate-keep-alive 0` so it
+unloads after each call. *(An earlier iteration also translated Mandarin→Taiwanese here; the
+translation quality was insufficient at these model sizes, so the step is now punctuation-only —
+see the session log.)*
+
+Configurable: `--no-punctuate`, `--punctuate-model`, `--punctuate-url`,
+`--punctuate-keep-alive`, and a runtime `{"cmd":"config","punctuate":false}` toggle.
+
 ---
 
 ## Socket Protocol
@@ -226,7 +262,7 @@ one object per line. Engine is the client; daemon is the server.
 {"cmd":"start"}                     → begin mic capture
 {"cmd":"stop"}                      → end capture, transcribe, return transcript
 {"cmd":"cancel"}                    → drop capture, no transcription
-{"cmd":"config","language":"chinese","task":"transcribe"}
+{"cmd":"config","language":"chinese","task":"transcribe","punctuate":true}
 ```
 
 **Daemon → engine (events):**
@@ -234,7 +270,7 @@ one object per line. Engine is the client; daemon is the server.
 {"event":"ready","model":"Breeze-ASR-26","device":"cuda:0"}
 {"event":"recording"}               → mic is live (engine shows 🎤)
 {"event":"thinking"}                → transcription started (engine shows …)
-{"event":"transcript","text":"救命啊 快來救我","alts":["…"],"rtf":0.3}
+{"event":"transcript","text":"救命啊，快來救我！","alts":["…"],"rtf":0.3}  (punctuation restored)
 {"event":"error","msg":"no input device"}
 ```
 
@@ -355,4 +391,4 @@ tune the too-short/silence threshold.
 
 ---
 
-**Last Updated:** 2026-06-25 (Phase A confirmed working live + deployed as systemd service; Session 20)
+**Last Updated:** 2026-06-25 (Session 21 — LLM punctuation restoration added (qwen3:14b, in the daemon); a Mandarin→Taiwanese translation variant was tried and reverted as too low-quality. Phase A confirmed working live + deployed as a systemd service in Session 20.)

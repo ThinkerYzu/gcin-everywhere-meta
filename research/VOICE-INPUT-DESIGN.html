@@ -138,6 +138,9 @@ Output is Mandarin Han characters (documented, by design)</a></li>
 <li><a href="#daemon-lifecycle-systemd-user-service-lazy-load"
 id="toc-daemon-lifecycle-systemd-user-service-lazy-load">9. Daemon
 lifecycle: systemd user service, lazy load</a></li>
+<li><a href="#punctuation-restoration-via-a-local-llm-in-the-daemon"
+id="toc-punctuation-restoration-via-a-local-llm-in-the-daemon">10.
+Punctuation restoration via a local LLM (in the daemon)</a></li>
 </ul></li>
 <li><a href="#socket-protocol" id="toc-socket-protocol">Socket
 Protocol</a></li>
@@ -454,6 +457,53 @@ entered.</p>
 GB + CUDA init at every login is unacceptable. Lazy load keeps non-voice
 users at zero cost while keeping first-use latency to one model
 load.</p>
+<h3 id="punctuation-restoration-via-a-local-llm-in-the-daemon">10.
+Punctuation restoration via a local LLM (in the daemon)</h3>
+<p><strong>Decision.</strong> Breeze-ASR-26 emits Mandarin Han text with
+<strong>no punctuation</strong>. The daemon post-processes each raw
+transcript through a <strong>local LLM</strong> (Ollama, default
+<code>qwen3:14b</code>) that inserts <code>，。！？、；：</code>
+<strong>without changing the wording</strong>, and returns the
+punctuated text in the same <code>transcript</code> event. It lives in
+the <strong>daemon</strong>, not the engine, and runs inside the
+existing transcribe worker thread.</p>
+<p><strong>Rationale.</strong> Punctuation is a text-cleanup step on the
+recognizer’s output, so it belongs on the daemon side of the socket
+boundary (decision 3) — the engine stays unchanged and just shows nicer
+preedit text. The worker thread hides the latency behind the “…thinking”
+glyph and never blocks <code>process_key_event</code>. A local LLM keeps
+the <strong>local-only / private</strong> guarantee — audio <em>and</em>
+text stay on the machine. Reuses the host’s Ollama install; <strong>no
+new Python dependency</strong> (stdlib HTTP only).</p>
+<p><strong>Safety.</strong> Two nets:</p>
+<ul>
+<li><p><strong>Never lose a transcript</strong> — Ollama down / timeout
+/ any error → fall back to the raw, unpunctuated text.</p></li>
+<li><p><strong>Never corrupt words</strong> — accept the LLM output only
+if its “word skeleton” (text with punctuation + whitespace stripped) is
+identical to the input. If the model dropped, added, translated, or
+changed a character, discard its output and keep the raw text.
+<code>_clean()</code> also strips <code>&lt;think&gt;</code> blocks /
+quote / code-fence wrappers.</p></li>
+</ul>
+<p><strong>Model + GPU co-tenancy.</strong> <code>qwen3:14b</code> (sent
+<code>think:false</code> to skip reasoning tokens) punctuates faithfully
+and <strong>co-fits</strong> the GPU with Breeze (~9.8 GB + ~6.6 GB on
+24 GB; verified Breeze’s <code>.generate()</code> runs with ~7.6 GB
+free), so the default <code>keep_alive: 5m</code> keeps it resident
+(fast, ~2–3 s/utterance). The daemon <strong>never pre-warms</strong>
+the LLM (loading it before transcription would starve
+<code>.generate()</code>); it loads on demand after transcription. A
+heavier model that doesn’t co-reside (e.g. the 13–16 GB vision model
+<code>qwen2.5vl</code>) needs <code>--punctuate-keep-alive 0</code> so
+it unloads after each call. <em>(An earlier iteration also translated
+Mandarin→Taiwanese here; the translation quality was insufficient at
+these model sizes, so the step is now punctuation-only — see the session
+log.)</em></p>
+<p>Configurable: <code>--no-punctuate</code>,
+<code>--punctuate-model</code>, <code>--punctuate-url</code>,
+<code>--punctuate-keep-alive</code>, and a runtime
+<code>{"cmd":"config","punctuate":false}</code> toggle.</p>
 <hr />
 <h2 id="socket-protocol">Socket Protocol</h2>
 <p>Unix domain socket
@@ -466,13 +516,13 @@ class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;start&quot;</span><span class="fu">}</span>                     <span class="er">→</span> <span class="er">begin</span> <span class="er">mic</span> <span class="er">capture</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;stop&quot;</span><span class="fu">}</span>                      <span class="er">→</span> <span class="er">end</span> <span class="er">capture,</span> <span class="er">transcribe,</span> <span class="er">return</span> <span class="er">transcript</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;cancel&quot;</span><span class="fu">}</span>                    <span class="er">→</span> <span class="er">drop</span> <span class="er">capture,</span> <span class="er">no</span> <span class="er">transcription</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;config&quot;</span><span class="fu">,</span><span class="dt">&quot;language&quot;</span><span class="fu">:</span><span class="st">&quot;chinese&quot;</span><span class="fu">,</span><span class="dt">&quot;task&quot;</span><span class="fu">:</span><span class="st">&quot;transcribe&quot;</span><span class="fu">}</span></span></code></pre></div>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;cmd&quot;</span><span class="fu">:</span><span class="st">&quot;config&quot;</span><span class="fu">,</span><span class="dt">&quot;language&quot;</span><span class="fu">:</span><span class="st">&quot;chinese&quot;</span><span class="fu">,</span><span class="dt">&quot;task&quot;</span><span class="fu">:</span><span class="st">&quot;transcribe&quot;</span><span class="fu">,</span><span class="dt">&quot;punctuate&quot;</span><span class="fu">:</span><span class="kw">true</span><span class="fu">}</span></span></code></pre></div>
 <p><strong>Daemon → engine (events):</strong></p>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;ready&quot;</span><span class="fu">,</span><span class="dt">&quot;model&quot;</span><span class="fu">:</span><span class="st">&quot;Breeze-ASR-26&quot;</span><span class="fu">,</span><span class="dt">&quot;device&quot;</span><span class="fu">:</span><span class="st">&quot;cuda:0&quot;</span><span class="fu">}</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;recording&quot;</span><span class="fu">}</span>               <span class="er">→</span> <span class="er">mic</span> <span class="er">is</span> <span class="er">live</span> <span class="er">(engine</span> <span class="er">shows</span> <span class="er">🎤)</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;thinking&quot;</span><span class="fu">}</span>                <span class="er">→</span> <span class="er">transcription</span> <span class="er">started</span> <span class="er">(engine</span> <span class="er">shows</span> <span class="er">…)</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;transcript&quot;</span><span class="fu">,</span><span class="dt">&quot;text&quot;</span><span class="fu">:</span><span class="st">&quot;救命啊 快來救我&quot;</span><span class="fu">,</span><span class="dt">&quot;alts&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;…&quot;</span><span class="ot">]</span><span class="fu">,</span><span class="dt">&quot;rtf&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="er">.</span><span class="dv">3</span><span class="fu">}</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;transcript&quot;</span><span class="fu">,</span><span class="dt">&quot;text&quot;</span><span class="fu">:</span><span class="st">&quot;救命啊，快來救我！&quot;</span><span class="fu">,</span><span class="dt">&quot;alts&quot;</span><span class="fu">:</span><span class="ot">[</span><span class="st">&quot;…&quot;</span><span class="ot">]</span><span class="fu">,</span><span class="dt">&quot;rtf&quot;</span><span class="fu">:</span><span class="dv">0</span><span class="er">.</span><span class="dv">3</span><span class="fu">}</span>  <span class="er">(punctuation</span> <span class="er">restored)</span></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span><span class="dt">&quot;event&quot;</span><span class="fu">:</span><span class="st">&quot;error&quot;</span><span class="fu">,</span><span class="dt">&quot;msg&quot;</span><span class="fu">:</span><span class="st">&quot;no input device&quot;</span><span class="fu">}</span></span></code></pre></div>
 <p>State machine (daemon):
 <code>idle → recording → thinking → idle</code>. <code>cancel</code>
@@ -655,7 +705,10 @@ unload, optional hold-to-talk and a global shortcut, optional Tâi-lô
 output.</p></li>
 </ul>
 <hr />
-<p><strong>Last Updated:</strong> 2026-06-25 (Phase A confirmed working
-live + deployed as systemd service; Session 20)</p>
+<p><strong>Last Updated:</strong> 2026-06-25 (Session 21 — LLM
+punctuation restoration added (qwen3:14b, in the daemon); a
+Mandarin→Taiwanese translation variant was tried and reverted as too
+low-quality. Phase A confirmed working live + deployed as a systemd
+service in Session 20.)</p>
 </body>
 </html>

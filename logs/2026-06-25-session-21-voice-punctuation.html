@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>2026-06-25-session-21-voice-punctuation – -</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="../../kb-html/codehilite.css" />
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a
+href="#session-21-voice-input-punctuation-restoration-llm-post-processing"
+id="toc-session-21-voice-input-punctuation-restoration-llm-post-processing">Session
+21: Voice Input — Punctuation Restoration (LLM post-processing)</a>
+<ul>
+<li><a href="#goals" id="toc-goals">Goals</a></li>
+<li><a href="#what-was-done" id="toc-what-was-done">What Was Done</a>
+<ul>
+<li><a href="#punctuation-restorer-in-the-daemon-gcin-voiced.py"
+id="toc-punctuation-restorer-in-the-daemon-gcin-voiced.py">Punctuation
+restorer in the daemon (<code>gcin-voiced.py</code>)</a></li>
+<li><a href="#two-safety-nets" id="toc-two-safety-nets">Two safety
+nets</a></li>
+<li><a href="#wiring-config" id="toc-wiring-config">Wiring +
+config</a></li>
+<li><a href="#tests" id="toc-tests">Tests</a></li>
+</ul></li>
+<li><a href="#key-findings" id="toc-key-findings">Key Findings</a></li>
+<li><a href="#decisions-made" id="toc-decisions-made">Decisions Made</a>
+<ul>
+<li><a href="#tried-and-reverted-mandarintaiwanese-translation"
+id="toc-tried-and-reverted-mandarintaiwanese-translation">Tried and
+reverted: Mandarin→Taiwanese translation</a></li>
+</ul></li>
+<li><a href="#status-at-end-of-session"
+id="toc-status-at-end-of-session">Status at End of Session</a></li>
+<li><a href="#next-steps" id="toc-next-steps">Next Steps</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1
+id="session-21-voice-input-punctuation-restoration-llm-post-processing">Session
+21: Voice Input — Punctuation Restoration (LLM post-processing)</h1>
+<p><strong>Date:</strong> 2026-06-25 <strong>Phase:</strong> Voice Phase
+A polish <strong>Branch:</strong> master</p>
+<hr />
+<h2 id="goals">Goals</h2>
+<ul>
+<li>Breeze-ASR-26 returns Mandarin Han text with <strong>no
+punctuation</strong>. Add a step that feeds the raw transcript to a
+local LLM to restore punctuation before it reaches the engine
+preedit.</li>
+</ul>
+<h2 id="what-was-done">What Was Done</h2>
+<h3 id="punctuation-restorer-in-the-daemon-gcin-voiced.py">Punctuation
+restorer in the daemon (<code>gcin-voiced.py</code>)</h3>
+<p>Added a <code>Punctuator</code> class that post-processes each
+transcript through <strong>Ollama</strong> (<code>/api/chat</code>,
+default <code>qwen3:14b</code>, <code>temperature 0</code>,
+<code>think:false</code>) with a system prompt that adds only
+<code>，。！？、；：</code> and changes no characters. It runs inside
+the existing <code>_transcribe_worker</code> thread, between
+<code>transcribe()</code> and the <code>transcript</code> event — so the
+engine is <strong>unchanged</strong>; it just receives nicer text. The
+latency hides behind the “…thinking” glyph.</p>
+<p>Design choice: punctuation lives on the <strong>daemon</strong> side
+of the socket boundary (keeps the engine thin and the local-only privacy
+guarantee). Uses <strong>stdlib HTTP only</strong> — no new Python
+dependency.</p>
+<h3 id="two-safety-nets">Two safety nets</h3>
+<ul>
+<li><strong>Never lose a transcript</strong> — Ollama down / timeout /
+any error → fall back to the raw text.</li>
+<li><strong>Never corrupt words</strong> — accept the LLM output only if
+its <em>word skeleton</em> (text with punctuation + whitespace stripped,
+<code>_word_skeleton()</code>) equals the input’s. Dropped / added /
+<strong>translated</strong> / changed characters → discard, keep raw.
+<code>_clean()</code> strips <code>&lt;think&gt;</code> blocks and quote
+/ code-fence wrappers.</li>
+</ul>
+<h3 id="wiring-config">Wiring + config</h3>
+<ul>
+<li><p>On by default in <strong>real</strong> mode, <strong>off</strong>
+in mock mode (so the dependency-free <code>test-protocol.py</code>
+doesn’t need Ollama). <code>--punctuate</code> /
+<code>--no-punctuate</code> / <code>--punctuate-model</code> /
+<code>--punctuate-keep-alive</code> override; runtime
+<code>{"cmd":"config","punctuate":false}</code> toggle.</p></li>
+<li><p><strong>No pre-warm</strong> on <code>ping</code> (loading the
+LLM before transcription starves the ASR — see below).</p></li>
+</ul>
+<h3 id="tests">Tests</h3>
+<ul>
+<li>New <code>voiced/test-punctuator.py</code>: 8 dependency-free guard
+tests (skeleton, empty/disabled passthrough, valid-edit accept,
+wording-change reject, dropped-char reject, error fall-back,
+<code>_clean</code>) + 1 live Ollama round-trip that skips if Ollama is
+down. All pass. <code>test-protocol.py</code> still passes.</li>
+</ul>
+<h2 id="key-findings">Key Findings</h2>
+<ul>
+<li><p><strong><code>qwen3:14b</code> punctuates faithfully</strong>
+(<code>你好我今天想去台北車站搭高鐵</code> →
+<code>你好，我今天想去台北車站搭高鐵。</code>), doesn’t rewrite, and at
+<code>think:false</code> returns in ~2–3 s warm.
+<code>qwen2.5vl:7b</code> punctuates equally well but is a 13–16 GB
+vision model.</p></li>
+<li><p><strong>GPU co-tenancy is load-bearing</strong> (debugged from a
+live “no output” failure): a punctuation LLM resident in VRAM
+<em>during</em> transcription starves Whisper’s <code>.generate()</code>
+and <strong>wedges</strong> it (all threads sleeping, no output). Root
+cause was an early <code>warm()</code> on <code>ping</code> that made
+the LLM resident before the first utterance. Fixes: (1) never pre-warm;
+(2) the model loads on demand after transcription.
+<code>qwen3:14b</code> (~9.8 GB) <strong>co-fits</strong> Breeze (~6.6
+GB) — verified Breeze’s <code>.generate()</code> runs to completion with
+~7.6 GB free — so the default is <code>keep_alive: 5m</code> (stay
+resident, no reload). Heavier models use
+<code>--punctuate-keep-alive 0</code> (unload after each call).</p></li>
+</ul>
+<h2 id="decisions-made">Decisions Made</h2>
+<ul>
+<li><p><strong>Punctuation runs in the daemon, not the engine</strong>
+(design decision 10) — the socket boundary stays the contract; the
+engine never changes; the LLM is swappable.</p></li>
+<li><p><strong>Default model <code>qwen3:14b</code>,
+<code>keep_alive: 5m</code></strong> — co-fits the GPU, fast, no wedge;
+verified.</p></li>
+</ul>
+<h3 id="tried-and-reverted-mandarintaiwanese-translation">Tried and
+reverted: Mandarin→Taiwanese translation</h3>
+<p>A mid-session variant had the LLM also <strong>translate</strong> the
+Mandarin into written Taiwanese (台文), since the user wanted Taiwanese
+output rather than Mandarin. Findings before reverting:
+<code>qwen2.5vl:7b</code> translated poorly (kept Mandarin words,
+dropped punctuation, hallucinated 喜歡→知影); <code>qwen3:14b</code> was
+better (<code>汝有無食飯，按怎遮爾晚才來？</code>) but still only draft
+quality (recurring 看→睇, leftover Mandarin). <strong>The user judged
+the translation quality not good enough, so it was reverted</strong> —
+the post-processing step is now punctuation-only. A future direction
+would be a model fine-tuned for 台文, or ASR that outputs Taiwanese
+directly, rather than LLM translation after the fact.</p>
+<h2 id="status-at-end-of-session">Status at End of Session</h2>
+<ul>
+<li><p>Working: punctuation restoration on by default (qwen3:14b,
+<code>think:false</code>, <code>keep_alive:5m</code>); guards +
+GPU-contention fix verified; live round-trip + mock socket path add
+punctuation without altering words; deployed to the systemd
+service.</p></li>
+<li><p>Tests: <code>test-punctuator.py</code> (8 + live) +
+<code>test-protocol.py</code> pass.</p></li>
+</ul>
+<h2 id="next-steps">Next Steps</h2>
+<ul>
+<li><p><strong>User to confirm live end-to-end</strong>: dictate
+(Ctrl+Alt+0 → Space → speak → Space → Enter) and check punctuated
+Mandarin appears in the preedit. Mic→ASR path is unchanged from Phase A;
+raw transcript + punctuation are logged to the journal for
+diagnosis.</p></li>
+<li><p>Optional: a future Taiwanese-output path with a better-suited
+model (see above).</p></li>
+</ul>
+<hr />
+<p><strong>Files Changed:</strong></p>
+<ul>
+<li><p><code>sources/gcin-everywhere/voiced/gcin-voiced.py</code> —
+<code>Punctuator</code> class (Ollama <code>qwen3:14b</code>,
+<code>think:false</code>, <code>keep_alive:5m</code>, no pre-warm),
+wired into <code>_transcribe_worker</code> with raw-transcript logging,
+<code>config</code> toggle, CLI flags, docstring</p></li>
+<li><p><code>sources/gcin-everywhere/voiced/test-punctuator.py</code> —
+new unit test (guards + optional live)</p></li>
+<li><p><code>sources/gcin-everywhere/voiced/README.md</code> —
+punctuation section, GPU note, run/test/requires</p></li>
+<li><p><code>proj_docs/gcin-everywhere/research/VOICE-INPUT-DESIGN.md</code>
+— design decision 10, protocol + status updates</p></li>
+</ul>
+</body>
+</html>
